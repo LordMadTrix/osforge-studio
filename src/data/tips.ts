@@ -1,0 +1,248 @@
+export interface DistroTip {
+  id: string;
+  category: 'distro' | 'desktop' | 'packages' | 'system' | 'security' | 'scripts' | 'build' | 'performance' | 'wsl' | 'cloud';
+  level: 'beginner' | 'intermediate' | 'expert';
+  titleFr: string;
+  titleEn: string;
+  contentFr: string;
+  contentEn: string;
+  tag: string;
+  targetTab?: string;
+  actionSnippet?: string;
+}
+
+export const DISTRO_TIPS: DistroTip[] = [
+  // --- Distribution & Socle ---
+  {
+    id: 'tip-distro-alpine',
+    category: 'distro',
+    level: 'beginner',
+    titleFr: 'Empreinte minimale avec Alpine Linux',
+    titleEn: 'Minimal footprint with Alpine Linux',
+    contentFr: 'Pour un serveur léger, une borne kiosk ou un routeur, Alpine Linux n’occupe que ~130 Mo d’ISO et consomme moins de 60 Mo de RAM au repos grâce à la bibliothèque musl libc et BusyBox.',
+    contentEn: 'For a lightweight server, kiosk, or router, Alpine Linux takes only ~130MB ISO size and under 60MB RAM at idle thanks to musl libc and BusyBox.',
+    tag: 'Taille & RAM',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-distro-debian-stable',
+    category: 'distro',
+    level: 'beginner',
+    titleFr: 'Debian Bookworm : la référence de fiabilité',
+    titleEn: 'Debian Bookworm: The gold standard for stability',
+    contentFr: 'Debian 12 est le socle le plus stable et universellement compatible pour la production. Il supporte debootstrap nativement et bénéficie du plus vaste catalogue de paquets APT.',
+    contentEn: 'Debian 12 is the most stable and universally compatible base for production. It natively supports debootstrap and has the largest APT package archive.',
+    tag: 'Stabilité',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-distro-arch-rolling',
+    category: 'distro',
+    level: 'intermediate',
+    titleFr: 'Arch Linux pour les stations de dev cutting-edge',
+    titleEn: 'Arch Linux for cutting-edge dev workstations',
+    contentFr: 'Arch Linux fournit les dernières versions des compilateurs (GCC, Rust, Clang) et noyaux Linux dès leur sortie (Rolling Release), parfait pour le développement et le gaming.',
+    contentEn: 'Arch Linux provides the newest compiler versions (GCC, Rust, Clang) and Linux kernels upon release (Rolling Release), ideal for development and gaming.',
+    tag: 'Développement',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-distro-raspbian-arm',
+    category: 'distro',
+    level: 'intermediate',
+    titleFr: 'Créer une image personnalisée pour Raspberry Pi 4/5',
+    titleEn: 'Custom Raspberry Pi 4/5 Images',
+    contentFr: 'En sélectionnant l’architecture ARM64 (aarch64) et le format Carte SD Raspberry Pi (.img.xz), l’image générée est directement flashable via Raspberry Pi Imager ou Balena Etcher.',
+    contentEn: 'By selecting ARM64 (aarch64) and the Raspberry Pi SD format (.img.xz), your generated image can be flashed directly with Raspberry Pi Imager or Balena Etcher.',
+    tag: 'Embarqué & IoT',
+    targetTab: 'builder',
+  },
+
+  // --- Bureau & Window Managers ---
+  {
+    id: 'tip-desktop-hyprland',
+    category: 'desktop',
+    level: 'intermediate',
+    titleFr: 'Hyprland : Ergonomie moderne & fluidité Wayland',
+    titleEn: 'Hyprland: Modern ergonomics & Wayland smoothness',
+    contentFr: 'Hyprland est un compositeur Wayland dynamique avec des animations fluides. Il consomme moins de 250 Mo de RAM tout en offrant une productivité maximale pour les développeurs utilisant des raccourcis clavier.',
+    contentEn: 'Hyprland is a dynamic Wayland compositor with fluid animations. It uses under 250MB RAM while maximizing keyboard-driven developer productivity.',
+    tag: 'Productivité',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-desktop-headless',
+    category: 'desktop',
+    level: 'beginner',
+    titleFr: 'Mode Headless / Serveur pour économiser les ressources',
+    titleEn: 'Headless / Server Mode to save resources',
+    contentFr: 'Si votre OS est destiné à un serveur ou une VM cloud, choisissez "Aucun bureau (Mode Serveur)". Vous économiserez plus de 400 Mo de RAM et ~1.2 Go d’espace disque.',
+    contentEn: 'If your OS is meant for a server or cloud VM, select "No Desktop (Server Mode)". You will save 400MB+ RAM and ~1.2GB disk space.',
+    tag: 'Optimisation',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-desktop-ly-tui',
+    category: 'desktop',
+    level: 'intermediate',
+    titleFr: 'Ly TUI : L’écran de connexion le plus rapide',
+    titleEn: 'Ly TUI: The fastest text login manager',
+    contentFr: 'Contrairement à GDM ou SDDM qui chargent un environnement graphique complet au login, Ly fonctionne en mode texte pur (TUI). Il démarre en quelques millisecondes et convient parfaitement aux WM Wayland/X11 légers.',
+    contentEn: 'Unlike GDM or SDDM which boot a full graphical stack for login, Ly runs purely in text TUI. It starts in milliseconds and pairs perfectly with lightweight WMs.',
+    tag: 'Vitesse de Boot',
+    targetTab: 'builder',
+  },
+
+  // --- Noyaux Linux ---
+  {
+    id: 'tip-kernel-zen',
+    category: 'performance',
+    level: 'intermediate',
+    titleFr: 'Noyau Zen / Liquorix pour la réactivité du bureau',
+    titleEn: 'Zen / Liquorix Kernel for desktop responsiveness',
+    contentFr: 'Le noyau Linux Zen intègre l’ordonnanceur MuQSS/BORE et une fréquence de timer à 1000 Hz, réduisant la latence audio et le temps de réponse sous forte charge applicative.',
+    contentEn: 'The Zen Linux kernel features tuned schedulers and 1000Hz timer frequency, reducing audio latency and UI stutter under heavy multitasking.',
+    tag: 'Latence',
+    targetTab: 'builder',
+  },
+  {
+    id: 'tip-kernel-hardened',
+    category: 'security',
+    level: 'expert',
+    titleFr: 'Noyau Hardened pour bloquer les failles mémoire',
+    titleEn: 'Hardened Kernel for memory safety',
+    contentFr: 'Le noyau durci active la randomisation agressive d’espace d’adressage (KASLR), l’interdiction de ptracing arbitraire et le durcissement du slub allocator contre les exploits zero-day.',
+    contentEn: 'The hardened kernel enables aggressive KASLR, restricted ptrace capabilities, and slub allocator hardening against modern zero-day memory exploits.',
+    tag: 'Sécurité Noyau',
+    targetTab: 'builder',
+  },
+
+  // --- Logiciels & Paquets ---
+  {
+    id: 'tip-packages-starship',
+    category: 'packages',
+    level: 'beginner',
+    titleFr: 'Zsh + Starship : Un terminal ultra-rapide et informatif',
+    titleEn: 'Zsh + Starship: Blazing fast & informative terminal',
+    contentFr: 'Starship est un prompt écrit en Rust compatible avec Bash, Zsh et Fish. Il affiche la branche Git, la version de Node/Python/Rust et le statut Docker sans ralentir le shell.',
+    contentEn: 'Starship is a Rust-powered prompt compatible with Bash, Zsh, and Fish. It displays Git branch, runtime versions (Node/Python/Rust), and Docker status with zero latency.',
+    tag: 'Terminal',
+    targetTab: 'packages',
+  },
+  {
+    id: 'tip-packages-btop',
+    category: 'packages',
+    level: 'beginner',
+    titleFr: 'Btop vs Htop : Monitoring moderne en temps réel',
+    titleEn: 'Btop vs Htop: Modern real-time resource monitoring',
+    contentFr: 'Btop propose des graphiques en direct pour le CPU, la RAM, les disques, les processus et même les GPU Nvidia/AMD/Intel directement dans votre console.',
+    contentEn: 'Btop provides live ASCII graphs for CPU, RAM, disks, processes, and Nvidia/AMD/Intel GPUs directly inside your console terminal.',
+    tag: 'Monitoring',
+    targetTab: 'packages',
+  },
+
+  // --- Sécurité & Hardening ---
+  {
+    id: 'tip-sec-cis-l1',
+    category: 'security',
+    level: 'intermediate',
+    titleFr: 'CIS Benchmark Level 1 : Le compromis sécurité/confort idéal',
+    titleEn: 'CIS Benchmark Level 1: Ideal balance of security & usability',
+    contentFr: 'Le niveau 1 durcit les permissions des fichiers critiques (/etc/shadow, /etc/crontab), désactive les protocoles réseau obsolètes (DCCP, RDS) et applique des règles de mots de passe sans casser vos scripts.',
+    contentEn: 'Level 1 hardens critical file permissions (/etc/shadow, /etc/crontab), disables legacy network protocols (DCCP, RDS), and sets strong password policies without breaking scripts.',
+    tag: 'Conformité CIS',
+    targetTab: 'security',
+  },
+  {
+    id: 'tip-sec-fail2ban',
+    category: 'security',
+    level: 'beginner',
+    titleFr: 'Fail2ban + Désactivation de Root SSH = Sérénité',
+    titleEn: 'Fail2ban + Disable Root SSH = Peace of mind',
+    contentFr: 'Désactiver le login SSH en root (`PermitRootLogin no`) et bannir les attaques par force brute avec Fail2ban élimine plus de 99% des scans de bots malveillants sur Internet.',
+    contentEn: 'Disabling root SSH login (`PermitRootLogin no`) along with Fail2ban brute-force banning mitigates over 99% of automated internet attack scans.',
+    tag: 'Protection SSH',
+    targetTab: 'security',
+  },
+  {
+    id: 'tip-sec-luks',
+    category: 'security',
+    level: 'expert',
+    titleFr: 'Chiffrement LUKS2 : Protégez vos données au repos',
+    titleEn: 'LUKS2 Encryption: Protect your data at rest',
+    contentFr: 'En cas de vol d’ordinateur portable ou de clé USB Live, le chiffrement LUKS2 AES-XTS-PLAIN64 garantit qu’aucune donnée confidentielle ne peut être lue sans la phrase de passe.',
+    contentEn: 'In case of stolen laptops or Live USB drives, LUKS2 AES-XTS-PLAIN64 encryption guarantees zero data leakage without the master passphrase.',
+    tag: 'Chiffrement Disque',
+    targetTab: 'security',
+  },
+
+  // --- Scripts & Post-Installation ---
+  {
+    id: 'tip-scripts-firstboot',
+    category: 'scripts',
+    level: 'intermediate',
+    titleFr: 'Initialisation automatique via le First-Boot Script',
+    titleEn: 'Automatic provisioning via First-Boot Script',
+    contentFr: 'Le script `/root/firstboot.sh` s’exécute avec les droits root dès le premier démarrage puis s’auto-désactive. Idéal pour cloner des projets, installer des certificats SSL ou lancer un conteneur Docker.',
+    contentEn: 'The `/root/firstboot.sh` script runs with root privileges on the first boot only. Perfect for cloning repos, installing SSL certs, or spinning up Docker containers.',
+    tag: 'Automatisation',
+    targetTab: 'postinstall',
+  },
+  {
+    id: 'tip-scripts-dotfiles',
+    category: 'scripts',
+    level: 'intermediate',
+    titleFr: 'Synchronisation instantanée de votre environnement avec Git',
+    titleEn: 'Instant environment sync with Git Dotfiles',
+    contentFr: 'Renseignez l’URL de votre dépôt Git public (ex: GitHub) : OSForge clonera automatiquement vos configurations Neovim, Tmux, Zsh et thèmes dans le dossier personnel de l’utilisateur.',
+    contentEn: 'Provide your public Git repo URL: OSForge will automatically clone and link your Neovim, Tmux, Zsh, and theme configs into the user home directory.',
+    tag: 'Dotfiles',
+    targetTab: 'postinstall',
+  },
+
+  // --- Windows WSL2 & Déploiement ---
+  {
+    id: 'tip-wsl-instant-run',
+    category: 'wsl',
+    level: 'beginner',
+    titleFr: 'Tester votre distribution dans Windows sans redémarrer',
+    titleEn: 'Test your distro inside Windows without rebooting',
+    contentFr: 'En choisissant le format WSL2 (.tar.gz), un double-clic sur `install-wsl.bat` ou `run-live-windows.bat` importe instantanément votre OS dans Windows avec accélération graphique WSLg.',
+    contentEn: 'Choosing the WSL2 (.tar.gz) format allows 1-click execution via `install-wsl.bat` or `run-live-windows.bat` on Windows with full WSLg graphical support.',
+    tag: 'Windows WSL2',
+    targetTab: 'inspector',
+  },
+  {
+    id: 'tip-build-github-actions',
+    category: 'cloud',
+    level: 'beginner',
+    titleFr: 'Compiler gratuitement votre ISO sur les serveurs GitHub',
+    titleEn: 'Build your ISO for free on GitHub Actions Cloud',
+    contentFr: 'Pas besoin de machine Linux puissante : poussez le pack généré sur un dépôt GitHub, et le workflow GitHub Actions compilera votre fichier ISO en ~4 minutes avec bande passante 1 Gbps.',
+    contentEn: 'No need for a powerful local Linux machine: push the generated files to a GitHub repo, and GitHub Actions will build your ISO in ~4 minutes with 1Gbps bandwidth.',
+    tag: 'Cloud CI/CD',
+    targetTab: 'inspector',
+  },
+  {
+    id: 'tip-build-docker-isolation',
+    category: 'build',
+    level: 'intermediate',
+    titleFr: 'Compilation étanche dans Docker sans polluer votre machine hôte',
+    titleEn: 'Hermetic Docker Build without host pollution',
+    contentFr: 'Le Dockerfile fourni isole tous les outils de bootstrap (debootstrap, mksquashfs, xorriso). Votre système hôte reste 100% propre après la génération de l’image.',
+    contentEn: 'The provided Dockerfile isolates all build tools (debootstrap, mksquashfs, xorriso). Your host OS remains completely clean after building the ISO image.',
+    tag: 'Docker Build',
+    targetTab: 'inspector',
+  },
+  {
+    id: 'tip-build-qemu-test',
+    category: 'build',
+    level: 'intermediate',
+    titleFr: 'Tester votre ISO en local avec accélération KVM',
+    titleEn: 'Test your ISO locally with KVM Hardware Acceleration',
+    contentFr: 'Testez votre ISO en quelques secondes avec `qemu-system-x86_64 -cdrom dist/os.iso -m 4G -enable-kvm -vga virtio` pour vérifier le bootloader et l’écran de démarrage.',
+    contentEn: 'Test your ISO in seconds using `qemu-system-x86_64 -cdrom dist/os.iso -m 4G -enable-kvm -vga virtio` to verify bootloader and desktop splash.',
+    tag: 'QEMU & Virtualisation',
+    targetTab: 'inspector',
+  },
+];
