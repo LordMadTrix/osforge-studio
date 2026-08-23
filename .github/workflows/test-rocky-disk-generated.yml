@@ -44,7 +44,7 @@ jobs:
 
       - name: Boot réel via QEMU (BIOS, série) et recherche d'un prompt de login
         run: |
-          timeout 90 sudo qemu-system-x86_64 -enable-kvm -m 1536 \
+          timeout 90 sudo qemu-system-x86_64 -enable-kvm -cpu host -m 1536 \
             -drive file=dist/diskforgerocky-1.0-x86_64.img,format=raw \
             -nographic -serial file:/tmp/serial.log -display none \
             || echo "QEMU s'est arrêté (timeout attendu ou fin de boot)"
