@@ -1,0 +1,50 @@
+name: 🧪 Test rpi_sd (script réellement généré par OSForge)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Générer le script rpi_sd depuis le code source actuel
+        run: |
+          npm ci
+          npx tsx scripts/dump-rpi-sd.ts
+          cat scripts/generated-rpi-sd.sh
+
+      - name: Exécuter le script généré (bootstrap ARM64 + image carte SD complète)
+        run: sudo bash scripts/generated-rpi-sd.sh
+
+      - name: Vérifier le résultat (décompresser et inspecter les deux partitions)
+        run: |
+          IMG_XZ=$(find dist -name '*.img.xz')
+          echo "Image trouvée : $IMG_XZ"
+          xz -d -k "$IMG_XZ"
+          IMG="${IMG_XZ%.xz}"
+          sudo losetup -P -f "$IMG"
+          LOOPDEV=$(losetup -j "$IMG" | cut -d: -f1)
+          echo "Loop device: $LOOPDEV"
+          sudo mkdir -p /mnt/rpitest-boot /mnt/rpitest-root
+          sudo mount "${LOOPDEV}p1" /mnt/rpitest-boot
+          sudo mount "${LOOPDEV}p2" /mnt/rpitest-root
+          echo "=== partition 1 (boot/firmware, FAT32) ==="
+          ls -la /mnt/rpitest-boot/
+          echo "=== cmdline.txt ==="
+          cat /mnt/rpitest-boot/cmdline.txt || echo "ECHEC: cmdline.txt absent"
+          echo "=== partition 2 (root, ext4) : /etc/os-release ==="
+          cat /mnt/rpitest-root/etc/os-release || echo "ECHEC: pas d'os-release"
+          echo "=== partition 2 : /etc/fstab ==="
+          cat /mnt/rpitest-root/etc/fstab || echo "ECHEC: pas de fstab"
+          echo "=== partition 2 : présence du noyau ==="
+          ls -la /mnt/rpitest-root/boot/ | grep -i kernel8 || echo "ECHEC: kernel8.img absent"
+          echo "=== partition 2 : utilisateur forge créé ==="
+          grep forge /mnt/rpitest-root/etc/passwd || echo "ECHEC: utilisateur forge absent"
+          sudo umount /mnt/rpitest-boot /mnt/rpitest-root
+          sudo losetup -d "$LOOPDEV"

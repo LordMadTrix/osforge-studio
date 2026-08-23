@@ -239,16 +239,91 @@ describe('resolvePackageList — repli de noms de paquets pour les distros absen
   });
 });
 
-describe('generateBuildScript — Raspberry Pi OS (miroir et paquet noyau corrigés cette session)', () => {
-  it('utilise le miroir archive.raspberrypi.com (le seul à publier arm64 — vérifié en live)', () => {
+describe('generateBuildScript — Raspberry Pi OS (bootstrap Debian + overlay corrigé cette session)', () => {
+  it('bootstrap depuis le vrai Debian (deb.debian.org), PAS directement depuis archive.raspberrypi.com', () => {
+    // Bug réel trouvé et corrigé cette session via un test live sur GitHub Actions :
+    // archive.raspberrypi.com/debian n'est qu'un dépôt d'ajout (noyau/firmware), pas un miroir
+    // Debian complet ; un debootstrap direct dessus échoue avec "usr-is-merged" introuvable.
     const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'iso_hybrid' }));
-    expect(script).toContain('archive.raspberrypi.com');
-    expect(script).not.toContain('raspbian.raspberrypi.org');
+    expect(script).toContain('deb.debian.org/debian bookworm main');
+    expect(script).toContain('archive.raspberrypi.com/debian bookworm main');
+    expect(script).toMatch(/debootstrap --arch="arm64"[\s\S]*?"http:\/\/deb\.debian\.org\/debian"/);
   });
 
-  it("utilise le vrai méta-paquet noyau linux-image-rpi-v8 (pas linux-image-arm64, qui n'existe pas sur ce dépôt)", () => {
+  it('importe la clé GPG signed-by du dépôt Raspberry Pi avant apt-get update (sinon NO_PUBKEY)', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'iso_hybrid' }));
-    expect(script).toContain('linux-image-rpi-v8');
+    expect(script).toContain('raspberrypi.gpg.key');
+    expect(script).toContain('signed-by=/etc/apt/keyrings/raspberrypi.gpg.key');
+    const keyIdx = script.indexOf('curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key');
+    const updateIdx = script.indexOf('# Mise à jour des index de paquets');
+    expect(keyIdx).toBeGreaterThan(-1);
+    expect(updateIdx).toBeGreaterThan(-1);
+    expect(keyIdx).toBeLessThan(updateIdx);
+  });
+
+  it("utilise le vrai méta-paquet noyau raspberrypi-kernel (vérifié en live : linux-image-rpi-v8 n'existe pas)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'iso_hybrid' }));
+    expect(script).toContain('raspberrypi-kernel');
+    expect(script).toContain('raspi-firmware');
+    expect(script).not.toContain('linux-image-rpi-v8');
     expect(script).not.toContain('linux-image-arm64');
+  });
+
+  it("n'inclut PAS le noyau/firmware dans le --include du debootstrap (absents du miroir Debian de bootstrap)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'iso_hybrid' }));
+    const includeMatch = script.match(/--include="([^"]*)"/);
+    expect(includeMatch).not.toBeNull();
+    expect(includeMatch![1]).not.toContain('raspberrypi-kernel');
+    expect(includeMatch![1]).not.toContain('raspi-firmware');
+  });
+});
+
+describe('generateBuildScript — rpi_sd (carte SD Raspberry Pi, pipeline vérifié en live sur GitHub Actions)', () => {
+  it('raspbian + aarch64 + rpi_sd génère un vrai pipeline carte SD (pas le repli ISO)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).toContain('Image Carte SD Raspberry Pi');
+    expect(script).not.toContain("n'est pas disponible pour cette combinaison");
+  });
+
+  it('bootstrap ARM64 via qemu-user-static + debootstrap --foreign/--second-stage', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).toContain('qemu-user-static');
+    expect(script).toContain('debootstrap --arch=arm64 --foreign bookworm');
+    expect(script).toContain('qemu-aarch64-static');
+    expect(script).toContain('/debootstrap/debootstrap --second-stage');
+  });
+
+  it("partitionne en FAT32 boot (/boot/firmware) + ext4 root, PAS de GRUB", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).toContain('mkfs.vfat -F 32');
+    expect(script).toContain('mkfs.ext4 -F -L rootfs');
+    expect(script).toContain('/boot/firmware');
+    expect(script).not.toContain('grub-install');
+    expect(script).not.toContain('grub.cfg');
+  });
+
+  it('écrit cmdline.txt avec root=UUID (pas GRUB, RPi lit cmdline.txt/config.txt directement)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).toContain('cmdline.txt');
+    expect(script).toContain('root=UUID=${ROOT_UUID}');
+    expect(script).toContain('rootwait');
+  });
+
+  it('compresse la sortie finale en .img.xz', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).toContain('xz -T0 -f');
+    expect(script).toContain('.img.xz');
+  });
+
+  it('rpi_sd avec une autre distro (ex: ubuntu) retombe honnêtement sur le repli ISO', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', arch: 'aarch64', outputFormat: 'rpi_sd' }));
+    expect(script).not.toContain('Image Carte SD Raspberry Pi');
+    expect(script).toContain("n'est pas disponible pour cette combinaison");
+  });
+
+  it('rpi_sd avec raspbian + x86_64 (pas de vrai matériel Pi 64-bit x86) retombe honnêtement sur le repli ISO', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', arch: 'x86_64', outputFormat: 'rpi_sd' }));
+    expect(script).not.toContain('Image Carte SD Raspberry Pi');
+    expect(script).toContain("n'est pas disponible pour cette combinaison");
   });
 });
