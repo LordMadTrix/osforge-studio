@@ -211,8 +211,8 @@ interface NonDebianFamilyConfig {
   // dans le rootfs, ex. /boot/vmlinuz-linux). Statique pour Arch, dynamique (version du noyau
   // détectée via /lib/modules) pour les familles RPM (Fedora/Rocky, openSUSE).
   diskImageKernelDetectCmd?: string;
-  grubInstallBin?: string; // 'grub-install' (Arch/openSUSE/Void) ou 'grub2-install' (Fedora/Rocky, RHEL renomme le binaire)
-  grubConfigSubdir?: string; // 'grub' (Arch/openSUSE/Void) ou 'grub2' (Fedora/Rocky)
+  grubInstallBin?: string; // 'grub-install' (Arch/Alpine/Void) ou 'grub2-install' (Fedora/Rocky/openSUSE, qui renomment le binaire)
+  grubConfigSubdir?: string; // 'grub' (Arch/Alpine/Void) ou 'grub2' (Fedora/Rocky/openSUSE)
   // Alpine uniquement : son outil de résolution de "root=" au démarrage (nlplug-findfs) échoue
   // sur "root=UUID=..." dans ce pipeline — vérifié en live (échec de montage systématique). Un
   // chemin de périphérique direct (/dev/sda1) fonctionne. Contrepartie assumée et documentée :
@@ -377,15 +377,34 @@ sed -i 's/^#ttyS0::/ttyS0::/' "\${ROOTFS_DIR}/etc/inittab"` : ''}`,
   suse: {
     hostDeps: 'zypper',
     hostCheckCmd: 'zypper',
-    bootstrapBlock: () => `mkdir -p "\${ROOTFS_DIR}"
+    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${ROOTFS_DIR}"
 zypper --root "\${ROOTFS_DIR}" --non-interactive addrepo --no-gpgcheck \\
   https://download.opensuse.org/tumbleweed/repo/oss/ repo-oss
 zypper --root "\${ROOTFS_DIR}" --non-interactive --gpg-auto-import-keys refresh
 zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --allow-unsigned-rpm \\
-  patterns-base-minimal_base rpm shadow sudo`,
+  patterns-base-minimal_base rpm shadow sudo${isDiskImage ? `
+
+# dracut est "hostonly" par défaut : sans ceci, l'initramfs généré par le scriptlet du paquet
+# noyau n'embarque que les pilotes de LA MACHINE DE BUILD (l'hôte Ubuntu du chroot zypper), pas
+# ceux nécessaires pour démarrer sur la VM/machine cible réelle — même bug que Fedora/RHEL, même
+# correctif (méthode officiellement documentée pour construire des images disque génériques).
+# Écrit AVANT l'installation du noyau : le scriptlet %posttrans qui régénère l'initramfs doit
+# trouver ce fichier déjà en place. Tentative de correction de l'échec de montage /sysroot observé
+# lors des essais précédents (le périphérique racine était trouvé mais son montage échouait :
+# symptôme classique d'un initrd hostonly n'embarquant pas le pilote de bloc/filesystem cible).
+mkdir -p "\${ROOTFS_DIR}/etc/dracut.conf.d"
+cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
+hostonly="no"
+DRACUT_EOF
+
+zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --allow-unsigned-rpm \\
+  kernel-default grub2 grub2-i386-pc` : ''}`,
     updateCmd: '',
     installOneCmd: 'zypper --non-interactive install --no-recommends "$pkg"',
-    diskImageSupported: false,
+    diskImageSupported: true,
+    diskImageKernelDetectCmd: 'KVER=$(ls "${MNT_DIR}/lib/modules/" | head -1)\nKERNEL_PATH="/boot/vmlinuz-${KVER}"\nINITRD_PATH="/boot/initrd-${KVER}"',
+    grubInstallBin: 'grub2-install',
+    grubConfigSubdir: 'grub2',
   },
   void: {
     hostDeps: '',

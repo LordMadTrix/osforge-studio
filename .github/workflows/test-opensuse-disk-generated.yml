@@ -1,0 +1,49 @@
+name: 🧪 Test disque openSUSE (script réellement généré par OSForge)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Générer le script depuis le code source actuel
+        run: |
+          npm ci
+          npx tsx scripts/dump-opensuse-disk.ts
+          cat scripts/generated-opensuse-disk.sh
+
+      - name: Exécuter le script généré (bootstrap zypper + partitionnement + GRUB2)
+        run: sudo bash scripts/generated-opensuse-disk.sh
+
+      - name: Vérifier le contenu de l'image avant boot
+        run: |
+          sudo losetup -P -f dist/diskforgesuse-1.0-x86_64.img
+          LOOPDEV=$(losetup -j dist/diskforgesuse-1.0-x86_64.img | cut -d: -f1)
+          sudo mkdir -p /mnt/susetest
+          sudo mount "${LOOPDEV}p1" /mnt/susetest
+          echo "=== /etc/os-release ==="
+          cat /mnt/susetest/etc/os-release || echo "ECHEC: pas d'os-release"
+          echo "=== contenu de /boot ==="
+          ls -la /mnt/susetest/boot/ || echo "ECHEC: /boot vide ou absent"
+          echo "=== contenu de /etc/dracut.conf.d/ ==="
+          cat /mnt/susetest/etc/dracut.conf.d/00-no-hostonly.conf || echo "ECHEC: fichier hostonly absent"
+          sudo umount /mnt/susetest
+          sudo losetup -d "$LOOPDEV"
+
+      - name: Boot réel via QEMU (BIOS, série) et recherche d'un prompt de login
+        run: |
+          sudo apt-get install -y qemu-system-x86 || true
+          timeout 90 sudo qemu-system-x86_64 -enable-kvm -m 1536 \
+            -drive file=dist/diskforgesuse-1.0-x86_64.img,format=raw \
+            -nographic -serial file:/tmp/serial.log -display none \
+            || echo "QEMU s'est arrêté (timeout attendu ou fin de boot)"
+          echo "=== dernières lignes de la console série ==="
+          tail -n 150 /tmp/serial.log || echo "ECHEC: pas de log série"
+          grep -qi "login:" /tmp/serial.log && echo "✅ PROMPT DE LOGIN ATTEINT" || echo "❌ Pas de prompt de login détecté"
