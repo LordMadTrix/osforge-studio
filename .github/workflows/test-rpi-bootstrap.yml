@@ -1,0 +1,42 @@
+name: 🧪 Test bootstrap ARM64 (Raspberry Pi)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer les dépendances
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y debootstrap qemu-user-static binfmt-support parted dosfstools
+
+      - name: Vérifier binfmt arm64
+        run: |
+          ls /proc/sys/fs/binfmt_misc/ | grep -i aarch64 || echo "PAS de binfmt aarch64 enregistré"
+          cat /proc/sys/fs/binfmt_misc/qemu-aarch64 2>&1 || echo "fichier absent"
+          which qemu-aarch64-static || echo "binaire absent"
+
+      - name: Debootstrap arm64 foreign + second-stage
+        run: |
+          sudo mkdir -p /tmp/rpi-test-root
+          sudo debootstrap --arch=arm64 --foreign bookworm /tmp/rpi-test-root http://archive.raspberrypi.com/debian
+          sudo cp /usr/bin/qemu-aarch64-static /tmp/rpi-test-root/usr/bin/
+          sudo chroot /tmp/rpi-test-root /debootstrap/debootstrap --second-stage
+          echo "=== os-release ==="
+          sudo cat /tmp/rpi-test-root/etc/os-release || echo "ECHEC: pas d'os-release"
+
+      - name: Installer le noyau RPi dans le chroot
+        run: |
+          sudo mount --bind /dev /tmp/rpi-test-root/dev
+          sudo mount --bind /proc /tmp/rpi-test-root/proc
+          sudo mount --bind /sys /tmp/rpi-test-root/sys
+          sudo cp /etc/resolv.conf /tmp/rpi-test-root/etc/resolv.conf
+          echo "deb http://archive.raspberrypi.com/debian bookworm main" | sudo tee /tmp/rpi-test-root/etc/apt/sources.list
+          sudo chroot /tmp/rpi-test-root apt-get update -y
+          sudo chroot /tmp/rpi-test-root env DEBIAN_FRONTEND=noninteractive apt-get install -y raspberrypi-kernel raspi-firmware
+          echo "=== /boot ==="
+          sudo ls -la /tmp/rpi-test-root/boot/
+          echo "=== /boot/firmware ==="
+          sudo ls -la /tmp/rpi-test-root/boot/firmware/ || echo "ECHEC: /boot/firmware vide ou absent"
