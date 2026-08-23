@@ -627,11 +627,22 @@ function generateNonDebianDiskImageScript(
   const grubSubdir = config.grubConfigSubdir!;
   // Alpine (nlplug-findfs) ne résout pas "root=UUID=..." dans ce pipeline — vérifié en live —
   // donc on retombe sur un chemin de périphérique direct pour cette famille uniquement.
-  const grubSearchLine = config.diskImageRootIsDevicePath ? '' : '    search --no-floppy --fs-uuid --set=root \\${ROOT_UUID}\n';
+  //
+  // BUG réel trouvé et corrigé cette session (vérifié en live sur openSUSE via GitHub Actions,
+  // le noyau paniquait avec "Unable to mount root fs on \"UUID=\"" — UUID vide) : ces deux chaînes
+  // JS à guillemets simples n'ont besoin d'AUCUN antislash. Un antislash ici survit tel quel
+  // jusque dans le texte bash final (guillemets simples JS = zéro interprétation), et bash,
+  // rencontrant "\${ROOT_UUID}" dans le heredoc NON quoté du grub.cfg, traite le antislash comme
+  // un échappement du "$" — produisant un "${ROOT_UUID}" littéral au lieu de substituer la vraie
+  // valeur. GRUB interprète alors CE "${ROOT_UUID}" comme SA PROPRE variable de script (jamais
+  // définie par aucun "set"), qui vaut donc une chaîne vide. D'où le "root=UUID=" vide constaté.
+  // Sans antislash, la substitution bash réelle a lieu à l'écriture du fichier — comme le fait
+  // déjà correctement la ligne fstab juste en dessous, qui n'a jamais eu ce bug.
+  const grubSearchLine = config.diskImageRootIsDevicePath ? '' : '    search --no-floppy --fs-uuid --set=root ${ROOT_UUID}\n';
   // /dev/sda1 suppose que le disque apparaît comme premier disque IDE/SATA/SCSI côté machine
   // cible (vrai sous QEMU, la plupart des hyperviseurs BIOS classiques) — moins portable qu'UUID,
   // mais nlplug-findfs (Alpine) ne sait pas résoudre UUID= dans ce pipeline. Compromis assumé.
-  const rootKernelArg = config.diskImageRootIsDevicePath ? '/dev/sda1' : 'UUID=\\${ROOT_UUID}';
+  const rootKernelArg = config.diskImageRootIsDevicePath ? '/dev/sda1' : 'UUID=${ROOT_UUID}';
 
   const diskConversionStep = needsConversion ? `
 echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"

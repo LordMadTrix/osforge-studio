@@ -170,13 +170,39 @@ describe('generateBuildScript — images disque Fedora/Rocky (vérifié en live 
   });
 });
 
-describe('generateBuildScript — familles sans image disque vérifiée : refus explicite, jamais de code silencieusement cassé', () => {
-  it.each(['opensuse'] as DistroId[])('%s refuse proprement les formats image disque non vérifiés', (distroId) => {
-    for (const format of ['qcow2', 'vmdk', 'raw_img'] as OutputFormat[]) {
-      const script = generateBuildScript(makeRecipe({ distro: distroId, outputFormat: format }));
-      expect(script).toContain('exit 1');
-      expect(script).toMatch(/ERREUR/);
-    }
+describe('generateBuildScript — grub.cfg : la vraie valeur ROOT_UUID doit être substituée, pas un template littéral (bug réel trouvé en live sur openSUSE : root=UUID= vide → kernel panic)', () => {
+  it.each(['arch', 'fedora', 'rocky', 'opensuse', 'void'] as DistroId[])('%s : ni "search --set=root" ni "root=UUID=" ne contiennent de antislash devant ${ROOT_UUID}', (distroId) => {
+    const script = generateBuildScript(makeRecipe({ distro: distroId, outputFormat: 'raw_img' }));
+    expect(script).not.toContain('\\${ROOT_UUID}');
+    expect(script).toContain('search --no-floppy --fs-uuid --set=root ${ROOT_UUID}');
+    expect(script).toContain('root=UUID=${ROOT_UUID}');
+  });
+});
+
+describe('generateBuildScript — image disque openSUSE (nouvellement implémentée, hostonly dracut corrigé)', () => {
+  it('installe kernel-default, grub2 et grub2-i386-pc pour un format disque', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img' }));
+    expect(script).toContain('kernel-default grub2 grub2-i386-pc');
+  });
+
+  it('désactive hostonly dracut AVANT l\'installation du noyau (même correctif que Fedora/Rocky)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img' }));
+    const dracutIdx = script.indexOf('hostonly="no"');
+    const kernelInstallIdx = script.indexOf('kernel-default grub2 grub2-i386-pc');
+    expect(dracutIdx).toBeGreaterThan(-1);
+    expect(kernelInstallIdx).toBeGreaterThan(-1);
+    expect(dracutIdx).toBeLessThan(kernelInstallIdx);
+  });
+
+  it('utilise grub2-install / boot/grub2 (comme Fedora/Rocky, pas grub-install/boot/grub comme Arch)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img' }));
+    expect(script).toContain('grub2-install');
+    expect(script).toContain('/boot/grub2/grub.cfg');
+  });
+
+  it('détecte dynamiquement la version du noyau via /lib/modules (pas de chemin statique)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img' }));
+    expect(script).toContain('KVER=$(ls');
   });
 });
 
