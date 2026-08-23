@@ -39,9 +39,12 @@ jobs:
         run: |
           TAR=$(find dist -name '*rootfs.tar.gz')
           echo "Archive: $TAR"
+          echo "=== recherche os-release dans le listing complet ==="
+          tar -tzf "$TAR" | grep -i os-release
           mkdir -p /tmp/mintcheck
-          sudo tar -xzf "$TAR" -C /tmp/mintcheck ./etc/os-release ./usr/bin/firefox 2>&1 || true
-          echo "=== os-release ==="
+          sudo tar -xzf "$TAR" -C /tmp/mintcheck etc usr/bin/firefox usr/lib/firefox 2>&1 | head -20
+          echo "=== os-release (chemin résolu) ==="
           cat /tmp/mintcheck/etc/os-release || echo "ECHEC: pas d'os-release"
           echo "=== firefox (doit venir du dépôt Mozilla, pas du stub snap) ==="
           ls -la /tmp/mintcheck/usr/bin/firefox || echo "ECHEC: firefox absent"
+          file /tmp/mintcheck/usr/lib/firefox/firefox 2>&1 || echo "binaire firefox introuvable"
