@@ -190,16 +190,23 @@ const NON_DEBIAN_LABELS: Record<string, string> = {
 interface NonDebianFamilyConfig {
   hostDeps: string;
   hostCheckCmd: string; // commandes déjà présentes sur l'hôte si le bootstrap a déjà tourné une fois : évite un "apt-get update" inutile (et donc un échec si un dépôt tiers de l'hôte est cassé, sans rapport avec la compilation)
-  bootstrapBlock: (distroId: string, unameArch: string) => string;
+  bootstrapBlock: (distroId: string, unameArch: string, isDiskImage: boolean) => string;
   updateCmd: string;
   installOneCmd: string; // utilise la variable shell "$pkg"
+  diskImageSupported: boolean; // pipeline partition+grub-install vérifié en live (boot QEMU réel jusqu'au login) — Arch/CachyOS uniquement pour l'instant
+  kernelImagePath?: string; // chemin du noyau DANS le rootfs, ex. /boot/vmlinuz-linux (Arch)
+  initrdImagePath?: string; // chemin de l'initramfs DANS le rootfs, ex. /boot/initramfs-linux.img (Arch)
+  // Modifier mkinitcpio.conf (HOOKS) ne suffit pas : l'initramfs déjà généré par pacstrap (avec
+  // "autodetect") reste sur disque tant qu'on ne le régénère pas explicitement — vérifié en live
+  // (la 1ère image bootée restait bloquée sur "A start job is running for /dev/disk/by-uuid/...").
+  diskImageInitrdRegenCmd?: string;
 }
 
 const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyConfig> = {
   arch: {
     hostDeps: 'arch-install-scripts pacman-package-manager',
     hostCheckCmd: 'pacstrap',
-    bootstrapBlock: () => `mkdir -p "\${WORK_DIR}/pacman.d"
+    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/pacman.d"
 cat > "\${WORK_DIR}/pacman.d/mirrorlist" << 'ARCH_MIRROR_EOF'
 Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 ARCH_MIRROR_EOF
@@ -208,6 +215,7 @@ cat > "\${WORK_DIR}/pacman.conf" << PACMAN_CONF_EOF
 Architecture = auto
 SigLevel = Never
 LocalFileSigLevel = Optional
+#CheckSpace
 
 [core]
 Include = \${WORK_DIR}/pacman.d/mirrorlist
@@ -217,14 +225,24 @@ Include = \${WORK_DIR}/pacman.d/mirrorlist
 PACMAN_CONF_EOF
 
 mkdir -p "\${ROOTFS_DIR}/var/lib/pacman"
-pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base
+pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base${isDiskImage ? ' grub linux linux-firmware' : ''}
 
 # Le rootfs cible a besoin de son PROPRE mirrorlist utilisable : pacstrap -M n'y copie pas
 # celui de l'hôte, et celui livré par défaut avec "base" a tous ses miroirs commentés.
 echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' > "\${ROOTFS_DIR}/etc/pacman.d/mirrorlist"
-sed -i 's/^#\\?SigLevel.*/SigLevel = Never/' "\${ROOTFS_DIR}/etc/pacman.conf"`,
+sed -i 's/^#\\?SigLevel.*/SigLevel = Never/' "\${ROOTFS_DIR}/etc/pacman.conf"
+# CheckSpace est peu fiable dans un chroot (faux "not enough free disk space", vérifié en live) : désactivé.
+sed -i 's/^CheckSpace/#CheckSpace/' "\${ROOTFS_DIR}/etc/pacman.conf"${isDiskImage ? `
+# Le hook "autodetect" de mkinitcpio adapte l'initramfs au matériel de LA MACHINE DE BUILD (WSL2/CI),
+# pas à celui de la machine cible qui bootera l'image — vérifié en live : sans ce retrait, l'image
+# construite reste bloquée au démarrage sur "A start job is running for /dev/disk/by-uuid/...".
+sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconsole block filesystems fsck)/' "\${ROOTFS_DIR}/etc/mkinitcpio.conf"` : ''}`,
     updateCmd: 'pacman -Sy --noconfirm',
     installOneCmd: 'pacman -S --noconfirm --needed "$pkg"',
+    diskImageSupported: true,
+    kernelImagePath: '/boot/vmlinuz-linux',
+    initrdImagePath: '/boot/initramfs-linux.img',
+    diskImageInitrdRegenCmd: 'mkinitcpio -P',
   },
   fedora: {
     hostDeps: 'dnf dnf-plugins-core rpm',
@@ -277,6 +295,7 @@ $DNF_BASE install shadow-utils sudo`;
     },
     updateCmd: '',
     installOneCmd: 'dnf install -y "$pkg"',
+    diskImageSupported: false,
   },
   alpine: {
     hostDeps: '',
@@ -301,6 +320,7 @@ https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 APK_REPOS_EOF`,
     updateCmd: 'apk update',
     installOneCmd: 'apk add --no-cache "$pkg"',
+    diskImageSupported: false,
   },
   suse: {
     hostDeps: 'zypper',
@@ -313,6 +333,7 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
   patterns-base-minimal_base rpm shadow sudo`,
     updateCmd: '',
     installOneCmd: 'zypper --non-interactive install --no-recommends "$pkg"',
+    diskImageSupported: false,
   },
   void: {
     hostDeps: '',
@@ -329,7 +350,17 @@ mkdir -p "\${ROOTFS_DIR}/etc/xbps.d"
 echo 'repository=https://repo-default.voidlinux.org/current' > "\${ROOTFS_DIR}/etc/xbps.d/00-repository-main.conf"`,
     updateCmd: 'xbps-install -Sy',
     installOneCmd: 'xbps-install -Sy "$pkg"',
+    diskImageSupported: false,
   },
+};
+
+// L'ISO hybride Debian (isohybrid-mbr) et l'image disque partitionnée (familles non-Debian, voir
+// generateNonDebianDiskImageBlock) sont toutes deux déjà des images disque brutes valides : qemu-img
+// les convertit directement vers QCOW2/VMDK/RAW sans repartitionnement supplémentaire.
+const DISK_IMAGE_FORMATS: Record<string, { qemuFormat: string; ext: string; label: string }> = {
+  qcow2: { qemuFormat: 'qcow2', ext: 'qcow2', label: 'Image Cloud QCOW2' },
+  vmdk: { qemuFormat: 'vmdk', ext: 'vmdk', label: 'Disque Virtuel VMDK' },
+  raw_img: { qemuFormat: 'raw', ext: 'img', label: 'Image Disque Brute (RAW)' },
 };
 
 /**
@@ -347,25 +378,36 @@ function generateNonDebianBuildScript(recipe: OSRecipe, family: NonDebianFamily)
   const unameArch = recipe.arch === 'i686' ? 'i686' : recipe.arch;
   const rootfsTarName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-rootfs.tar.gz`;
   const isTarFormat = recipe.outputFormat === 'wsl2_tar' || recipe.outputFormat === 'docker_rootfs';
+  const diskTarget = DISK_IMAGE_FORMATS[recipe.outputFormat];
+  const wantsDiskImage = !!diskTarget;
+  const diskImageAvailable = wantsDiskImage && config.diskImageSupported;
 
-  if (!isTarFormat) {
+  if (!isTarFormat && !diskImageAvailable) {
+    const diskImageHint = wantsDiskImage
+      ? `Ce format d'image disque n'est pas encore pris en charge pour ${label} spécifiquement`
+      : `Le format '${recipe.outputFormat}' n'est pas encore pris en charge pour ${label}`;
     return `#!/usr/bin/env bash
 set -euo pipefail
 RED='\\033[0;31m'
 YELLOW='\\033[1;33m'
 NC='\\033[0m'
-echo -e "\${RED}[ERREUR] Le format '${recipe.outputFormat}' n'est pas encore pris en charge pour ${label}.\${NC}"
+echo -e "\${RED}[ERREUR] ${diskImageHint}.\${NC}"
 echo ""
-echo -e "\${YELLOW}Pour ${label}, seuls les formats RootFS sont actuellement implémentés :\${NC}"
+echo -e "\${YELLOW}Pour ${label}, sont actuellement implémentés :\${NC}"
 echo "  - Distribution Windows WSL2 (.tar.gz)"
 echo "  - RootFS Docker (.tar.gz)"
+${NON_DEBIAN_FAMILY_CONFIG.arch.diskImageSupported && family !== 'arch' ? 'echo "  (les images disque QCOW2/VMDK/RAW sont disponibles pour Arch Linux / CachyOS)"' : ''}
 echo ""
-echo "L'ISO live bootable et les images disque (QCOW2/VMDK/RAW/carte SD) nécessitent une intégration"
-echo "bootloader + initramfs \"live\" propre à chaque famille (mkinitcpio/dracut/mkinitfs), pas encore"
-echo "codée dans OSForge Studio pour cette distribution. Changez le format de sortie, ou choisissez"
-echo "une distro de la famille Debian (Debian, Ubuntu, Kali, Raspberry Pi OS) pour une ISO complète."
+echo "L'ISO live bootable nécessite une intégration bootloader + initramfs \"live\" propre à chaque"
+echo "famille (mkinitcpio/dracut/mkinitfs), pas encore codée dans OSForge Studio pour cette distribution."
+echo "Changez le format de sortie, ou choisissez une distro de la famille Debian (Debian, Ubuntu, Kali,"
+echo "Raspberry Pi OS) pour une ISO complète."
 exit 1
 `;
+  }
+
+  if (diskImageAvailable) {
+    return generateNonDebianDiskImageScript(recipe, family, pkgs, label, unameArch, diskTarget);
   }
 
   return `#!/usr/bin/env bash
@@ -406,7 +448,7 @@ which ${config.hostCheckCmd} >/dev/null 2>&1 || {
 }
 
 echo -e "\${YELLOW}[2/4] 🏗️ Initialisation du RootFS ${label}...\${NC}"
-${config.bootstrapBlock(recipe.distro, unameArch)}
+${config.bootstrapBlock(recipe.distro, unameArch, false)}
 
 echo -e "\${YELLOW}[3/4] ⚙️ Configuration du système et installation des paquets...\${NC}"
 
@@ -473,6 +515,191 @@ echo -e "\${GREEN}=======================================================\${NC}"
 `;
 }
 
+/**
+ * Image disque partitionnée + GRUB (BIOS/i386-pc) pour les familles non-Debian qui le supportent
+ * (Arch/CachyOS pour l'instant). Pipeline vérifié en LIVE cette session : bootstrap réel, partition
+ * MBR, formatage ext4, grub-install, génération grub.cfg/fstab, puis boot QEMU réel jusqu'au prompt
+ * de connexion ("disktest login:"). Deux points critiques découverts en live et corrigés ici :
+ *  - pacman "CheckSpace" produit de faux "not enough free disk space" en chroot : désactivé.
+ *  - le hook mkinitcpio "autodetect" adapte l'initramfs au matériel de LA MACHINE DE BUILD, pas à la
+ *    cible : sans son retrait, l'image reste bloquée au démarrage sur la recherche du disque racine.
+ */
+function generateNonDebianDiskImageScript(
+  recipe: OSRecipe,
+  family: NonDebianFamily,
+  pkgs: string,
+  label: string,
+  unameArch: string,
+  diskTarget: { qemuFormat: string; ext: string; label: string }
+): string {
+  const config = NON_DEBIAN_FAMILY_CONFIG[family];
+  const baseName = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const rawImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.raw.img`;
+  const diskImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}`;
+  const needsConversion = diskTarget.ext !== 'raw.img' && diskTarget.qemuFormat !== 'raw';
+  const kernelPath = config.kernelImagePath!;
+  const initrdPath = config.initrdImagePath!;
+
+  const diskConversionStep = needsConversion ? `
+echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"
+qemu-img convert -O ${diskTarget.qemuFormat}${diskTarget.qemuFormat === 'qcow2' ? ' -o compat=1.1' : ''} "\${OUTPUT_DIR}/${rawImageName}" "\${OUTPUT_DIR}/${diskImageName}"
+rm -f "\${OUTPUT_DIR}/${rawImageName}"
+` : `mv "\${OUTPUT_DIR}/${rawImageName}" "\${OUTPUT_DIR}/${diskImageName}"`;
+
+  return `#!/usr/bin/env bash
+# ==============================================================================
+# OSForge Studio — Script de Construction Image Disque (${recipe.branding.osName})
+# Base: ${label} | Arch: ${recipe.arch} | Format: ${recipe.outputFormat}
+# Date de génération: ${new Date().toISOString()}
+# ==============================================================================
+
+set -euo pipefail
+
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+CYAN='\\033[0;36m'
+YELLOW='\\033[1;33m'
+NC='\\033[0m'
+
+echo -e "\${CYAN}=======================================================\${NC}"
+echo -e "\${CYAN}   🚀 OSForge Studio : Construction Image Disque      \${NC}"
+echo -e "\${CYAN}   Distribution cible : ${label} (${recipe.arch})\${NC}"
+echo -e "\${CYAN}   Nom d'hôte         : ${recipe.hostname}\${NC}"
+echo -e "\${CYAN}=======================================================\${NC}"
+
+if [[ $EUID -ne 0 ]]; then
+   echo -e "\${RED}[ERREUR] Ce script doit être exécuté avec les privilèges root (sudo).\${NC}"
+   exit 1
+fi
+
+WORK_DIR="/var/tmp/osforge-build-$(date +%s)"
+ROOTFS_DIR="\${WORK_DIR}/rootfs"
+MNT_DIR="\${WORK_DIR}/mnt"
+OUTPUT_DIR="$(pwd)/dist"
+mkdir -p "\${ROOTFS_DIR}" "\${MNT_DIR}" "\${OUTPUT_DIR}"
+
+echo -e "\${YELLOW}[1/6] 📦 Installation des dépendances de bootstrap sur l'hôte...\${NC}"
+which ${config.hostCheckCmd} parted qemu-img >/dev/null 2>&1 || {
+    echo -e "\${YELLOW}Installation des outils requis sur l'hôte...\${NC}"
+    apt-get update -y && apt-get install -y curl tar xz-utils parted qemu-utils ${config.hostDeps}
+}
+
+echo -e "\${YELLOW}[2/6] 🏗️ Initialisation du RootFS ${label} (avec noyau + GRUB)...\${NC}"
+${config.bootstrapBlock(recipe.distro, unameArch, true)}
+
+echo -e "\${YELLOW}[3/6] ⚙️ Configuration du système et installation des paquets...\${NC}"
+
+cp /etc/resolv.conf "\${ROOTFS_DIR}/etc/resolv.conf" 2>/dev/null || true
+
+mount --bind /dev "\${ROOTFS_DIR}/dev"
+mount --bind /dev/pts "\${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
+mount --bind /proc "\${ROOTFS_DIR}/proc"
+mount --bind /sys "\${ROOTFS_DIR}/sys"
+${config.diskImageInitrdRegenCmd ? `
+# Modifier la config de l'initramfs (HOOKS ci-dessus) ne suffit pas : le fichier déjà généré par
+# le bootstrap (avec le hook "autodetect" adapté à la machine de build) reste sur disque tant
+# qu'on ne le régénère pas explicitement — vérifié en live, sans quoi l'image ne démarre pas.
+chroot "\${ROOTFS_DIR}" ${config.diskImageInitrdRegenCmd}
+` : ''}
+cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/sh
+set -e
+${config.updateCmd}
+
+for pkg in ${pkgs}; do
+    ${config.installOneCmd} || echo "Info: $pkg omis ou non disponible dans le dépôt."
+done
+
+echo "${recipe.hostname}" > /etc/hostname
+cat << 'HOSTS' > /etc/hosts
+127.0.0.1   localhost ${recipe.hostname}
+::1         localhost ip6-localhost ip6-loopback
+HOSTS
+
+ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
+
+if ! id "${recipe.user.username}" >/dev/null 2>&1; then
+    useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
+    echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
+fi
+echo "root:toor" | chpasswd
+
+${recipe.user.sudo ? `mkdir -p /etc/sudoers.d
+echo "${recipe.user.username} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-osforge-user
+chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits sudo (non demandé dans la recette)'}
+
+${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${recipe.user.username}/.ssh
+echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
+chmod 700 /home/${recipe.user.username}/.ssh
+chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
+chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+
+cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
+#!/bin/sh
+${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
+FIRSTBOOT_EOF
+chmod +x /root/firstboot.sh
+CHROOT_EOF
+
+umount -lf "\${ROOTFS_DIR}/sys" || true
+umount -lf "\${ROOTFS_DIR}/proc" || true
+umount -lf "\${ROOTFS_DIR}/dev/pts" || true
+umount -lf "\${ROOTFS_DIR}/dev" || true
+
+echo -e "\${YELLOW}[4/6] 💽 Partitionnement et formatage de l'image disque...\${NC}"
+RAW_IMG="\${OUTPUT_DIR}/${rawImageName}"
+qemu-img create -f raw "\${RAW_IMG}" 8G
+parted -s "\${RAW_IMG}" mklabel msdos
+parted -s "\${RAW_IMG}" mkpart primary ext4 1MiB 100%
+parted -s "\${RAW_IMG}" set 1 boot on
+
+LOOPDEV=$(losetup -f)
+losetup -P "\${LOOPDEV}" "\${RAW_IMG}"
+mkfs.ext4 -F "\${LOOPDEV}p1"
+mount "\${LOOPDEV}p1" "\${MNT_DIR}"
+
+echo -e "\${YELLOW}[5/6] 🖲️ Copie du système et installation de GRUB (BIOS)...\${NC}"
+cp -a "\${ROOTFS_DIR}"/. "\${MNT_DIR}"/
+
+cp /etc/resolv.conf "\${MNT_DIR}/etc/resolv.conf" 2>/dev/null || true
+mount --bind /dev "\${MNT_DIR}/dev"
+mount --bind /dev/pts "\${MNT_DIR}/dev/pts" 2>/dev/null || true
+mount --bind /proc "\${MNT_DIR}/proc"
+mount --bind /sys "\${MNT_DIR}/sys"
+
+ROOT_UUID=$(blkid -s UUID -o value "\${LOOPDEV}p1")
+
+chroot "\${MNT_DIR}" grub-install --target=i386-pc --boot-directory=/boot "\${LOOPDEV}"
+
+cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
+UUID=\${ROOT_UUID} / ext4 defaults 0 1
+FSTAB_EOF
+
+mkdir -p "\${MNT_DIR}/boot/grub"
+cat > "\${MNT_DIR}/boot/grub/grub.cfg" << GRUBCFG_EOF
+set timeout=3
+set default=0
+menuentry "${recipe.branding.osName}" {
+    search --no-floppy --fs-uuid --set=root \${ROOT_UUID}
+    linux ${kernelPath} root=UUID=\${ROOT_UUID} rw console=tty0 console=ttyS0,115200
+    initrd ${initrdPath}
+}
+GRUBCFG_EOF
+
+umount -lf "\${MNT_DIR}/sys" || true
+umount -lf "\${MNT_DIR}/proc" || true
+umount -lf "\${MNT_DIR}/dev/pts" || true
+umount -lf "\${MNT_DIR}/dev" || true
+umount -lf "\${MNT_DIR}" || true
+losetup -d "\${LOOPDEV}" || true
+${diskConversionStep}
+
+echo -e "\${GREEN}=======================================================\${NC}"
+echo -e "\${GREEN}   ✅ ${diskTarget.label} générée avec succès : \${OUTPUT_DIR}/${diskImageName}\${NC}"
+echo -e "\${GREEN}   Taille du fichier : $(du -h "\${OUTPUT_DIR}/${diskImageName}" 2>/dev/null | cut -f1 || echo "OK")\${NC}"
+echo -e "\${GREEN}=======================================================\${NC}"
+`;
+}
+
 export function generateBuildScript(recipe: OSRecipe): string {
   const pkgs = resolvePackageList(recipe).join(' ');
   const isoName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.iso`;
@@ -516,11 +743,6 @@ exit 1
 
   // L'ISO hybride (isohybrid-mbr) est déjà une image disque brute valide : qemu-img peut
   // donc la convertir directement vers QCOW2/VMDK/RAW sans repartitionnement supplémentaire.
-  const DISK_IMAGE_FORMATS: Record<string, { qemuFormat: string; ext: string; label: string }> = {
-    qcow2: { qemuFormat: 'qcow2', ext: 'qcow2', label: 'Image Cloud QCOW2' },
-    vmdk: { qemuFormat: 'vmdk', ext: 'vmdk', label: 'Disque Virtuel VMDK' },
-    raw_img: { qemuFormat: 'raw', ext: 'img', label: 'Image Disque Brute (RAW)' },
-  };
   const diskTarget = DISK_IMAGE_FORMATS[recipe.outputFormat];
   const diskImageName = diskTarget ? `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}` : '';
 
