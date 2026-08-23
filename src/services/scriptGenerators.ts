@@ -837,6 +837,12 @@ cp /usr/bin/qemu-aarch64-static "\${ROOTFS_DIR}/usr/bin/"
 chroot "\${ROOTFS_DIR}" /debootstrap/debootstrap --second-stage
 
 echo -e "\${YELLOW}[3/6] ⚙️ Ajout du dépôt Raspberry Pi, installation du noyau et configuration...\${NC}"
+# La clé GPG est récupérée DEPUIS L'HÔTE (pas depuis le chroot) : le rootfs tout juste débootstrappé
+# n'a pas encore "curl" installé (bootstrap minimal --foreign) — vérifié en live sur GitHub Actions
+# cette session ("curl: command not found" dans le chroot avant ce correctif).
+mkdir -p "\${ROOTFS_DIR}/etc/apt/keyrings"
+curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key -o "\${ROOTFS_DIR}/etc/apt/keyrings/raspberrypi.gpg.key"
+
 mount --bind /dev "\${ROOTFS_DIR}/dev"
 mount --bind /dev/pts "\${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
 mount --bind /proc "\${ROOTFS_DIR}/proc"
@@ -848,8 +854,6 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 
 echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key -o /etc/apt/keyrings/raspberrypi.gpg.key
 echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main" >> /etc/apt/sources.list
 
 apt-get update -y
