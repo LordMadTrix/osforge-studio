@@ -3,6 +3,7 @@
 # OSForge Studio — Script de Construction d'OS / ISO Linux
 # OS: ForgeOS (Custom Edition)
 # Base: DEBIAN | Arch: x86_64 | Format: iso_hybrid
+# Date de génération: 2026-08-23T15:23:12.631Z
 # ==============================================================================
 
 set -euo pipefail
@@ -15,13 +16,13 @@ NC='\033[0m'
 
 echo -e "${CYAN}=======================================================${NC}"
 echo -e "${CYAN}   🚀 OSForge Studio : Compilation de l'ISO Linux     ${NC}"
-echo -e "${CYAN}   Distribution cible : debian (x86_64)               ${NC}"
-echo -e "${CYAN}   Nom d'hôte         : forge-box                     ${NC}"
+echo -e "${CYAN}   Distribution cible : debian (x86_64)${NC}"
+echo -e "${CYAN}   Nom d'hôte         : forge-box${NC}"
 echo -e "${CYAN}=======================================================${NC}"
 
 # Vérification des privilèges root
 if [[ $EUID -ne 0 ]]; then
-   echo -e "${RED}[ERREUR] Ce script doit être exécuté avec les privilèges root (sudo).${NC}" 
+   echo -e "${RED}[ERREUR] Ce script doit être exécuté avec les privilèges root (sudo).${NC}"
    exit 1
 fi
 
@@ -39,18 +40,18 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
     apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync
 }
 
-echo -e "${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (debian)...${NC}"
+echo -e "${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (debian / trixie)...${NC}"
 debootstrap --arch="amd64" \
   --include="linux-image-amd64,live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \
-  bookworm "${ROOTFS_DIR}" "http://deb.debian.org/debian"
+  trixie "${ROOTFS_DIR}" "http://deb.debian.org/debian"
 
-echo -e "${YELLOW}[3/7] ⚙️ Configuration du système et installation des logiciels...${NC}"
+echo -e "${YELLOW}[3/7] ⚙️ Configuration du système et installation des paquets...${NC}"
 
 # Configuration des dépôts apt complets
 cat << 'APT_SOURCES' > "${ROOTFS_DIR}/etc/apt/sources.list"
-deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
 APT_SOURCES
 
 # Cache optionnel des paquets APT du chroot (accélère les builds répétés en CI ; ignoré si non défini)
@@ -71,16 +72,15 @@ cat << 'CHROOT_EOF' | chroot "${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-# Mise à jour des index apt du chroot
+# Mise à jour des index de paquets
 apt-get update -y
 
-# Installation sécurisée des logiciels sélectionnés
-PKGS_TO_INSTALL="docker.io docker-compose git git-lfs neovim ripgrep fd-find zsh fzf btop htop neofetch pciutils usbutils sudo curl wget locales ca-certificates systemd-sysv initramfs-tools"
-for pkg in $PKGS_TO_INSTALL; do
+# Installation sécurisée et résiliente des logiciels sélectionnés
+for pkg in docker.io docker-compose git git-lfs neovim ripgrep fd-find zsh fzf curl btop htop iotop ncdu neofetch pciutils usbutils wget sudo hyprland waybar wofi kitty xdg-desktop-portal-hyprland thunar firefox-esr pipewire pipewire-audio wireplumber network-manager locales ca-certificates systemd-sysv initramfs-tools firmware-linux-free iproute2 net-tools; do
     apt-get install -y --no-install-recommends "$pkg" || echo "Info: $pkg omis ou non disponible dans le miroir apt principal."
 done
 
-# Utilitaires modernes (installations automatisées directes)
+# Utilitaires modernes (installations automatisées directes si absents du miroir Debian)
 if command -v curl &>/dev/null; then
     # Fastfetch
     if ! command -v fastfetch &>/dev/null; then
@@ -107,25 +107,28 @@ HOSTS
 
 # Configuration de la locale et du fuseau horaire
 ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime
-echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen || true
+echo "fr_FR UTF-8" >> /etc/locale.gen || true
 locale-gen || true
 
 # Création de l'utilisateur principal
 if ! id "developer" &>/dev/null; then
     useradd -m -s /bin/bash -c "Forge Developer" developer
     echo "developer:forge" | chpasswd
-    usermod -aG sudo developer || true
+    usermod -aG sudo developer
 fi
 
 # Mot de passe Root
 echo "root:toor" | chpasswd
 
 # Configuration SSH
+
 mkdir -p /etc/ssh /home/developer/.ssh
 chmod 700 /home/developer/.ssh
-chown -R developer:developer /home/developer/.ssh || true
+
+
 
 # Sécurité & Durcissement (CIS Benchmark / UFW)
+
 if ! command -v ufw &>/dev/null; then
     apt-get install -y --no-install-recommends ufw >/dev/null 2>&1 || true
 fi
@@ -136,8 +139,10 @@ if command -v ufw &>/dev/null; then
     ufw --force enable || true
 fi
 
+
 # Script de post-installation First-Boot
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
+#!/usr/bin/env bash
 #!/usr/bin/env bash
 echo "Bienvenue sur votre OS sur mesure !" > /var/log/firstboot.log
 FIRSTBOOT_EOF
@@ -165,23 +170,24 @@ cp "${ROOTFS_DIR}/boot"/initrd.img* "${ISO_DIR}/live/initrd" || cp "${ROOTFS_DIR
 
 cat << 'GRUB_CONFIG_EOF' > "${ISO_DIR}/boot/grub/grub.cfg"
 set default=0
-set timeout=5
+set timeout=3
 
 insmod all_video
 insmod font
-if loadfont /boot/grub/fonts/unicode.pf2 ; then
-    insmod gfxterm
-    set gfxmode=auto
-    terminal_output gfxterm
-fi
+insmod part_msdos
+insmod part_gpt
+insmod iso9660
+insmod search
 
-menuentry "ForgeOS (Custom Edition) [Live]" {
-    linux /live/vmlinuz boot=live quiet splash hostname=forge-box
+search --no-floppy --set=root --file /live/vmlinuz
+
+menuentry "ForgeOS (Custom Edition) [Live Desktop]" {
+    linux /live/vmlinuz boot=live components quiet splash hostname=forge-box
     initrd /live/initrd
 }
 
 menuentry "ForgeOS (Mode Secours / Failsafe)" {
-    linux /live/vmlinuz boot=live nomodeset
+    linux /live/vmlinuz boot=live components nomodeset
     initrd /live/initrd
 }
 GRUB_CONFIG_EOF
@@ -190,8 +196,8 @@ GRUB_CONFIG_EOF
 grub-mkstandalone \
   --format=i386-pc \
   --output="${ISO_DIR}/boot/grub/i386-pc/core.img" \
-  --install-modules="linux normal iso9660 biosdisk search part_msdos part_gpt all_video font gfxterm test echo sleep cat help ls" \
-  --modules="linux normal iso9660 biosdisk search part_msdos part_gpt all_video font gfxterm" \
+  --install-modules="linux normal iso9660 biosdisk search search_fs_file search_label part_msdos part_gpt all_video font gfxterm test echo sleep cat help ls" \
+  --modules="linux normal iso9660 biosdisk search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
   --locales="" \
   --fonts="" \
   "boot/grub/grub.cfg=${ISO_DIR}/boot/grub/grub.cfg"
@@ -202,6 +208,8 @@ cat /usr/lib/grub/i386-pc/cdboot.img "${ISO_DIR}/boot/grub/i386-pc/core.img" > "
 grub-mkstandalone \
   --format=x86_64-efi \
   --output="${ISO_DIR}/EFI/BOOT/bootx64.efi" \
+  --install-modules="linux normal iso9660 search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
+  --modules="linux normal iso9660 search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
   --locales="" \
   --fonts="" \
   "boot/grub/grub.cfg=${ISO_DIR}/boot/grub/grub.cfg"

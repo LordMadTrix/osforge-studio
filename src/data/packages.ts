@@ -386,9 +386,13 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 210,
     icon: 'Compass',
     tags: ['Web', 'Navigateur', 'Open Source'],
+    // Pas d'entrée "ubuntu" : le paquet apt "chromium-browser" d'Ubuntu n'est qu'un stub de
+    // transition vers snap (vérifié en live, même limite que Firefox), et il n'existe pas de
+    // dépôt APT officiel équivalent à celui de Mozilla pour Chromium. Omettre l'entrée fait
+    // sauter proprement ce paquet pour Ubuntu (boucle d'installation tolérante) plutôt que de
+    // livrer un binaire non fonctionnel en prétendant avoir réussi.
     pkgNames: {
       debian: 'chromium',
-      ubuntu: 'chromium-browser',
       arch: 'chromium',
       alpine: 'chromium',
       fedora: 'chromium',

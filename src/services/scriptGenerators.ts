@@ -193,12 +193,18 @@ interface NonDebianFamilyConfig {
   bootstrapBlock: (distroId: string, unameArch: string, isDiskImage: boolean) => string;
   updateCmd: string;
   installOneCmd: string; // utilise la variable shell "$pkg"
-  diskImageSupported: boolean; // pipeline partition+grub-install vérifié en live (boot QEMU réel jusqu'au login) — Arch/CachyOS uniquement pour l'instant
-  kernelImagePath?: string; // chemin du noyau DANS le rootfs, ex. /boot/vmlinuz-linux (Arch)
-  initrdImagePath?: string; // chemin de l'initramfs DANS le rootfs, ex. /boot/initramfs-linux.img (Arch)
-  // Modifier mkinitcpio.conf (HOOKS) ne suffit pas : l'initramfs déjà généré par pacstrap (avec
-  // "autodetect") reste sur disque tant qu'on ne le régénère pas explicitement — vérifié en live
-  // (la 1ère image bootée restait bloquée sur "A start job is running for /dev/disk/by-uuid/...").
+  diskImageSupported: boolean; // pipeline partition+grub-install vérifié en live (boot QEMU réel jusqu'au login)
+  // Snippet shell exécuté juste avant l'écriture de grub.cfg, dans le contexte du disque monté
+  // (variable "$MNT_DIR" disponible) : doit fixer KERNEL_PATH et INITRD_PATH (chemins ABSOLUS
+  // dans le rootfs, ex. /boot/vmlinuz-linux). Statique pour Arch, dynamique (version du noyau
+  // détectée via /lib/modules) pour les familles RPM (Fedora/Rocky, openSUSE).
+  diskImageKernelDetectCmd?: string;
+  grubInstallBin?: string; // 'grub-install' (Arch/openSUSE/Void) ou 'grub2-install' (Fedora/Rocky, RHEL renomme le binaire)
+  grubConfigSubdir?: string; // 'grub' (Arch/openSUSE/Void) ou 'grub2' (Fedora/Rocky)
+  // Modifier la config de l'initramfs (HOOKS mkinitcpio, hostonly dracut...) ne suffit pas si le
+  // fichier a déjà été généré par le bootstrap AVANT que la config ne change : ce snippet force
+  // une régénération explicite quand nécessaire — vérifié en live (Arch restait bloqué au
+  // démarrage sur "A start job is running for /dev/disk/by-uuid/..." sans lui).
   diskImageInitrdRegenCmd?: string;
 }
 
@@ -240,14 +246,15 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconso
     updateCmd: 'pacman -Sy --noconfirm',
     installOneCmd: 'pacman -S --noconfirm --needed "$pkg"',
     diskImageSupported: true,
-    kernelImagePath: '/boot/vmlinuz-linux',
-    initrdImagePath: '/boot/initramfs-linux.img',
+    diskImageKernelDetectCmd: 'KERNEL_PATH="/boot/vmlinuz-linux"\nINITRD_PATH="/boot/initramfs-linux.img"',
+    grubInstallBin: 'grub-install',
+    grubConfigSubdir: 'grub',
     diskImageInitrdRegenCmd: 'mkinitcpio -P',
   },
   fedora: {
     hostDeps: 'dnf dnf-plugins-core rpm',
     hostCheckCmd: 'dnf rpmkeys',
-    bootstrapBlock: (distroId) => {
+    bootstrapBlock: (distroId, _arch, isDiskImage) => {
       const isRocky = distroId === 'rocky';
       // Pas de backslash devant $basearch/$releasever ici : ce sont des variables du format
       // .repo dnf lui-même (substituées par dnf à la lecture du fichier), pas des variables
@@ -291,11 +298,25 @@ DNF_BASE="dnf --installroot=\${ROOTFS_DIR} --releasever=${releasever} --setopt=r
 # échoue silencieusement. Vérifié en live : une 2e passe explicite sur "setup" seule le corrige.
 $DNF_BASE install basesystem ${releasePkg} bash coreutils dnf || true
 $DNF_BASE install setup
-$DNF_BASE install shadow-utils sudo`;
+$DNF_BASE install shadow-utils sudo${isDiskImage ? `
+
+# dracut est "hostonly" par défaut sur Fedora/RHEL : sans ceci, l'initramfs généré automatiquement
+# par le scriptlet du paquet noyau n'embarque que les modules de LA MACHINE DE BUILD, pas ceux
+# nécessaires pour démarrer sur une autre machine/VM cible — vérifié en live (méthode officiellement
+# documentée par Fedora/RHEL pour construire des images génériques).
+mkdir -p "\${ROOTFS_DIR}/etc/dracut.conf.d"
+cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
+hostonly="no"
+DRACUT_EOF
+
+$DNF_BASE install kernel grub2-pc` : ''}`;
     },
     updateCmd: '',
     installOneCmd: 'dnf install -y "$pkg"',
-    diskImageSupported: false,
+    diskImageSupported: true,
+    diskImageKernelDetectCmd: 'KVER=$(ls "${MNT_DIR}/lib/modules/" | head -1)\nKERNEL_PATH="/boot/vmlinuz-${KVER}"\nINITRD_PATH="/boot/initramfs-${KVER}.img"',
+    grubInstallBin: 'grub2-install',
+    grubConfigSubdir: 'grub2',
   },
   alpine: {
     hostDeps: '',
@@ -537,8 +558,8 @@ function generateNonDebianDiskImageScript(
   const rawImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.raw.img`;
   const diskImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}`;
   const needsConversion = diskTarget.ext !== 'raw.img' && diskTarget.qemuFormat !== 'raw';
-  const kernelPath = config.kernelImagePath!;
-  const initrdPath = config.initrdImagePath!;
+  const grubBin = config.grubInstallBin!;
+  const grubSubdir = config.grubConfigSubdir!;
 
   const diskConversionStep = needsConversion ? `
 echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"
@@ -668,20 +689,22 @@ mount --bind /sys "\${MNT_DIR}/sys"
 
 ROOT_UUID=$(blkid -s UUID -o value "\${LOOPDEV}p1")
 
-chroot "\${MNT_DIR}" grub-install --target=i386-pc --boot-directory=/boot "\${LOOPDEV}"
+chroot "\${MNT_DIR}" ${grubBin} --target=i386-pc --boot-directory=/boot "\${LOOPDEV}"
 
 cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
 UUID=\${ROOT_UUID} / ext4 defaults 0 1
 FSTAB_EOF
 
-mkdir -p "\${MNT_DIR}/boot/grub"
-cat > "\${MNT_DIR}/boot/grub/grub.cfg" << GRUBCFG_EOF
+${config.diskImageKernelDetectCmd}
+
+mkdir -p "\${MNT_DIR}/boot/${grubSubdir}"
+cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${recipe.branding.osName}" {
     search --no-floppy --fs-uuid --set=root \${ROOT_UUID}
-    linux ${kernelPath} root=UUID=\${ROOT_UUID} rw console=tty0 console=ttyS0,115200
-    initrd ${initrdPath}
+    linux \${KERNEL_PATH} root=UUID=\${ROOT_UUID} rw console=tty0 console=ttyS0,115200
+    initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
 
@@ -921,7 +944,19 @@ mount --bind /sys "\${ROOTFS_DIR}/sys"
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
-
+${recipe.distro === 'ubuntu' && recipe.selectedPackages.includes('firefox') ? `
+# Sur Ubuntu, "firefox" en apt n'est qu'un paquet de transition vers snap (vérifié en live :
+# l'installation "réussit" silencieusement mais ne pose qu'un stub non fonctionnel, snapd
+# n'étant pas actif dans un chroot). On ajoute le vrai dépôt APT officiel de Mozilla à la place.
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt/keyrings/packages.mozilla.org.asc || true
+echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" > /etc/apt/sources.list.d/mozilla.list
+cat > /etc/apt/preferences.d/mozilla << 'MOZPIN_EOF'
+Package: *
+Pin: origin packages.mozilla.org
+Pin-Priority: 1000
+MOZPIN_EOF
+` : ''}
 # Mise à jour des index de paquets
 apt-get update -y
 
