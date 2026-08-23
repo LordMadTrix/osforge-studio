@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lordmadtrix.github.io/osforge-studio/sitemap.xml
