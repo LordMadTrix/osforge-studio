@@ -131,7 +131,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
 // natif (pacstrap, dnf --installroot, apk-tools-static, zypper, xbps-static). Seul NixOS reste
 // hors-cadre : son modèle déclaratif (/nix/store immuable, pas de chroot "installer des paquets")
 // est architecturalement incompatible avec le pipeline debootstrap/pacstrap/... utilisé ici.
-const DEBOOTSTRAP_TARGETS: Record<string, { suite: string; mirror: string; sourcesList: (arch: string) => string }> = {
+const DEBOOTSTRAP_TARGETS: Record<string, { suite: string; mirror: string; sourcesList: (arch: string) => string; components?: string }> = {
   debian: {
     suite: 'trixie',
     mirror: 'http://deb.debian.org/debian',
@@ -145,6 +145,10 @@ deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-f
     sourcesList: () => `deb http://archive.ubuntu.com/ubuntu resolute main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu resolute-updates main restricted universe multiverse
 deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe multiverse`,
+    // debootstrap ne regarde QUE le composant "main" par défaut ; "live-boot" est packagé par
+    // la communauté dans "universe" sur Ubuntu (contrairement à Debian où il est dans main) —
+    // vérifié en live via un échec réel "E: Couldn't find these debs: live-boot" en CI.
+    components: 'main,universe',
   },
   kali: {
     suite: 'kali-rolling',
@@ -926,7 +930,8 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-debootstrap --arch="${debArch}" \\
+debootstrap --arch="${debArch}" \\${target.components ? `
+  --components="${target.components}" \\` : ''}
   --include="${kernelPkg},live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2${recipe.distro === 'raspbian' ? ',raspi-firmware' : ''}" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
 
