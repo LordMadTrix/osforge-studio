@@ -34,9 +34,13 @@ jobs:
           sudo mount --bind /sys /tmp/rpi-test-root/sys
           sudo cp /etc/resolv.conf /tmp/rpi-test-root/etc/resolv.conf
           echo "deb http://deb.debian.org/debian bookworm main" | sudo tee /tmp/rpi-test-root/etc/apt/sources.list
-          echo "deb http://archive.raspberrypi.com/debian bookworm main" | sudo tee -a /tmp/rpi-test-root/etc/apt/sources.list
-          sudo chroot /tmp/rpi-test-root apt-get update -y --allow-unauthenticated
-          sudo chroot /tmp/rpi-test-root env DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated raspberrypi-kernel raspi-firmware
+          sudo mkdir -p /tmp/rpi-test-root/etc/apt/keyrings
+          curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key -o /tmp/rpi-test-root/etc/apt/keyrings/raspberrypi.gpg.key
+          ls -la /tmp/rpi-test-root/etc/apt/keyrings/
+          file /tmp/rpi-test-root/etc/apt/keyrings/raspberrypi.gpg.key || true
+          echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main" | sudo tee -a /tmp/rpi-test-root/etc/apt/sources.list
+          sudo chroot /tmp/rpi-test-root apt-get update -y
+          sudo chroot /tmp/rpi-test-root env DEBIAN_FRONTEND=noninteractive apt-get install -y raspberrypi-kernel raspi-firmware
           echo "=== /boot ==="
           sudo ls -la /tmp/rpi-test-root/boot/
           echo "=== /boot/firmware ==="
