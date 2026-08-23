@@ -179,8 +179,9 @@ deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi
 // (pas encore les dépôts CachyOS optimisés x86-64-v3/v4 : ajouter un dépôt supplémentaire non
 // vérifié ferait échouer tout le bootstrap si son URL est indisponible pour l'architecture
 // ciblée). Rocky réutilise la méthode dnf --installroot vérifiée sur Fedora (même bug connu
-// sysusers.sh, même correctif) avec ses propres dépôts BaseOS/AppStream — non re-testée en
-// entier faute de temps, mais le mécanisme sous-jacent est générique à dnf, pas à Fedora.
+// sysusers.sh, même correctif) avec ses propres dépôts BaseOS/AppStream — image disque re-vérifiée
+// en live séparément (boot QEMU réel jusqu'au login), pas seulement supposée fonctionner par
+// analogie avec Fedora.
 type NonDebianFamily = 'arch' | 'fedora' | 'alpine' | 'suse' | 'void';
 
 const NON_DEBIAN_DISTROS: Record<string, NonDebianFamily> = {
@@ -389,9 +390,7 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
 # ceux nécessaires pour démarrer sur la VM/machine cible réelle — même bug que Fedora/RHEL, même
 # correctif (méthode officiellement documentée pour construire des images disque génériques).
 # Écrit AVANT l'installation du noyau : le scriptlet %posttrans qui régénère l'initramfs doit
-# trouver ce fichier déjà en place. Tentative de correction de l'échec de montage /sysroot observé
-# lors des essais précédents (le périphérique racine était trouvé mais son montage échouait :
-# symptôme classique d'un initrd hostonly n'embarquant pas le pilote de bloc/filesystem cible).
+# trouver ce fichier déjà en place.
 mkdir -p "\${ROOTFS_DIR}/etc/dracut.conf.d"
 cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
 hostonly="no"
