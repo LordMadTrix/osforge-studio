@@ -218,7 +218,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
               background: '#000',
             }}>
               <img
-                src={currentScreenshot.src}
+                src={`${import.meta.env.BASE_URL}${currentScreenshot.src.replace(/^\//, '')}`}
                 alt={activeTab === 'distro' ? currentDistro.name : currentDesktop.name}
                 style={{ width: '100%', display: 'block' }}
               />
