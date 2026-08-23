@@ -154,9 +154,13 @@ deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe 
   raspbian: {
     // "rpi-bookworm" (catalogue OSForge) n'est pas un nom de suite debootstrap valide ;
     // Raspberry Pi OS est basé sur le vrai codename Debian "bookworm".
+    // ATTENTION : raspbian.raspberrypi.org (ancienne archive "Raspbian" historique) ne publie QUE
+    // l'architecture armhf (32-bit) — vérifié en live via son fichier Release. Pour aarch64 (Pi 4/5,
+    // seule archi 64-bit proposée par le catalogue OSForge), le vrai miroir officiel moderne
+    // "Raspberry Pi OS" est archive.raspberrypi.com/debian (armhf/arm64/i386/amd64) — vérifié en live.
     suite: 'bookworm',
-    mirror: 'http://raspbian.raspberrypi.org/raspbian',
-    sourcesList: () => `deb http://raspbian.raspberrypi.org/raspbian bookworm main contrib non-free rpi`,
+    mirror: 'http://archive.raspberrypi.com/debian',
+    sourcesList: () => `deb http://archive.raspberrypi.com/debian bookworm main`,
   },
 };
 
@@ -754,7 +758,13 @@ exit 1
 `;
   }
 
-  const kernelPkg = recipe.distro === 'ubuntu' ? 'linux-image-generic' : `linux-image-${debArch}`;
+  // Raspberry Pi OS n'a pas de méta-paquet "linux-image-arm64" générique : le vrai noyau
+  // s'appelle linux-image-rpi-v8 (Pi 3/4/400/Zero 2) — vérifié en live sur le dépôt officiel
+  // archive.raspberrypi.com/debian. raspi-firmware fournit config.txt/bootcode.bin/start*.elf
+  // et le hook qui peuple /boot/firmware à chaque installation de noyau.
+  const kernelPkg = recipe.distro === 'ubuntu' ? 'linux-image-generic'
+    : recipe.distro === 'raspbian' ? 'linux-image-rpi-v8'
+    : `linux-image-${debArch}`;
 
   // Formats de sortie réellement implémentés : ISO live (par défaut) et RootFS tar.gz
   // (WSL2 / Docker), qui réutilisent tous les deux le même RootFS déjà construit.
@@ -917,7 +927,7 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
 debootstrap --arch="${debArch}" \\
-  --include="${kernelPkg},live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
+  --include="${kernelPkg},live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2${recipe.distro === 'raspbian' ? ',raspi-firmware' : ''}" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
 
 echo -e "\${YELLOW}[3/7] ⚙️ Configuration du système et installation des paquets...\${NC}"
