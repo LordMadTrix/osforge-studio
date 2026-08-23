@@ -150,11 +150,16 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
             return (
               <div
                 key={distro.id}
-                onClick={() => onChange({ 
-                  distro: distro.id,
-                  distroVersion: distro.version,
-                  arch: distro.supportedArch.includes(recipe.arch) ? recipe.arch : distro.supportedArch[0],
-                })}
+                onClick={() => {
+                  const newArch = distro.supportedArch.includes(recipe.arch) ? recipe.arch : distro.supportedArch[0];
+                  onChange({
+                    distro: distro.id,
+                    distroVersion: distro.version,
+                    arch: newArch,
+                    outputFormat: recipe.outputFormat === 'rpi_sd' && (distro.id !== 'raspbian' || newArch !== 'aarch64')
+                      ? 'iso_hybrid' : recipe.outputFormat,
+                  });
+                }}
                 className={`select-card ${isSelected ? 'selected' : ''}`}
                 style={{ position: 'relative' }}
               >
@@ -263,7 +268,11 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
               return (
                 <div
                   key={arch.id}
-                  onClick={() => onChange({ arch: arch.id })}
+                  onClick={() => onChange({
+                    arch: arch.id,
+                    outputFormat: recipe.outputFormat === 'rpi_sd' && (recipe.distro !== 'raspbian' || arch.id !== 'aarch64')
+                      ? 'iso_hybrid' : recipe.outputFormat,
+                  })}
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
@@ -308,16 +317,22 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {formats.map(fmt => {
               const isSelected = recipe.outputFormat === fmt.id;
+              // rpi_sd n'est réellement implémenté (bootstrap ARM64 + partitionnement FAT32/ext4,
+              // vérifié en live sur GitHub Actions) que pour Raspberry Pi OS en ARM64. Choisi hors
+              // de ce cas, le script généré retombe silencieusement sur une ISO — mieux vaut le
+              // désactiver ici plutôt que de laisser l'utilisateur le découvrir dans le script.
+              const isRpiSdUnavailable = fmt.id === 'rpi_sd' && (recipe.distro !== 'raspbian' || recipe.arch !== 'aarch64');
               return (
                 <div
                   key={fmt.id}
-                  onClick={() => onChange({ outputFormat: fmt.id })}
+                  onClick={() => { if (!isRpiSdUnavailable) onChange({ outputFormat: fmt.id }); }}
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
                     background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(10, 15, 28, 0.4)',
                     border: `1px solid ${isSelected ? 'var(--emerald)' : 'var(--border-subtle)'}`,
-                    cursor: 'pointer',
+                    cursor: isRpiSdUnavailable ? 'not-allowed' : 'pointer',
+                    opacity: isRpiSdUnavailable ? 0.45 : 1,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -333,7 +348,9 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                       <InfoTooltip text={lang === 'fr' ? fmt.tooltipFr : fmt.tooltipEn} />
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {fmt.desc}
+                      {isRpiSdUnavailable
+                        ? (lang === 'fr' ? 'Nécessite Raspberry Pi OS + architecture ARM64' : 'Requires Raspberry Pi OS + ARM64 architecture')
+                        : fmt.desc}
                     </div>
                   </div>
                   {isSelected && <CheckCircle2 size={15} color="var(--emerald)" />}

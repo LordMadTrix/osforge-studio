@@ -1,0 +1,27 @@
+name: ✅ CI (tests & build)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Récupération du dépôt
+        uses: actions/checkout@v4
+
+      - name: 🟢 Installation de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 📦 Installation des dépendances
+        run: npm ci
+
+      - name: 🧪 Tests unitaires (générateurs de scripts)
+        run: npm run test
+
+      - name: 🏗️ Build de production (inclut la vérification TypeScript)
+        run: npm run build
