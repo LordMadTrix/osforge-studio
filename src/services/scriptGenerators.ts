@@ -405,6 +405,15 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
     diskImageKernelDetectCmd: 'KVER=$(ls "${MNT_DIR}/lib/modules/" | head -1)\nKERNEL_PATH="/boot/vmlinuz-${KVER}"\nINITRD_PATH="/boot/initrd-${KVER}"',
     grubInstallBin: 'grub2-install',
     grubConfigSubdir: 'grub2',
+    // Bug réel trouvé en live sur GitHub Actions : contrairement à "dnf --installroot" (qui monte
+    // automatiquement /dev,/proc,/sys pour les scriptlets rpm), "zypper --root" ne le fait pas —
+    // le scriptlet %posttrans de kernel-default qui doit générer l'initrd via dracut échoue donc
+    // silencieusement (pas d'accès à /dev,/proc,/sys), et /boot ne contient AUCUN fichier initrd.
+    // Sans initrd, le noyau n'a aucun pilote de contrôleur de stockage disponible au démarrage :
+    // "No filesystem could mount root, tried:" (liste vide). Régénération explicite forcée ici,
+    // APRÈS le montage /dev,/proc,/sys (voir le point d'insertion de diskImageInitrdRegenCmd) où
+    // dracut dispose enfin d'un environnement chroot complet pour détecter les pilotes nécessaires.
+    diskImageInitrdRegenCmd: `sh -c 'KVER=$(ls /lib/modules | head -1); dracut --force --no-hostonly "/boot/initrd-$KVER" "$KVER"'`,
   },
   void: {
     hostDeps: '',
