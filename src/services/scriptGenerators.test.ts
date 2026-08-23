@@ -171,12 +171,38 @@ describe('generateBuildScript — images disque Fedora/Rocky (vérifié en live 
 });
 
 describe('generateBuildScript — familles sans image disque vérifiée : refus explicite, jamais de code silencieusement cassé', () => {
-  it.each(['alpine', 'opensuse', 'void'] as DistroId[])('%s refuse proprement les formats image disque non vérifiés', (distroId) => {
+  it.each(['opensuse'] as DistroId[])('%s refuse proprement les formats image disque non vérifiés', (distroId) => {
     for (const format of ['qcow2', 'vmdk', 'raw_img'] as OutputFormat[]) {
       const script = generateBuildScript(makeRecipe({ distro: distroId, outputFormat: format }));
       expect(script).toContain('exit 1');
       expect(script).toMatch(/ERREUR/);
     }
+  });
+});
+
+describe('generateBuildScript — image disque Void (vérifié en live via boot QEMU réel)', () => {
+  it("active le getty ttyS0 (désactivé par défaut, sinon le boot semble bloqué alors qu'il a réussi)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img' }));
+    expect(script).toContain('agetty-ttyS0');
+  });
+
+  it('désactive temporairement pipefail autour du "yes |" (SIGPIPE + pipefail = arrêt silencieux du script, vérifié en live)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img' }));
+    expect(script).toContain('set +o pipefail');
+    expect(script).toContain('set -o pipefail');
+  });
+});
+
+describe('generateBuildScript — image disque Alpine (vérifié en live via boot QEMU réel)', () => {
+  it('active le getty ttyS0 dans /etc/inittab (commenté par défaut)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img' }));
+    expect(script).toContain("sed -i 's/^#ttyS0::/ttyS0::/'");
+  });
+
+  it("utilise root=/dev/sda1 au lieu de UUID= (nlplug-findfs ne résout pas UUID= dans ce pipeline, vérifié en live)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img' }));
+    expect(script).toContain('root=/dev/sda1');
+    expect(script).not.toContain('root=UUID=');
   });
 });
 

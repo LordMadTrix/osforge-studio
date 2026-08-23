@@ -209,6 +209,16 @@ interface NonDebianFamilyConfig {
   diskImageKernelDetectCmd?: string;
   grubInstallBin?: string; // 'grub-install' (Arch/openSUSE/Void) ou 'grub2-install' (Fedora/Rocky, RHEL renomme le binaire)
   grubConfigSubdir?: string; // 'grub' (Arch/openSUSE/Void) ou 'grub2' (Fedora/Rocky)
+  // Alpine uniquement : son outil de résolution de "root=" au démarrage (nlplug-findfs) échoue
+  // sur "root=UUID=..." dans ce pipeline — vérifié en live (échec de montage systématique). Un
+  // chemin de périphérique direct (/dev/sda1) fonctionne. Contrepartie assumée et documentée :
+  // moins robuste qu'UUID si le disque n'apparaît pas comme /dev/sda dans l'environnement cible.
+  diskImageRootIsDevicePath?: boolean;
+  // Args noyau additionnels requis par cette famille pour le boot disque (ex. Alpine a besoin de
+  // "modules=sd-mod,ext4" pour charger explicitement les pilotes avant le montage racine — sans
+  // ça, le chargement automatique par udev est une course contre nlplug-findfs, gagnée seulement
+  // par chance selon le run — vérifié en live : même config, un run réussit, l'autre échoue).
+  diskImageExtraKernelArgs?: string;
   // Modifier la config de l'initramfs (HOOKS mkinitcpio, hostonly dracut...) ne suffit pas si le
   // fichier a déjà été généré par le bootstrap AVANT que la config ne change : ce snippet force
   // une régénération explicite quand nécessaire — vérifié en live (Arch restait bloqué au
@@ -329,7 +339,7 @@ $DNF_BASE install kernel grub2-pc` : ''}`;
   alpine: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: () => `mkdir -p "\${WORK_DIR}/apk-static"
+    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/apk-static"
 APK_IDX="\${WORK_DIR}/apk-idx.html"
 curl -sL https://dl-cdn.alpinelinux.org/alpine/latest-stable/main/x86_64/ -o "$APK_IDX"
 APKVER=$(grep -oP 'apk-tools-static-[0-9][0-9.r-]*\\.apk' "$APK_IDX" | head -1)
@@ -340,16 +350,25 @@ tar -xzf "\${WORK_DIR}/apk-tools-static.apk" -C "\${WORK_DIR}/apk-static"
   -X https://dl-cdn.alpinelinux.org/alpine/latest-stable/main \\
   -X https://dl-cdn.alpinelinux.org/alpine/latest-stable/community \\
   -U --allow-untrusted --root "\${ROOTFS_DIR}" --initdb \\
-  add alpine-base shadow sudo
+  add alpine-base shadow sudo${isDiskImage ? ' linux-lts grub grub-bios mkinitfs' : ''}
 
 mkdir -p "\${ROOTFS_DIR}/etc/apk"
 cat > "\${ROOTFS_DIR}/etc/apk/repositories" << 'APK_REPOS_EOF'
 https://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
-APK_REPOS_EOF`,
+APK_REPOS_EOF${isDiskImage ? `
+
+# Alpine ne démarre aucun getty sur la console série par défaut (seulement tty1-tty6) — même
+# limite que Void, vérifiée en live de la même façon.
+sed -i 's/^#ttyS0::/ttyS0::/' "\${ROOTFS_DIR}/etc/inittab"` : ''}`,
     updateCmd: 'apk update',
     installOneCmd: 'apk add --no-cache "$pkg"',
-    diskImageSupported: false,
+    diskImageSupported: true,
+    diskImageKernelDetectCmd: 'KERNEL_PATH="/boot/vmlinuz-lts"\nINITRD_PATH="/boot/initramfs-lts"',
+    grubInstallBin: 'grub-install',
+    grubConfigSubdir: 'grub',
+    diskImageRootIsDevicePath: true,
+    diskImageExtraKernelArgs: 'modules=sd-mod,ext4',
   },
   suse: {
     hostDeps: 'zypper',
@@ -367,19 +386,34 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
   void: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: () => `mkdir -p "\${WORK_DIR}/xbps-static" "\${ROOTFS_DIR}/var/db/xbps/keys"
+    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/xbps-static" "\${ROOTFS_DIR}/var/db/xbps/keys"
 curl -sL https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz -o "\${WORK_DIR}/xbps-static.tar.xz"
 tar -xJf "\${WORK_DIR}/xbps-static.tar.xz" -C "\${WORK_DIR}/xbps-static"
 
+
+# "yes |" avec "set -o pipefail" actif est un piège classique : une fois xbps-install terminé,
+# "yes" reçoit SIGPIPE (code 141) et pipefail fait échouer TOUTE LA PIPELINE même si xbps-install
+# a réussi — le script s'arrête net, sans message d'erreur — vérifié en live (repro minimal :
+# "set -o pipefail; yes | head -0" quitte avec le code 141 sans jamais exécuter la suite).
+set +o pipefail
 yes | "\${WORK_DIR}/xbps-static/usr/bin/xbps-install.static" \\
   -S -R https://repo-default.voidlinux.org/current \\
-  -r "\${ROOTFS_DIR}" -y base-voidstrap shadow sudo
+  -r "\${ROOTFS_DIR}" -y base-voidstrap shadow sudo${isDiskImage ? ' grub linux' : ''}
+set -o pipefail
 
 mkdir -p "\${ROOTFS_DIR}/etc/xbps.d"
-echo 'repository=https://repo-default.voidlinux.org/current' > "\${ROOTFS_DIR}/etc/xbps.d/00-repository-main.conf"`,
+echo 'repository=https://repo-default.voidlinux.org/current' > "\${ROOTFS_DIR}/etc/xbps.d/00-repository-main.conf"${isDiskImage ? `
+
+# Void n'active aucun getty sur la console série par défaut (seulement tty1-tty6) : sans ce lien,
+# le système démarre normalement mais n'affiche jamais rien sur ttyS0 — vérifié en live (ce qui
+# ressemblait à un blocage au démarrage était en réalité un boot réussi, juste invisible).
+ln -sf /etc/sv/agetty-ttyS0 "\${ROOTFS_DIR}/etc/runit/runsvdir/default/agetty-ttyS0"` : ''}`,
     updateCmd: 'xbps-install -Sy',
     installOneCmd: 'xbps-install -Sy "$pkg"',
-    diskImageSupported: false,
+    diskImageSupported: true,
+    diskImageKernelDetectCmd: 'KVER=$(ls "${MNT_DIR}/lib/modules/" | head -1)\nKERNEL_PATH="/boot/vmlinuz-${KVER}"\nINITRD_PATH="/boot/initramfs-${KVER}.img"',
+    grubInstallBin: 'grub-install',
+    grubConfigSubdir: 'grub',
   },
 };
 
@@ -568,6 +602,13 @@ function generateNonDebianDiskImageScript(
   const needsConversion = diskTarget.ext !== 'raw.img' && diskTarget.qemuFormat !== 'raw';
   const grubBin = config.grubInstallBin!;
   const grubSubdir = config.grubConfigSubdir!;
+  // Alpine (nlplug-findfs) ne résout pas "root=UUID=..." dans ce pipeline — vérifié en live —
+  // donc on retombe sur un chemin de périphérique direct pour cette famille uniquement.
+  const grubSearchLine = config.diskImageRootIsDevicePath ? '' : '    search --no-floppy --fs-uuid --set=root \\${ROOT_UUID}\n';
+  // /dev/sda1 suppose que le disque apparaît comme premier disque IDE/SATA/SCSI côté machine
+  // cible (vrai sous QEMU, la plupart des hyperviseurs BIOS classiques) — moins portable qu'UUID,
+  // mais nlplug-findfs (Alpine) ne sait pas résoudre UUID= dans ce pipeline. Compromis assumé.
+  const rootKernelArg = config.diskImageRootIsDevicePath ? '/dev/sda1' : 'UUID=\\${ROOT_UUID}';
 
   const diskConversionStep = needsConversion ? `
 echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"
@@ -710,8 +751,7 @@ cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${recipe.branding.osName}" {
-    search --no-floppy --fs-uuid --set=root \${ROOT_UUID}
-    linux \${KERNEL_PATH} root=UUID=\${ROOT_UUID} rw console=tty0 console=ttyS0,115200
+${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}
     initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
