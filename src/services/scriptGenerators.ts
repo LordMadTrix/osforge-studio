@@ -397,8 +397,13 @@ cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
 hostonly="no"
 DRACUT_EOF
 
+
+# "dracut" doit être installé EXPLICITEMENT : contrairement à Fedora/RHEL, kernel-default
+# d'openSUSE ne le tire pas comme dépendance — vérifié en live (le scriptlet %posttrans
+# affichait littéralement "dracut is not installed, not rebuilding the initrd", laissant
+# /boot sans aucun fichier initrd du tout).
 zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --allow-unsigned-rpm \\
-  kernel-default grub2 grub2-i386-pc` : ''}`,
+  kernel-default grub2 grub2-i386-pc dracut` : ''}`,
     updateCmd: '',
     installOneCmd: 'zypper --non-interactive install --no-recommends "$pkg"',
     diskImageSupported: true,
