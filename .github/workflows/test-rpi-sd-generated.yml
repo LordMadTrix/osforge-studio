@@ -26,7 +26,7 @@ jobs:
         run: |
           IMG_XZ=$(find dist -name '*.img.xz')
           echo "Image trouvée : $IMG_XZ"
-          xz -d -k "$IMG_XZ"
+          sudo xz -d -k "$IMG_XZ"
           IMG="${IMG_XZ%.xz}"
           sudo losetup -P -f "$IMG"
           LOOPDEV=$(losetup -j "$IMG" | cut -d: -f1)
