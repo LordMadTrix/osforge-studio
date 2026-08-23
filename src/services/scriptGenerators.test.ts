@@ -248,6 +248,11 @@ describe('resolvePackageList — repli de noms de paquets pour les distros absen
     expect(raspbian.length).toBeGreaterThan(0);
   });
 
+  it('linuxmint hérite des noms de paquets ubuntu (dérivé Ubuntu)', () => {
+    const mint = resolvePackageList(makeRecipe({ distro: 'linuxmint', selectedPackages: ['git'] }));
+    expect(mint.length).toBeGreaterThan(0);
+  });
+
   it('cachyos, rocky, opensuse et void produisent tous une liste non vide via repli vers la famille la plus proche', () => {
     for (const distroId of ['cachyos', 'rocky', 'opensuse', 'void'] as DistroId[]) {
       const pkgs = resolvePackageList(makeRecipe({ distro: distroId, selectedPackages: ['git'], customPackages: [] }));
@@ -262,6 +267,25 @@ describe('resolvePackageList — repli de noms de paquets pour les distros absen
       customPackages: ['git', 'sudo'],
     }));
     expect(pkgs.length).toBe(new Set(pkgs).size);
+  });
+});
+
+describe('generateBuildScript — Linux Mint (nouveau : dérivé Ubuntu, réutilise le pipeline vérifié)', () => {
+  it('bootstrap avec les mêmes paramètres que Ubuntu (mirror, suite, composants main+universe)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'linuxmint', outputFormat: 'iso_hybrid' }));
+    expect(script).toContain('archive.ubuntu.com/ubuntu');
+    expect(script).toContain('resolute');
+    expect(script).toContain('--components="main,universe"');
+  });
+
+  it("utilise linux-image-generic (paquet noyau Ubuntu), pas linux-image-<arch> (nom Debian, inexistant sur ce miroir)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'linuxmint', outputFormat: 'iso_hybrid' }));
+    expect(script).toContain('linux-image-generic');
+  });
+
+  it("applique le correctif firefox-snap-transition (hérité d'Ubuntu, même dépôt de base)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'linuxmint', outputFormat: 'iso_hybrid', selectedPackages: ['firefox'] }));
+    expect(script).toContain('packages.mozilla.org');
   });
 });
 

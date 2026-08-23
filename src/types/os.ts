@@ -1,4 +1,4 @@
-export type DistroId = 
+export type DistroId =
   | 'debian'
   | 'ubuntu'
   | 'arch'
@@ -10,7 +10,8 @@ export type DistroId =
   | 'kali'
   | 'cachyos'
   | 'nixos'
-  | 'void';
+  | 'void'
+  | 'linuxmint';
 
 export type ArchType = 'x86_64' | 'aarch64' | 'riscv64' | 'i686';
 

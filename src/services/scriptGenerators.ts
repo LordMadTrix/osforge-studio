@@ -15,6 +15,7 @@ const PKG_NAME_FALLBACK: Partial<Record<DistroId, DistroId>> = {
   rocky: 'fedora',
   opensuse: 'fedora',
   void: 'alpine',
+  linuxmint: 'ubuntu',
 };
 
 export function resolvePackageList(recipe: OSRecipe): string[] {
@@ -154,6 +155,21 @@ deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe 
     suite: 'kali-rolling',
     mirror: 'http://http.kali.org/kali',
     sourcesList: () => `deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware`,
+  },
+  linuxmint: {
+    // Linux Mint est un dérivé Ubuntu : mêmes paramètres de bootstrap que la cible "ubuntu"
+    // ci-dessus (déjà vérifiés en live), volontairement réutilisés tels quels plutôt que de
+    // pointer vers le dépôt propre de Mint (packages.linuxmint.com), qui nécessiterait sa propre
+    // clé GPG non encore vérifiée en live dans ce pipeline (même prudence que pour Raspberry Pi
+    // OS/openSUSE : ne pas fabriquer une URL de clé non confirmée). "Mint" ici = base Ubuntu +
+    // bureau Cinnamon (déjà pris en charge comme DesktopEnvironmentId), ce qui correspond
+    // fonctionnellement à ce que la plupart des utilisateurs attendent de Mint.
+    suite: 'resolute',
+    mirror: 'http://archive.ubuntu.com/ubuntu',
+    sourcesList: () => `deb http://archive.ubuntu.com/ubuntu resolute main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu resolute-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe multiverse`,
+    components: 'main,universe',
   },
   raspbian: {
     // "rpi-bookworm" (catalogue OSForge) n'est pas un nom de suite debootstrap valide ;
@@ -1034,7 +1050,7 @@ exit 1
   // config.txt/bootcode.bin/start*.elf et le hook qui peuple /boot/firmware à chaque installation
   // de noyau. Les deux viennent du dépôt d'ajout archive.raspberrypi.com (pas debootstrap
   // --include, car absents du miroir Debian utilisé pour le bootstrap — voir DEBOOTSTRAP_TARGETS).
-  const kernelPkg = recipe.distro === 'ubuntu' ? 'linux-image-generic'
+  const kernelPkg = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' ? 'linux-image-generic'
     : recipe.distro === 'raspbian' ? 'raspberrypi-kernel'
     : `linux-image-${debArch}`;
 
@@ -1231,10 +1247,11 @@ mount --bind /sys "\${ROOTFS_DIR}/sys"
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
-${recipe.distro === 'ubuntu' && recipe.selectedPackages.includes('firefox') ? `
-# Sur Ubuntu, "firefox" en apt n'est qu'un paquet de transition vers snap (vérifié en live :
-# l'installation "réussit" silencieusement mais ne pose qu'un stub non fonctionnel, snapd
-# n'étant pas actif dans un chroot). On ajoute le vrai dépôt APT officiel de Mozilla à la place.
+${(recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') && recipe.selectedPackages.includes('firefox') ? `
+# Sur Ubuntu (et Mint, qui hérite ici du même dépôt de base), "firefox" en apt n'est qu'un
+# paquet de transition vers snap (vérifié en live : l'installation "réussit" silencieusement
+# mais ne pose qu'un stub non fonctionnel, snapd n'étant pas actif dans un chroot). On ajoute
+# le vrai dépôt APT officiel de Mozilla à la place.
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt/keyrings/packages.mozilla.org.asc || true
 echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" > /etc/apt/sources.list.d/mozilla.list
