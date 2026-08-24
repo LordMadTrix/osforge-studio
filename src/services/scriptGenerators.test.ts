@@ -1092,6 +1092,23 @@ describe('generateBuildScript — injection de commande shell via "useradd" (use
   });
 });
 
+describe('generateBuildScript — injection de commande shell via "hostname" corrigée (même audit, même classe de faille : "echo \\"${hostname}\\" > /etc/hostname" et la bannière colorée étaient vulnérables au $(...) car en guillemets doubles simples — vérifié en exécutant réellement les lignes extraites : le payload s\'imprime comme texte littéral, aucun fichier de preuve créé)', () => {
+  it('hostname contenant $(...) est neutralisé dans "/etc/hostname" et la bannière', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      hostname: `evil$(touch /tmp/pwned7)box`,
+    }));
+    expect(script).toContain(`echo 'evil$(touch /tmp/pwned7)box' > /etc/hostname`);
+    expect(script).toContain(`Nom d'hôte         : "'evil$(touch /tmp/pwned7)box'"`);
+    expect(script).not.toMatch(/echo "evil\$\(touch \/tmp\/pwned7\)box" > \/etc\/hostname/);
+  });
+
+  it('un hostname normal fonctionne toujours sans changement de comportement', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', hostname: 'forge-box' }));
+    expect(script).toContain(`echo 'forge-box' > /etc/hostname`);
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

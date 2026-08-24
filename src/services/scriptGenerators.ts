@@ -1052,7 +1052,7 @@ NC='\\033[0m'
 echo -e "\${CYAN}=======================================================\${NC}"
 echo -e "\${CYAN}   🚀 OSForge Studio : Construction RootFS            \${NC}"
 echo -e "\${CYAN}   Distribution cible : ${label} (${recipe.arch})\${NC}"
-echo -e "\${CYAN}   Nom d'hôte         : ${recipe.hostname}\${NC}"
+echo -e "\${CYAN}   Nom d'hôte         : "${shQuote(recipe.hostname)}"\${NC}"
 echo -e "\${CYAN}=======================================================\${NC}"
 
 if [[ $EUID -ne 0 ]]; then
@@ -1093,7 +1093,7 @@ for pkg in ${pkgs}; do
     ${config.installOneCmd} || echo "Info: $pkg omis ou non disponible dans le dépôt."
 done
 
-echo "${recipe.hostname}" > /etc/hostname
+echo ${shQuote(recipe.hostname)} > /etc/hostname
 cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
@@ -1236,7 +1236,7 @@ NC='\\033[0m'
 echo -e "\${CYAN}=======================================================\${NC}"
 echo -e "\${CYAN}   🚀 OSForge Studio : Construction Image Disque      \${NC}"
 echo -e "\${CYAN}   Distribution cible : ${label} (${recipe.arch})\${NC}"
-echo -e "\${CYAN}   Nom d'hôte         : ${recipe.hostname}\${NC}"
+echo -e "\${CYAN}   Nom d'hôte         : "${shQuote(recipe.hostname)}"\${NC}"
 echo -e "\${CYAN}=======================================================\${NC}"
 
 if [[ $EUID -ne 0 ]]; then
@@ -1281,7 +1281,7 @@ for pkg in ${pkgs}; do
     ${config.installOneCmd} || echo "Info: $pkg omis ou non disponible dans le dépôt."
 done
 
-echo "${recipe.hostname}" > /etc/hostname
+echo ${shQuote(recipe.hostname)} > /etc/hostname
 cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
@@ -1425,7 +1425,7 @@ NC='\\033[0m'
 
 echo -e "\${CYAN}=======================================================\${NC}"
 echo -e "\${CYAN}   🍓 OSForge Studio : Image Carte SD Raspberry Pi    \${NC}"
-echo -e "\${CYAN}   Nom d'hôte         : ${recipe.hostname}\${NC}"
+echo -e "\${CYAN}   Nom d'hôte         : "${shQuote(recipe.hostname)}"\${NC}"
 echo -e "\${CYAN}=======================================================\${NC}"
 
 if [[ $EUID -ne 0 ]]; then
@@ -1445,7 +1445,7 @@ which debootstrap qemu-img parted mkfs.vfat qemu-aarch64-static xz >/dev/null 2>
     apt-get update -y && apt-get install -y debootstrap qemu-user-static binfmt-support parted dosfstools qemu-utils xz-utils
 }
 
-echo -e "\${YELLOW}[2/6] 🏗️ Bootstrap ARM64 du système Debian de base (${recipe.hostname} / bookworm)...\${NC}"
+echo -e "\${YELLOW}[2/6] 🏗️ Bootstrap ARM64 du système Debian de base ("${shQuote(recipe.hostname)}" / bookworm)...\${NC}"
 # Raspberry Pi OS moderne se construit à partir d'un vrai Debian (deb.debian.org) : le dépôt
 # archive.raspberrypi.com/debian n'est qu'un dépôt d'AJOUT (noyau/firmware/bootloader), PAS un
 # miroir Debian complet — un debootstrap direct dessus échoue avec "Couldn't find these debs:
@@ -1483,7 +1483,7 @@ for pkg in ${pkgs}; do
     apt-get install -y --no-install-recommends "$pkg" || echo "Info: $pkg omis ou non disponible dans le dépôt."
 done
 
-echo "${recipe.hostname}" > /etc/hostname
+echo ${shQuote(recipe.hostname)} > /etc/hostname
 cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
@@ -1799,7 +1799,7 @@ NC='\\033[0m'
 echo -e "\${CYAN}=======================================================\${NC}"
 echo -e "\${CYAN}   🚀 OSForge Studio : Compilation de l'ISO Linux     \${NC}"
 echo -e "\${CYAN}   Distribution cible : ${recipe.distro} (${recipe.arch})\${NC}"
-echo -e "\${CYAN}   Nom d'hôte         : ${recipe.hostname}\${NC}"
+echo -e "\${CYAN}   Nom d'hôte         : "${shQuote(recipe.hostname)}"\${NC}"
 echo -e "\${CYAN}=======================================================\${NC}"
 
 # Vérification des privilèges root
@@ -1960,7 +1960,7 @@ if command -v curl &>/dev/null; then
 fi
 
 # Configuration du nom d'hôte
-echo "${recipe.hostname}" > /etc/hostname
+echo ${shQuote(recipe.hostname)} > /etc/hostname
 cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
