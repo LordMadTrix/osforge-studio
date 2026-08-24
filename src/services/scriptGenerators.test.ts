@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -595,6 +595,54 @@ describe('resolvePackageList — openSUSE Tumbleweed : bureaux réellement câbl
     const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', desktop: 'gnome', selectedPackages: [], customPackages: [] }));
     expect(pkgs).toContain('MozillaFirefox');
     expect(pkgs).not.toContain('firefox');
+  });
+});
+
+describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" réellement câblé (bug réel trouvé : sélectionnable dans l\'UI mais jamais référencé nulle part, zéro paquet installé, zéro règle configurée)', () => {
+  it('ISO Debian/APT : installe nftables et écrit un vrai jeu de règles (deny incoming par défaut)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).toContain('apt-get install -y --no-install-recommends nftables');
+    expect(script).toContain('policy drop');
+    expect(script).toContain('tcp dport 22 accept');
+    expect(script).toContain('nft -f /etc/nftables.conf');
+  });
+
+  it('ISO : n\'ajoute pas la règle SSH si enableSSH=false', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: false,
+      security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).not.toContain('tcp dport 22 accept');
+  });
+
+  it('firewall="none" ne câble ni ufw ni nftables', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).not.toContain('install -y --no-install-recommends nftables');
+    expect(script).not.toContain('install -y --no-install-recommends ufw');
+  });
+
+  it('cloud-init : ajoute nftables aux paquets et un fichier de règles réel (bug annexe corrigé : "ufw" n\'était lui non plus jamais ajouté aux paquets cloud-init malgré "ufw --force enable" dans runcmd)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('- nftables');
+    expect(yaml).toContain('/etc/nftables.conf');
+    expect(yaml).toContain('nft -f /etc/nftables.conf');
+  });
+
+  it('cloud-init : ajoute "ufw" aux paquets quand firewall="ufw" (paquet jamais installé auparavant, seulement activé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('- ufw');
   });
 });
 

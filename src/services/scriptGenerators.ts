@@ -1619,7 +1619,7 @@ chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ` : ''}
 
-# Sécurité & Durcissement (CIS Benchmark / UFW)
+# Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${recipe.security.firewall === 'ufw' ? `
 if ! command -v ufw &>/dev/null; then
     apt-get install -y --no-install-recommends ufw >/dev/null 2>&1 || true
@@ -1629,6 +1629,33 @@ if command -v ufw &>/dev/null; then
     ufw default allow outgoing || true
     ${recipe.enableSSH ? 'ufw allow 22/tcp || true' : ''}
     ufw --force enable || true
+fi
+` : ''}${recipe.security.firewall === 'nftables' ? `
+# "nftables" était sélectionnable dans l'interface mais n'était câblé nulle part dans ce
+# générateur (bug réel trouvé en auditant) : le choix n'installait ni ne configurait rien,
+# laissant le système sans aucun pare-feu malgré le choix explicite de l'utilisateur.
+if ! command -v nft &>/dev/null; then
+    apt-get install -y --no-install-recommends nftables >/dev/null 2>&1 || true
+fi
+if command -v nft &>/dev/null; then
+    cat > /etc/nftables.conf << 'NFT_EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state established,related accept
+        iif lo accept
+        icmp type echo-request accept
+        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert } accept
+${recipe.enableSSH ? '        tcp dport 22 accept' : ''}
+    }
+    chain forward { type filter hook forward priority 0; policy drop; }
+    chain output { type filter hook output priority 0; policy accept; }
+}
+NFT_EOF
+    nft -f /etc/nftables.conf || true
+    systemctl enable nftables 2>/dev/null || true
 fi
 ` : ''}
 
@@ -1833,6 +1860,7 @@ locale: ${recipe.locale}.UTF-8
 
 packages:
 ${pkgs.map(p => `  - ${p}`).join('\n')}
+${recipe.security.firewall === 'ufw' ? '  - ufw' : ''}${recipe.security.firewall === 'nftables' ? '  - nftables' : ''}
 
 package_update: true
 package_upgrade: ${recipe.security.autoSecurityUpdates ? 'true' : 'false'}
@@ -1844,10 +1872,26 @@ write_files:
       Bienvenue sur ${recipe.branding.osName} (${recipe.branding.editionName})
       Généré avec OSForge Studio
       ======================================================
-
+${recipe.security.firewall === 'nftables' ? `  - path: /etc/nftables.conf
+    content: |
+      #!/usr/sbin/nft -f
+      flush ruleset
+      table inet filter {
+          chain input {
+              type filter hook input priority 0; policy drop;
+              ct state established,related accept
+              iif lo accept
+              icmp type echo-request accept
+${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
+          }
+          chain forward { type filter hook forward priority 0; policy drop; }
+          chain output { type filter hook output priority 0; policy accept; }
+      }
+` : ''}
 runcmd:
   - systemctl enable --now ssh || true
   ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
+  ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
   - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
 `;
 }
