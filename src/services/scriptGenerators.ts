@@ -760,11 +760,24 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconso
     hostCheckCmd: 'dnf rpmkeys',
     bootstrapBlock: (distroId, _arch, isDiskImage, kernelType) => {
       const isRocky = distroId === 'rocky';
-      // Pas de paquet officiel dnf pour zen/hardened/rt/lts/cachyos/liquorix côté Fedora/Rocky
-      // (contrairement à Arch, où linux-zen/hardened/lts/rt sont vérifiés dans les dépôts
-      // officiels) — repli honnête et annoncé sur le noyau par défaut de la distro plutôt que
-      // d'ignorer silencieusement le choix de l'utilisateur.
-      const kernelFallbackNotice = kernelType && kernelType !== 'generic'
+      // Bug réel trouvé en auditant : noyau "lts" pour Fedora tombait toujours dans le repli
+      // honnête ci-dessous (aucun paquet dnf officiel LTS pour Fedora — Fedora ne maintient pas
+      // de branche noyau LTS, contrairement à Debian/Ubuntu via XanMod). Vérifié en direct qu'un
+      // vrai dépôt COPR maintenu (kwizart/kernel-longterm-6.18, actif — dernière build le jour
+      // même de cette vérification) fournit un paquet "kernel-longterm" RÉEL avec un chroot
+      // "fedora-44-x86_64" correspondant exactement à la version Fedora déjà ciblée par ce
+      // générateur (releasever=44 ci-dessous) : fichier .repo, clé GPG et repodata/primary.xml
+      // du paquet tous confirmés accessibles en direct (200, contenu réel, pas une supposition).
+      // Rocky Linux exclu de ce câblage : ce COPR ne publie que des chroots epel-9/centos-stream-9
+      // pour sa branche précédente (6.6) et fedora-*/epel-10 pour 6.18, aucun ne correspond
+      // exactement à Rocky 9 sans un choix de version supplémentaire — hors périmètre honnête
+      // pour cette itération plutôt qu'un mauvais choix de dépôt non vérifié.
+      const isFedoraLtsKernel = !isRocky && kernelType === 'lts';
+      // Pas de paquet officiel dnf pour zen/hardened/rt/cachyos/liquorix côté Fedora/Rocky, ni
+      // pour "lts" côté Rocky (contrairement à Arch, où linux-zen/hardened/lts/rt sont vérifiés
+      // dans les dépôts officiels) — repli honnête et annoncé sur le noyau par défaut de la
+      // distro plutôt que d'ignorer silencieusement le choix de l'utilisateur.
+      const kernelFallbackNotice = kernelType && kernelType !== 'generic' && !isFedoraLtsKernel
         ? `Le noyau "${kernelType}" n'a pas de paquet officiel dnf pour ${isRocky ? 'Rocky Linux' : 'Fedora'} : noyau par défaut de la distro utilisé à la place.`
         : null;
       // Pas de backslash devant $basearch/$releasever ici : ce sont des variables du format
@@ -820,8 +833,24 @@ gpgcheck=0`;
 cat > "\${WORK_DIR}/yum.repos.d/target.repo" << 'DNF_REPO_EOF'
 ${repoBlock}
 DNF_REPO_EOF
+${isFedoraLtsKernel ? `
+# Dépôt COPR réel (vérifié en direct : projet actif, chroot fedora-44-x86_64, clé GPG et
+# repodata accessibles) fournissant le paquet "kernel-longterm" — Fedora ne maintient aucune
+# branche noyau LTS officielle, contrairement à Debian/Ubuntu (XanMod) plus haut dans ce fichier.
+cat > "\${WORK_DIR}/yum.repos.d/kernel-longterm.repo" << 'COPR_REPO_EOF'
+[copr:copr.fedorainfracloud.org:kwizart:kernel-longterm-6.18]
+name=Copr repo for kernel-longterm-6.18 owned by kwizart
+baseurl=https://download.copr.fedorainfracloud.org/results/kwizart/kernel-longterm-6.18/fedora-$releasever-$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=1
+gpgkey=https://download.copr.fedorainfracloud.org/results/kwizart/kernel-longterm-6.18/pubkey.gpg
+repo_gpgcheck=0
+enabled=1
+enabled_metadata=1
+COPR_REPO_EOF` : ''}
 
-DNF_BASE="dnf --installroot=\${ROOTFS_DIR} --releasever=${releasever} --setopt=reposdir=\${WORK_DIR}/yum.repos.d ${repoIds} --nogpgcheck -y"
+DNF_BASE="dnf --installroot=\${ROOTFS_DIR} --releasever=${releasever} --setopt=reposdir=\${WORK_DIR}/yum.repos.d ${repoIds}${isFedoraLtsKernel ? ' --repo=copr:copr.fedorainfracloud.org:kwizart:kernel-longterm-6.18' : ''} --nogpgcheck -y"
 
 # Bug connu rpm/dnf : le scriptlet %sysusers du paquet "setup" appelle /usr/lib/rpm/sysusers.sh,
 # fourni par le paquet "rpm" lui-même — s'il n'est pas encore posé sur le disque au moment où le
@@ -840,8 +869,10 @@ cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
 hostonly="no"
 DRACUT_EOF
 ${kernelFallbackNotice ? `
-echo -e "\${YELLOW}[INFO] ${kernelFallbackNotice}\${NC}"` : ''}
-$DNF_BASE install kernel grub2-pc` : ''}`;
+echo -e "\${YELLOW}[INFO] ${kernelFallbackNotice}\${NC}"` : ''}${isFedoraLtsKernel ? `
+echo -e "\${CYAN}[INFO] Noyau \\"lts\\" réellement câblé pour Fedora via le dépôt COPR kwizart/kernel-longterm-6.18.\${NC}"
+$DNF_BASE install kernel-longterm grub2-pc` : `
+$DNF_BASE install kernel grub2-pc`}` : ''}`;
     },
     updateCmd: '',
     installOneCmd: 'dnf install -y "$pkg"',

@@ -1174,4 +1174,27 @@ describe('generateBuildScript — familles sans noyau câblé : avertissement ho
     const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernel: 'generic' }));
     expect(script).not.toContain("n'est pas encore câblé");
   });
+
+  it('Rocky + kernel="lts" affiche toujours un avertissement de repli (COPR non câblé pour Rocky, seulement pour Fedora)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', kernel: 'lts' }));
+    expect(script).toContain("n'a pas de paquet officiel dnf");
+    expect(script).not.toContain('kernel-longterm');
+  });
+});
+
+describe('generateBuildScript — noyau "lts" réellement câblé pour Fedora via un vrai dépôt COPR (kwizart/kernel-longterm-6.18, vérifié en direct : projet actif, chroot fedora-44-x86_64, clé GPG et repodata/primary.xml accessibles, paquet "kernel-longterm" confirmé présent)', () => {
+  it('Fedora + kernel="lts" : écrit le vrai fichier .repo COPR et installe "kernel-longterm" au lieu de "kernel"', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'lts' }));
+    expect(script).toContain('[copr:copr.fedorainfracloud.org:kwizart:kernel-longterm-6.18]');
+    expect(script).toContain('baseurl=https://download.copr.fedorainfracloud.org/results/kwizart/kernel-longterm-6.18/fedora-$releasever-$basearch/');
+    expect(script).toContain('gpgkey=https://download.copr.fedorainfracloud.org/results/kwizart/kernel-longterm-6.18/pubkey.gpg');
+    expect(script).toContain('$DNF_BASE install kernel-longterm grub2-pc');
+    expect(script).not.toContain("n'a pas de paquet officiel dnf");
+  });
+
+  it('Fedora + kernel="generic" (défaut) : ni le dépôt COPR ni "kernel-longterm" ne sont présents', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'generic' }));
+    expect(script).not.toContain('kernel-longterm');
+    expect(script).toContain('$DNF_BASE install kernel grub2-pc');
+  });
 });
