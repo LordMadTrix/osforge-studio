@@ -448,6 +448,28 @@ describe('generateBuildScript — sélection de noyau réellement câblée pour 
   });
 });
 
+describe('generateBuildScript — noyau LTS/Realtime réellement câblé via XanMod (vérifié en direct sur xanmod.org)', () => {
+  it("Debian + kernel=lts ajoute le vrai dépôt XanMod et installe linux-xanmod-lts-x64v1", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'lts' }));
+    expect(script).toContain('https://dl.xanmod.org/archive.key');
+    expect(script).toContain('deb.xanmod.org trixie main');
+    expect(script).toContain('linux-xanmod-lts-x64v1');
+    expect(script).not.toMatch(/--include="linux-image-amd64,/);
+  });
+
+  it("Ubuntu + kernel=realtime ajoute le vrai dépôt XanMod et installe linux-xanmod-rt-x64v2", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'realtime' }));
+    expect(script).toContain('deb.xanmod.org resolute main');
+    expect(script).toContain('linux-xanmod-rt-x64v2');
+  });
+
+  it("XanMod n'est pas proposé hors x86_64 (aucun paquet officiel pour cette architecture)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'aarch64', outputFormat: 'iso_hybrid', kernel: 'lts' }));
+    expect(script).not.toContain('xanmod');
+    expect(script).toContain("n'est pas encore câblé pour debian");
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

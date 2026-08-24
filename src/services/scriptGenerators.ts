@@ -1101,20 +1101,29 @@ exit 1
     : recipe.distro === 'raspbian' ? 'raspberrypi-kernel'
     : `linux-image-${debArch}`;
 
-  // Trois choix de noyau sont réellement câblés pour Ubuntu/Mint (vérifiés en live) :
-  // - mainline_beta : kernel.ubuntu.com/mainline publie de vrais .deb Canonical officiels pour
-  //   CHAQUE version taguée (confirmé en direct : v7.2 y est déjà, quelques heures après le tag
-  //   upstream) — méthode officiellement documentée d'installation d'un noyau mainline.
-  // - liquorix : PPA officiel ppa:damentz/liquorix, exactement la commande du vrai script
-  //   d'installation servi par liquorix.net/install-liquorix.sh (branche *ubuntu*).
-  // - cloud_micro : linux-image-kvm, vrai paquet officiel Ubuntu optimisé invité KVM/cloud.
+  // Choix de noyau réellement câblés pour les familles APT (vérifiés en live) :
+  // - mainline_beta (Ubuntu/Mint uniquement) : kernel.ubuntu.com/mainline publie de vrais .deb
+  //   Canonical officiels pour CHAQUE version taguée (confirmé en direct : v7.2 y est déjà,
+  //   quelques heures après le tag upstream).
+  // - liquorix (Ubuntu/Mint uniquement) : PPA officiel ppa:damentz/liquorix, exactement la
+  //   commande du vrai script d'installation servi par liquorix.net/install-liquorix.sh (branche
+  //   *ubuntu*). Debian utiliserait un mécanisme différent (keyring signé), non câblé ici.
+  // - cloud_micro (Ubuntu/Mint uniquement) : linux-image-kvm, vrai paquet officiel Ubuntu.
+  // - lts / realtime (Debian ET Ubuntu/Mint, x86_64 uniquement) : dépôt APT officiel XanMod
+  //   (deb.xanmod.org, vérifié en direct sur xanmod.org — vraies branches LTS et RT distinctes,
+  //   codenames Debian "trixie"/Ubuntu "resolute" tous deux supportés). Paquets nommés par niveau
+  //   x86-64-vN (psABI) : on prend le plus compatible (v1 pour LTS, v2 pour RT — RT ne publie pas
+  //   de build v1) plutôt que de tenter une détection CPU au moment de la génération du script.
   // On exclut alors le noyau par défaut du debootstrap --include (voir plus bas) pour n'avoir
   // JAMAIS deux noyaux dans /boot en même temps : le glob "cp .../boot/vmlinuz* dest-unique"
   // plus loin dans ce script casserait silencieusement s'il y avait deux fichiers correspondants.
-  const UBUNTU_REAL_ALT_KERNEL = (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint')
-    && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)
-    ? recipe.kernel
-    : null;
+  const isUbuntuFamily = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint';
+  const isXanmodEligible = (recipe.distro === 'debian' || isUbuntuFamily) && recipe.arch === 'x86_64';
+  const REAL_ALT_KERNEL =
+    (isUbuntuFamily && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)) ||
+    (isXanmodEligible && (['lts', 'realtime'] as string[]).includes(recipe.kernel))
+      ? recipe.kernel
+      : null;
 
   // Formats de sortie réellement implémentés : ISO live (par défaut) et RootFS tar.gz
   // (WSL2 / Docker), qui réutilisent tous les deux le même RootFS déjà construit.
@@ -1292,11 +1301,11 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-${recipe.kernel && recipe.kernel !== 'generic' && !UBUNTU_REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Liquorix/Cloud-Micro le sont réellement pour Ubuntu/Mint.\${NC}"
-` : ''}${UBUNTU_REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
+${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Liquorix/Cloud-Micro pour Ubuntu/Mint ; LTS/Realtime (via XanMod) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
+` : ''}${REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
 ` : ''}debootstrap --arch="${debArch}" \\${target.components ? `
   --components="${target.components}" \\` : ''}
-  --include="${recipe.distro === 'raspbian' || UBUNTU_REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
+  --include="${recipe.distro === 'raspbian' || REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
 
 echo -e "\${YELLOW}[3/7] ⚙️ Configuration du système et installation des paquets...\${NC}"
@@ -1350,7 +1359,7 @@ apt-get update -y
 ${recipe.distro === 'raspbian' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
 apt-get install -y --no-install-recommends raspberrypi-kernel raspi-firmware
 
-` : ''}${UBUNTU_REAL_ALT_KERNEL === 'mainline_beta' ? `# Noyau mainline le plus récent — vérifié en direct sur kernel.ubuntu.com/mainline (vrais .deb
+` : ''}${REAL_ALT_KERNEL === 'mainline_beta' ? `# Noyau mainline le plus récent — vérifié en direct sur kernel.ubuntu.com/mainline (vrais .deb
 # officiels Canonical, publiés pour chaque version taguée y compris fraîchement sortie).
 echo -e "\${YELLOW}[INFO] Recherche du dernier noyau mainline officiel (kernel.ubuntu.com/mainline)...\${NC}"
 apt-get install -y --no-install-recommends curl ca-certificates
@@ -1370,7 +1379,7 @@ else
     apt-get install -y --no-install-recommends linux-image-generic
 fi
 
-` : ''}${UBUNTU_REAL_ALT_KERNEL === 'liquorix' ? `# Noyau Liquorix — dépôt PPA officiel (ppa:damentz/liquorix), méthode exacte du vrai script
+` : ''}${REAL_ALT_KERNEL === 'liquorix' ? `# Noyau Liquorix — dépôt PPA officiel (ppa:damentz/liquorix), méthode exacte du vrai script
 # d'installation servi par liquorix.net/install-liquorix.sh (branche Ubuntu, vérifiée en direct).
 echo -e "\${YELLOW}[INFO] Ajout du dépôt PPA officiel Liquorix (damentz/liquorix)...\${NC}"
 apt-get install -y --no-install-recommends gpg gpg-agent software-properties-common
@@ -1378,9 +1387,20 @@ add-apt-repository -y ppa:damentz/liquorix
 apt-get update -y
 apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-headers-liquorix-amd64
 
-` : ''}${UBUNTU_REAL_ALT_KERNEL === 'cloud_micro' ? `# Noyau officiel Ubuntu optimisé invité cloud/KVM (vrai paquet, dépôt Ubuntu standard).
+` : ''}${REAL_ALT_KERNEL === 'cloud_micro' ? `# Noyau officiel Ubuntu optimisé invité cloud/KVM (vrai paquet, dépôt Ubuntu standard).
 echo -e "\${YELLOW}[INFO] Installation du noyau officiel Ubuntu invité cloud/KVM (linux-image-kvm)...\${NC}"
 apt-get install -y --no-install-recommends linux-image-kvm
+
+` : ''}${(REAL_ALT_KERNEL === 'lts' || REAL_ALT_KERNEL === 'realtime') ? `# Noyau XanMod — vrai dépôt APT officiel (deb.xanmod.org), vérifié en direct sur xanmod.org.
+# Branches LTS et RT distinctes et réellement maintenues par le projet, codenames Debian/Ubuntu
+# de ce pipeline (${target.suite}) confirmés pris en charge.
+echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel XanMod (deb.xanmod.org)...\${NC}"
+apt-get install -y --no-install-recommends wget gnupg
+mkdir -p /etc/apt/keyrings
+wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${target.suite} main" > /etc/apt/sources.list.d/xanmod-release.list
+apt-get update -y
+apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}
 
 ` : ''}# Installation sécurisée et résiliente des logiciels sélectionnés
 for pkg in ${pkgs}; do
