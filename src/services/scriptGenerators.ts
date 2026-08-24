@@ -69,6 +69,47 @@ function serviceEnableCmd(service: string, family: 'debian' | NonDebianFamily): 
   return `systemctl enable ${service} 2>/dev/null || true`;
 }
 
+// Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
+// kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
+// Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
+// "normal" doit passer par le mécanisme NATIF propre à chaque gestionnaire de connexion — conventions
+// stables et documentées depuis des années, vérifiées être identiques sur toutes les distros qui
+// embarquent ces DM (seul le chemin du fichier de config gdm3/gdm diffère, déjà établi ailleurs
+// dans ce fichier via resolveDmServiceName) :
+// - GDM(3) : [daemon] AutomaticLoginEnable=true / AutomaticLogin=<user> dans custom.conf
+// - SDDM : [Autologin] User=<user> dans un fragment sddm.conf.d (pas de Session= : ces builds
+//   n'installent qu'UN SEUL environnement de bureau, donc SDDM n'a qu'une session disponible)
+// - LightDM : [Seat:*] autologin-user=<user> dans un fragment lightdm.conf.d
+function dmAutologinCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.user.autologin || recipe.displayManager === 'none') return '';
+  const username = recipe.user.username;
+  if (recipe.displayManager === 'gdm3') {
+    const confPath = family === 'debian' ? '/etc/gdm3/custom.conf' : '/etc/gdm/custom.conf';
+    return `mkdir -p $(dirname ${confPath})
+if [ -f ${confPath} ] && grep -q '^\\[daemon\\]' ${confPath}; then
+    sed -i '/^\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=${username}' ${confPath}
+else
+    printf '[daemon]\\nAutomaticLoginEnable=true\\nAutomaticLogin=${username}\\n' >> ${confPath}
+fi`;
+  }
+  if (recipe.displayManager === 'sddm') {
+    return `mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf.d/autologin.conf << 'SDDM_EOF'
+[Autologin]
+User=${username}
+SDDM_EOF`;
+  }
+  if (recipe.displayManager === 'lightdm') {
+    return `mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/50-autologin.conf << 'LIGHTDM_EOF'
+[Seat:*]
+autologin-user=${username}
+autologin-user-timeout=0
+LIGHTDM_EOF`;
+  }
+  return `echo -e "\${YELLOW:-}[INFO] Auto-login non câblé pour le gestionnaire de connexion \\"${recipe.displayManager}\\" (seuls GDM/SDDM/LightDM sont pris en charge).\${NC:-}" 2>/dev/null || true`;
+}
+
 // Bug réel trouvé en auditant : "kioskUrl" (choisi dans l'UI, présent dans un preset réel) n'était
 // référencé NULLE PART — le mode kiosque installait chromium/cage/seatd mais ne lançait jamais
 // rien : ni URL configurée, ni script de démarrage, ni "seatd" (requis par cage pour l'accès GPU/
@@ -1065,6 +1106,7 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${dmCmd}
+${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
@@ -1252,6 +1294,7 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${dmCmd}
+${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
@@ -1941,6 +1984,7 @@ ${sshHardeningCmd(recipe, 'debian')}
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
 # sur une console texte, jamais sur la session graphique, quel que soit le bureau choisi.
 ${dmCmd}
+${dmAutologinCmd(recipe, 'debian')}
 ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}

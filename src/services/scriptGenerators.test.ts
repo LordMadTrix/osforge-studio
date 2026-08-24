@@ -973,6 +973,64 @@ describe('resolvePackageList — le paquet du shell choisi (zsh/fish) est réell
   });
 });
 
+describe('generateBuildScript — "user.autologin" réellement câblé par gestionnaire de connexion (bug réel trouvé : jamais référencé — cochée ou non, aucune différence dans le système généré)', () => {
+  it('GDM3 (Debian) : configure /etc/gdm3/custom.conf avec le vrai chemin Debian', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: true } as any,
+    }));
+    expect(script).toContain('/etc/gdm3/custom.conf');
+    expect(script).toContain('AutomaticLoginEnable=true');
+    expect(script).toContain('AutomaticLogin=kim');
+  });
+
+  it('GDM (non-Debian) : configure /etc/gdm/custom.conf (pas gdm3, nom spécifique à Debian)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'raw_img', desktop: 'gnome', displayManager: 'gdm3',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: true } as any,
+    }));
+    expect(script).toContain('/etc/gdm/custom.conf');
+    expect(script).not.toContain('/etc/gdm3/');
+  });
+
+  it('SDDM : écrit un vrai fragment sddm.conf.d avec [Autologin]', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora', outputFormat: 'raw_img', desktop: 'kde', displayManager: 'sddm',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: true } as any,
+    }));
+    expect(script).toContain('/etc/sddm.conf.d/autologin.conf');
+    expect(script).toContain('[Autologin]');
+    expect(script).toContain('User=kim');
+  });
+
+  it('LightDM : écrit un vrai fragment lightdm.conf.d avec [Seat:*]', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'raw_img', desktop: 'xfce', displayManager: 'lightdm',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: true } as any,
+    }));
+    expect(script).toContain('/etc/lightdm/lightdm.conf.d/50-autologin.conf');
+    expect(script).toContain('autologin-user=kim');
+  });
+
+  it('autologin=false : aucune trace de configuration autologin', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: false } as any,
+    }));
+    expect(script).not.toContain('AutomaticLoginEnable');
+  });
+
+  it('displayManager="none" (headless) : autologin=true n\'a aucun effet', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'none', displayManager: 'none',
+      user: { username: 'kim', fullName: 'Kim', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: true } as any,
+    }));
+    expect(script).not.toContain('AutomaticLoginEnable');
+    expect(script).not.toContain('[Autologin]');
+    expect(script).not.toContain('autologin-user=');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
