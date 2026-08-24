@@ -175,6 +175,31 @@ ${serviceEnableCmd('fail2ban', family)}`);
   return parts.join('\n');
 }
 
+// Bug réel trouvé en auditant : les 4 champs de branding visuel (accentColor, wallpaperPreset,
+// customWallpaperUrl, bootSplashTheme) ont ZERO référence, mais leur câblage réel nécessiterait
+// des assets de thème Plymouth/fond d'écran par bureau — invérifiable dans cet environnement sans
+// capture d'écran d'un vrai boot (contrairement au texte, jamais confirmable ici en toute rigueur).
+// "/etc/os-release", en revanche, EST du texte pur et directement vérifiable : il n'était jamais
+// réécrit non plus, donc "neofetch"/"hostnamectl"/"cat /etc/os-release" sur le système fini
+// affichaient toujours "Debian GNU/Linux"/"Arch Linux" au lieu du nom personnalisé choisi par
+// l'utilisateur, malgré tout le travail de branding dans l'UI. "ID_LIKE" préserve la vraie famille
+// sous-jacente (convention suivie par Ubuntu/Pop!_OS elles-mêmes) pour ne pas casser les outils qui
+// détectent le gestionnaire de paquets réel via ce champ.
+function osReleaseCmd(recipe: OSRecipe, baseId: string): string {
+  const safeId = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'osforge';
+  const prettyName = `${recipe.branding.osName} ${recipe.branding.editionName}`.trim();
+  return `cat > /etc/os-release << 'OSREL_EOF'
+PRETTY_NAME="${prettyName}"
+NAME="${recipe.branding.osName}"
+VERSION="${recipe.branding.version} (${recipe.branding.editionName})"
+VERSION_ID="${recipe.branding.version}"
+ID=${safeId}
+ID_LIKE=${baseId}
+BUILD_ID=osforge-studio
+HOME_URL="https://github.com/LordMadTrix/osforge-studio"
+OSREL_EOF`;
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -993,6 +1018,8 @@ cat << 'HOSTS' > /etc/hosts
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
 
+${osReleaseCmd(recipe, family === 'suse' ? 'opensuse' : family)}
+
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
 
 # Bug réel trouvé en auditant : "keyboardLayout" (choisi dans l'UI) n'était jamais appliqué —
@@ -1177,6 +1204,8 @@ cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
+
+${osReleaseCmd(recipe, family === 'suse' ? 'opensuse' : family)}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
 
@@ -1376,6 +1405,8 @@ cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
+
+${osReleaseCmd(recipe, 'debian')}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
 echo "${recipe.locale} UTF-8" >> /etc/locale.gen || true
@@ -1851,6 +1882,8 @@ cat << 'HOSTS' > /etc/hosts
 127.0.0.1   localhost ${recipe.hostname}
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
+
+${osReleaseCmd(recipe, 'debian')}
 
 # Configuration de la locale et du fuseau horaire
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime

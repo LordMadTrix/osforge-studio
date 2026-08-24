@@ -921,6 +921,33 @@ describe('generateBuildScript — "fail2ban" et "disableRootSSH" réellement câ
   });
 });
 
+describe('generateBuildScript — "/etc/os-release" réellement personnalisé (bug réel trouvé : jamais réécrit — "neofetch"/"hostnamectl" affichaient toujours "Debian GNU/Linux" au lieu du nom choisi par l\'utilisateur, malgré tout le travail de branding dans l\'UI)', () => {
+  it('écrit un vrai PRETTY_NAME/NAME/VERSION reflétant la branding choisie', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'MonOS', editionName: 'Pro', version: '3.0', accentColor: '#000', wallpaperPreset: 'x', bootSplashTheme: 'minimal' } as any,
+    }));
+    expect(script).toContain('/etc/os-release');
+    expect(script).toContain('PRETTY_NAME="MonOS Pro"');
+    expect(script).toContain('NAME="MonOS"');
+    expect(script).toContain('VERSION_ID="3.0"');
+  });
+
+  it.each([
+    ['debian', 'debian'],
+    ['ubuntu', 'debian'],
+    ['arch', 'arch'],
+    ['fedora', 'fedora'],
+    ['alpine', 'alpine'],
+    ['void', 'void'],
+    ['opensuse', 'opensuse'],
+  ] as const)('%s : ID_LIKE="%s" préserve la vraie famille sous-jacente (compatibilité des outils qui détectent le gestionnaire de paquets)', (distro, expectedIdLike) => {
+    const format = ['arch', 'fedora', 'alpine', 'void', 'opensuse'].includes(distro) ? 'raw_img' : 'iso_hybrid';
+    const script = generateBuildScript(makeRecipe({ distro, outputFormat: format as any }));
+    expect(script).toContain(`ID_LIKE=${expectedIdLike}`);
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
