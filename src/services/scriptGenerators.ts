@@ -57,9 +57,52 @@ function resolveDmServiceName(displayManager: string, family: 'debian' | NonDebi
 function dmEnableCmd(displayManager: string, family: 'debian' | NonDebianFamily): string {
   const svc = resolveDmServiceName(displayManager, family);
   if (!svc) return '';
-  if (family === 'alpine') return `rc-update add ${svc} default 2>/dev/null || true`;
-  if (family === 'void') return `mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/${svc} /etc/runit/runsvdir/default/${svc} 2>/dev/null || true`;
-  return `systemctl enable ${svc} 2>/dev/null || true`;
+  return serviceEnableCmd(svc, family);
+}
+
+// Helper générique factorisant le même mécanisme d'activation par init system que sshEnableCmd/
+// dmEnableCmd ci-dessus (utilisé aussi pour "seatd", requis par "cage" en mode kiosque — même bug
+// trouvé : le paquet s'installait sans jamais être activé, cage n'aurait alors aucun accès au GPU).
+function serviceEnableCmd(service: string, family: 'debian' | NonDebianFamily): string {
+  if (family === 'alpine') return `rc-update add ${service} default 2>/dev/null || true`;
+  if (family === 'void') return `mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/${service} /etc/runit/runsvdir/default/${service} 2>/dev/null || true`;
+  return `systemctl enable ${service} 2>/dev/null || true`;
+}
+
+// Bug réel trouvé en auditant : "kioskUrl" (choisi dans l'UI, présent dans un preset réel) n'était
+// référencé NULLE PART — le mode kiosque installait chromium/cage/seatd mais ne lançait jamais
+// rien : ni URL configurée, ni script de démarrage, ni "seatd" (requis par cage pour l'accès GPU/
+// input) jamais activé comme service, ni auto-login pour atteindre la session sans intervention.
+// Repli honnête pour Alpine/Void : l'auto-login y dépend de fichiers d'init (/etc/inittab OpenRC,
+// service agetty runit) dont le contenu exact ne peut pas être vérifié en direct sans un boot réel
+// — les modifier à l'aveugle risquerait de casser la console plutôt que de l'améliorer. Les paquets
+// s'installent et se lancent quand même via le script de profil shell si l'utilisateur se connecte
+// manuellement ; seul l'auto-login automatique manque sur ces deux distributions.
+function kioskSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (recipe.desktop !== 'web_kiosk') return '';
+  const useFirefox = (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint');
+  const browserCmd = useFirefox
+    ? 'firefox --kiosk --no-remote'
+    : 'chromium --kiosk --no-first-run --disable-infobars --noerrdialogs';
+  const url = (recipe.kioskUrl || 'about:blank').replace(/'/g, `'\\''`);
+  const username = recipe.user.username;
+  const autologin = (family === 'alpine' || family === 'void')
+    ? `echo -e "\${YELLOW:-}[INFO] Auto-login console non câblé pour cette distribution (nécessiterait de modifier /etc/inittab ou un service runit à l'aveugle) : connexion manuelle requise, la session kiosque démarre automatiquement une fois connecté.\${NC:-}" 2>/dev/null || true`
+    : `mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << 'GETTY_EOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ${username} --noclear %I \$TERM
+GETTY_EOF`;
+  return `
+${autologin}
+${serviceEnableCmd('seatd', family)}
+cat >> /home/${username}/.bash_profile << 'KIOSK_EOF'
+if [ -z "\${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    exec cage -- ${browserCmd} '${url}'
+fi
+KIOSK_EOF
+chown ${username}:${username} /home/${username}/.bash_profile 2>/dev/null || true`;
 }
 
 export function resolvePackageList(recipe: OSRecipe): string[] {
@@ -269,8 +312,18 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('patterns-lxqt-lxqt', 'sddm', 'pcmanfm-qt', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
   } else if (recipe.desktop === 'web_kiosk') {
-    if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
-    else pkgs.push('chromium-browser', 'cage', 'seatd', 'pipewire', 'network-manager');
+    // Bug réel trouvé en vérifiant : "chromium-browser" est un piège identique à celui déjà
+    // corrigé pour Firefox sur Ubuntu (packages.ubuntu.com confirme : "Transitional package -
+    // chromium-browser -> chromium snap", stub non fonctionnel dans un chroot) — et n'existe même
+    // PAS du tout sous ce nom sur Debian (packages.debian.org : "No such package", seul "chromium"
+    // bare existe et fonctionne réellement là-bas). "chromium" bare confirmé réel et fonctionnel
+    // partout ailleurs (archlinux.org, packages.fedoraproject.org, rpmfind.net). Sur Ubuntu/Mint
+    // spécifiquement, aucun chromium non-snap n'existe dans les dépôts officiels : Firefox (déjà
+    // câblé avec le vrai dépôt Mozilla plus bas dans ce fichier) sert de navigateur kiosque réel
+    // de repli à la place.
+    if (distroId === 'ubuntu' || distroId === 'linuxmint') pkgs.push('firefox', 'cage', 'seatd', 'network-manager');
+    else if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
+    else pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'network-manager');
   }
 
   // Base utilities & hardware drivers
@@ -889,6 +942,7 @@ chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
 ${dmCmd}
+${kioskSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1070,6 +1124,7 @@ chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
 ${dmCmd}
+${kioskSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1596,7 +1651,7 @@ mount --bind /sys "\${ROOTFS_DIR}/sys"
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
-${(recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') && recipe.selectedPackages.includes('firefox') ? `
+${(recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') && (recipe.selectedPackages.includes('firefox') || recipe.desktop === 'web_kiosk') ? `
 # Sur Ubuntu (et Mint, qui hérite ici du même dépôt de base), "firefox" en apt n'est qu'un
 # paquet de transition vers snap (vérifié en live : l'installation "réussit" silencieusement
 # mais ne pose qu'un stub non fonctionnel, snapd n'étant pas actif dans un chroot). On ajoute
@@ -1751,6 +1806,7 @@ systemctl enable ssh 2>/dev/null || true
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
 # sur une console texte, jamais sur la session graphique, quel que soit le bureau choisi.
 ${dmCmd}
+${kioskSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${recipe.security.firewall === 'ufw' ? `

@@ -748,6 +748,70 @@ describe('generateBuildScript — service du gestionnaire de connexion réelleme
   });
 });
 
+describe('generateBuildScript — mode kiosque ("kioskUrl") réellement câblé (bug réel trouvé : jamais référencé — chromium/cage/seatd s\'installaient sans jamais rien lancer, ni URL configurée, ni seatd activé, ni auto-login)', () => {
+  it('utilise la vraie URL choisie dans le script de lancement cage', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none',
+      kioskUrl: 'https://example.com/dashboard',
+    }));
+    expect(script).toContain("exec cage -- chromium");
+    expect(script).toContain('https://example.com/dashboard');
+  });
+
+  it('échappe correctement une apostrophe dans l\'URL (injection shell potentielle sinon)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none',
+      kioskUrl: "https://x.test/?a='b'",
+    }));
+    // Motif d'échappement shell standard pour une apostrophe à l'intérieur d'une chaîne entre
+    // apostrophes : fermer, insérer \', rouvrir — jamais l'apostrophe brute non échappée.
+    expect(script).toContain("https://x.test/?a='\\''b'\\''");
+    expect(script).not.toContain("kioskUrl: \"https://x.test/?a='b'\"");
+  });
+
+  it('sans URL choisie, retombe sur "about:blank" plutôt que de planter', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none', kioskUrl: undefined as any }));
+    expect(script).toContain("'about:blank'");
+  });
+
+  it('Debian/Arch/Fedora/Alpine/Void : installe "chromium" (bare) — "chromium-browser" n\'existe même pas sur Debian et est un stub snap sur Ubuntu (piège identique à Firefox déjà corrigé)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'web_kiosk', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain('chromium');
+    expect(pkgs).not.toContain('chromium-browser');
+  });
+
+  it('Ubuntu/Mint : bascule sur Firefox (vrai dépôt Mozilla déjà câblé) plutôt qu\'un chromium snap non fonctionnel', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'ubuntu', desktop: 'web_kiosk', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain('firefox');
+    expect(pkgs).not.toContain('chromium');
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none' }));
+    expect(script).toContain('packages.mozilla.org');
+    expect(script).toContain('exec cage -- firefox --kiosk');
+  });
+
+  it('active le service "seatd" (requis par cage pour l\'accès GPU/input, jamais activé auparavant)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'web_kiosk', displayManager: 'none' }));
+    expect(script).toContain('systemctl enable seatd');
+  });
+
+  it('active un vrai auto-login getty (systemd) pour atteindre la session kiosque sans intervention', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none', user: { username: 'kiosk', fullName: 'Kiosk', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '' } as any }));
+    expect(script).toContain('--autologin kiosk');
+  });
+
+  it('Alpine/Void : n\'édite pas l\'init à l\'aveugle, affiche un avertissement honnête à la place', () => {
+    const alpine = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'web_kiosk', displayManager: 'none' }));
+    expect(alpine).toContain('Auto-login console non câblé');
+    expect(alpine).not.toContain('/etc/systemd/system/getty@tty1');
+  });
+
+  it('desktop != "web_kiosk" ne touche à rien (pas de seatd, pas d\'auto-login, pas de cage)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3' }));
+    expect(script).not.toContain('exec cage');
+    expect(script).not.toContain('seatd');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
