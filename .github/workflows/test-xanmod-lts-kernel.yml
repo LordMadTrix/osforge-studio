@@ -45,7 +45,7 @@ jobs:
           npx tsx scripts/dump-debian-xanmod.ts
 
       - name: Exécuter le script généré (bootstrap Debian réel + noyau XanMod LTS)
-        run: sudo bash scripts/generated-debian-xanmod.sh 2>&1 | tee /tmp/build.log
+        run: set -o pipefail; sudo bash scripts/generated-debian-xanmod.sh 2>&1 | tee /tmp/build.log
 
       - name: Extraire le noyau embarqué dans l'ISO produite et vérifier qu'il s'agit bien de XanMod
         run: |

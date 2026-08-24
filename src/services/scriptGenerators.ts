@@ -1395,9 +1395,12 @@ apt-get install -y --no-install-recommends linux-image-kvm
 # Branches LTS et RT distinctes et réellement maintenues par le projet, codenames Debian/Ubuntu
 # de ce pipeline (${target.suite}) confirmés pris en charge.
 echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel XanMod (deb.xanmod.org)...\${NC}"
-apt-get install -y --no-install-recommends wget gnupg
+apt-get install -y --no-install-recommends curl gnupg
 mkdir -p /etc/apt/keyrings
-wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg
+# curl -L (pas wget) : la clé passe par une redirection Cloudflare -> gitlab.com (vérifié en
+# direct) ; un test réel en CI a montré que wget échouait sur cette chaîne de redirection
+# ("gpg: no valid OpenPGP data found") alors que curl -fsSL la suit correctement.
+curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${target.suite} main" > /etc/apt/sources.list.d/xanmod-release.list
 apt-get update -y
 apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}
