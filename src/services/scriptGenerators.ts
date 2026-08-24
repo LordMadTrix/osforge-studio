@@ -411,6 +411,15 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // convention que sway/hyprland/i3wm pour openSUSE (paquets individuels, pas de pattern zypper
       // dédié à COSMIC — bureau trop récent pour ça).
       pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
+    } else if (distroId === 'alpine') {
+      // Même audit, même manque que pour Fedora/openSUSE ci-dessus : COSMIC n'était câblé nulle
+      // part pour Alpine, alors que "cosmic-session"/"cosmic-greeter"/"cosmic-term"/"cosmic-files"
+      // sont confirmés en direct sur pkgs.alpinelinux.org (edge/community, 200 pour les quatre).
+      // Pas de "xorg-server" (contrairement au bloc i3wm juste en dessous, qui est du X11) : COSMIC
+      // utilise son propre compositeur Wayland ("cosmic-comp"), donc le même socle que sway/hyprland
+      // pour Alpine (dbus/eudev/mesa-dri-gallium confirmés dans "main", networkmanager dans
+      // "community" — mêmes dépôts déjà utilisés par les blocs sway/hyprland Alpine plus bas).
+      pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'dbus', 'eudev', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
     }
   } else if (recipe.desktop === 'i3wm') {
     if (distroId === 'alpine') {

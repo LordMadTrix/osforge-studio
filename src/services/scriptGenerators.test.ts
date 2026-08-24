@@ -1229,4 +1229,17 @@ describe('resolvePackageList/generateBuildScript — bureau COSMIC câblé pour 
     }));
     expect(script).toContain('systemctl enable cosmic-greeter 2>/dev/null || true');
   });
+
+  it('Alpine + desktop="cosmic" : installe les vrais paquets (confirmés en direct sur pkgs.alpinelinux.org, pas de xorg-server car COSMIC est du Wayland via cosmic-comp)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'cosmic', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'dbus', 'eudev', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager']));
+    expect(pkgs).not.toContain('xorg-server');
+  });
+
+  it('Alpine + desktop="cosmic" + displayManager="cosmic-greeter" : le service OpenRC réel "cosmic-greeter" (confirmé via l\'APKBUILD, pas un nom supposé) est activé au premier boot', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'raw_img', desktop: 'cosmic', displayManager: 'cosmic-greeter', selectedPackages: [],
+    }));
+    expect(script).toContain('rc-update add cosmic-greeter default 2>/dev/null || true');
+  });
 });
