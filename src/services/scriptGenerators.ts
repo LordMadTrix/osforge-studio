@@ -219,15 +219,19 @@ const NON_DEBIAN_LABELS: Record<string, string> = {
 interface NonDebianFamilyConfig {
   hostDeps: string;
   hostCheckCmd: string; // commandes déjà présentes sur l'hôte si le bootstrap a déjà tourné une fois : évite un "apt-get update" inutile (et donc un échec si un dépôt tiers de l'hôte est cassé, sans rapport avec la compilation)
-  bootstrapBlock: (distroId: string, unameArch: string, isDiskImage: boolean) => string;
+  bootstrapBlock: (distroId: string, unameArch: string, isDiskImage: boolean, kernelType: string) => string;
   updateCmd: string;
   installOneCmd: string; // utilise la variable shell "$pkg"
   diskImageSupported: boolean; // pipeline partition+grub-install vérifié en live (boot QEMU réel jusqu'au login)
   // Snippet shell exécuté juste avant l'écriture de grub.cfg, dans le contexte du disque monté
   // (variable "$MNT_DIR" disponible) : doit fixer KERNEL_PATH et INITRD_PATH (chemins ABSOLUS
-  // dans le rootfs, ex. /boot/vmlinuz-linux). Statique pour Arch, dynamique (version du noyau
-  // détectée via /lib/modules) pour les familles RPM (Fedora/Rocky, openSUSE).
-  diskImageKernelDetectCmd?: string;
+  // dans le rootfs, ex. /boot/vmlinuz-linux). Fonction (pas juste une string statique) pour Arch :
+  // sur Arch, le suffixe du fichier /boot/vmlinuz-* est le NOM DU PAQUET noyau lui-même (ex.
+  // "linux-zen" → vmlinuz-linux-zen), pas un numéro de version — donc ça doit suivre le noyau
+  // réellement sélectionné, sinon GRUB pointerait vers un fichier qui n'existe pas. Statique pour
+  // les familles RPM/autres (version détectée dynamiquement via /lib/modules, indépendant du nom
+  // de paquet).
+  diskImageKernelDetectCmd?: string | ((kernelType: string) => string);
   grubInstallBin?: string; // 'grub-install' (Arch/Alpine/Void) ou 'grub2-install' (Fedora/Rocky/openSUSE, qui renomment le binaire)
   grubConfigSubdir?: string; // 'grub' (Arch/Alpine/Void) ou 'grub2' (Fedora/Rocky/openSUSE)
   // Alpine uniquement : son outil de résolution de "root=" au démarrage (nlplug-findfs) échoue
@@ -247,11 +251,38 @@ interface NonDebianFamilyConfig {
   diskImageInitrdRegenCmd?: string;
 }
 
+// Vérifié en direct (archlinux.org/packages/search/json) : linux-zen, linux-hardened, linux-lts
+// et linux-rt sont tous de vrais paquets des dépôts officiels Arch (extra/core), installables
+// tels quels par pacstrap. linux-cachyos n'y figure PAS (0 résultat) — il exige le dépôt CachyOS
+// dédié, pas encore ajouté à ce pipeline (voir NON_DEBIAN_DISTROS). mainline_beta/liquorix/
+// cloud_micro n'ont pas d'équivalent officiel simple pour Arch — repli honnête sur "linux" plutôt
+// que d'installer silencieusement le mauvais noyau en prétendant que le choix a été respecté.
+const ARCH_KERNEL_PACKAGE: Record<string, string> = {
+  generic: 'linux',
+  mainline_beta: 'linux',
+  cachyos: 'linux',
+  zen: 'linux-zen',
+  liquorix: 'linux',
+  hardened: 'linux-hardened',
+  realtime: 'linux-rt',
+  cloud_micro: 'linux',
+  lts: 'linux-lts',
+};
+const ARCH_KERNEL_FALLBACK_NOTICE: Record<string, string> = {
+  mainline_beta: "mainline_beta n'a pas de paquet officiel Arch dédié",
+  cachyos: 'linux-cachyos nécessite le dépôt CachyOS (non configuré ici)',
+  liquorix: 'Liquorix est un noyau spécifique Debian/Ubuntu, sans équivalent officiel Arch',
+  cloud_micro: "cloud_micro n'a pas d'équivalent officiel Arch",
+};
+
 const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyConfig> = {
   arch: {
     hostDeps: 'arch-install-scripts pacman-package-manager',
     hostCheckCmd: 'pacstrap',
-    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/pacman.d"
+    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => {
+      const kernelPkg = ARCH_KERNEL_PACKAGE[kernelType] || 'linux';
+      const fallbackNotice = ARCH_KERNEL_FALLBACK_NOTICE[kernelType];
+      return `mkdir -p "\${WORK_DIR}/pacman.d"
 cat > "\${WORK_DIR}/pacman.d/mirrorlist" << 'ARCH_MIRROR_EOF'
 Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 ARCH_MIRROR_EOF
@@ -269,8 +300,9 @@ Include = \${WORK_DIR}/pacman.d/mirrorlist
 Include = \${WORK_DIR}/pacman.d/mirrorlist
 PACMAN_CONF_EOF
 
-mkdir -p "\${ROOTFS_DIR}/var/lib/pacman"
-pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base${isDiskImage ? ' grub linux linux-firmware' : ''}
+mkdir -p "\${ROOTFS_DIR}/var/lib/pacman"${isDiskImage && fallbackNotice ? `
+echo -e "\${YELLOW}[INFO] ${fallbackNotice} : installation de '${kernelPkg}' à la place.\${NC}"` : ''}
+pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base${isDiskImage ? ` grub ${kernelPkg} linux-firmware` : ''}
 
 # Le rootfs cible a besoin de son PROPRE mirrorlist utilisable : pacstrap -M n'y copie pas
 # celui de l'hôte, et celui livré par défaut avec "base" a tous ses miroirs commentés.
@@ -281,11 +313,15 @@ sed -i 's/^CheckSpace/#CheckSpace/' "\${ROOTFS_DIR}/etc/pacman.conf"${isDiskImag
 # Le hook "autodetect" de mkinitcpio adapte l'initramfs au matériel de LA MACHINE DE BUILD (WSL2/CI),
 # pas à celui de la machine cible qui bootera l'image — vérifié en live : sans ce retrait, l'image
 # construite reste bloquée au démarrage sur "A start job is running for /dev/disk/by-uuid/...".
-sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconsole block filesystems fsck)/' "\${ROOTFS_DIR}/etc/mkinitcpio.conf"` : ''}`,
+sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconsole block filesystems fsck)/' "\${ROOTFS_DIR}/etc/mkinitcpio.conf"` : ''}`;
+    },
     updateCmd: 'pacman -Sy --noconfirm',
     installOneCmd: 'pacman -S --noconfirm --needed "$pkg"',
     diskImageSupported: true,
-    diskImageKernelDetectCmd: 'KERNEL_PATH="/boot/vmlinuz-linux"\nINITRD_PATH="/boot/initramfs-linux.img"',
+    diskImageKernelDetectCmd: (kernelType: string) => {
+      const kernelPkg = ARCH_KERNEL_PACKAGE[kernelType] || 'linux';
+      return `KERNEL_PATH="/boot/vmlinuz-${kernelPkg}"\nINITRD_PATH="/boot/initramfs-${kernelPkg}.img"`;
+    },
     grubInstallBin: 'grub-install',
     grubConfigSubdir: 'grub',
     diskImageInitrdRegenCmd: 'mkinitcpio -P',
@@ -293,8 +329,15 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconso
   fedora: {
     hostDeps: 'dnf dnf-plugins-core rpm',
     hostCheckCmd: 'dnf rpmkeys',
-    bootstrapBlock: (distroId, _arch, isDiskImage) => {
+    bootstrapBlock: (distroId, _arch, isDiskImage, kernelType) => {
       const isRocky = distroId === 'rocky';
+      // Pas de paquet officiel dnf pour zen/hardened/rt/lts/cachyos/liquorix côté Fedora/Rocky
+      // (contrairement à Arch, où linux-zen/hardened/lts/rt sont vérifiés dans les dépôts
+      // officiels) — repli honnête et annoncé sur le noyau par défaut de la distro plutôt que
+      // d'ignorer silencieusement le choix de l'utilisateur.
+      const kernelFallbackNotice = kernelType && kernelType !== 'generic'
+        ? `Le noyau "${kernelType}" n'a pas de paquet officiel dnf pour ${isRocky ? 'Rocky Linux' : 'Fedora'} : noyau par défaut de la distro utilisé à la place.`
+        : null;
       // Pas de backslash devant $basearch/$releasever ici : ce sont des variables du format
       // .repo dnf lui-même (substituées par dnf à la lecture du fichier), pas des variables
       // shell. Un backslash littéral casserait la substitution dnf (URL invalide).
@@ -347,7 +390,8 @@ mkdir -p "\${ROOTFS_DIR}/etc/dracut.conf.d"
 cat > "\${ROOTFS_DIR}/etc/dracut.conf.d/00-no-hostonly.conf" << 'DRACUT_EOF'
 hostonly="no"
 DRACUT_EOF
-
+${kernelFallbackNotice ? `
+echo -e "\${YELLOW}[INFO] ${kernelFallbackNotice}\${NC}"` : ''}
 $DNF_BASE install kernel grub2-pc` : ''}`;
     },
     updateCmd: '',
@@ -360,7 +404,8 @@ $DNF_BASE install kernel grub2-pc` : ''}`;
   alpine: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/apk-static"
+    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' && kernelType !== 'lts' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet apk dédié pour Alpine : linux-lts (déjà vérifié en live) utilisé à la place.\${NC}"
+` : ''}mkdir -p "\${WORK_DIR}/apk-static"
 APK_IDX="\${WORK_DIR}/apk-idx.html"
 curl -sL https://dl-cdn.alpinelinux.org/alpine/latest-stable/main/x86_64/ -o "$APK_IDX"
 APKVER=$(grep -oP 'apk-tools-static-[0-9][0-9.r-]*\\.apk' "$APK_IDX" | head -1)
@@ -394,7 +439,8 @@ sed -i 's/^#ttyS0::/ttyS0::/' "\${ROOTFS_DIR}/etc/inittab"` : ''}`,
   suse: {
     hostDeps: 'zypper',
     hostCheckCmd: 'zypper',
-    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${ROOTFS_DIR}"
+    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet zypper dédié pour openSUSE : kernel-default utilisé à la place.\${NC}"
+` : ''}mkdir -p "\${ROOTFS_DIR}"
 zypper --root "\${ROOTFS_DIR}" --non-interactive addrepo --no-gpgcheck \\
   https://download.opensuse.org/tumbleweed/repo/oss/ repo-oss
 zypper --root "\${ROOTFS_DIR}" --non-interactive --gpg-auto-import-keys refresh
@@ -438,7 +484,8 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
   void: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: (_distroId, _arch, isDiskImage) => `mkdir -p "\${WORK_DIR}/xbps-static" "\${ROOTFS_DIR}/var/db/xbps/keys"
+    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet xbps dédié pour Void : linux (paquet par défaut) utilisé à la place.\${NC}"
+` : ''}mkdir -p "\${WORK_DIR}/xbps-static" "\${ROOTFS_DIR}/var/db/xbps/keys"
 curl -sL https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz -o "\${WORK_DIR}/xbps-static.tar.xz"
 tar -xJf "\${WORK_DIR}/xbps-static.tar.xz" -C "\${WORK_DIR}/xbps-static"
 
@@ -563,7 +610,7 @@ which ${config.hostCheckCmd} >/dev/null 2>&1 || {
 }
 
 echo -e "\${YELLOW}[2/4] 🏗️ Initialisation du RootFS ${label}...\${NC}"
-${config.bootstrapBlock(recipe.distro, unameArch, false)}
+${config.bootstrapBlock(recipe.distro, unameArch, false, recipe.kernel)}
 
 echo -e "\${YELLOW}[3/4] ⚙️ Configuration du système et installation des paquets...\${NC}"
 
@@ -718,7 +765,7 @@ which ${config.hostCheckCmd} parted qemu-img >/dev/null 2>&1 || {
 }
 
 echo -e "\${YELLOW}[2/6] 🏗️ Initialisation du RootFS ${label} (avec noyau + GRUB)...\${NC}"
-${config.bootstrapBlock(recipe.distro, unameArch, true)}
+${config.bootstrapBlock(recipe.distro, unameArch, true, recipe.kernel)}
 
 echo -e "\${YELLOW}[3/6] ⚙️ Configuration du système et installation des paquets...\${NC}"
 
@@ -807,7 +854,7 @@ cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
 UUID=\${ROOT_UUID} / ext4 defaults 0 1
 FSTAB_EOF
 
-${config.diskImageKernelDetectCmd}
+${typeof config.diskImageKernelDetectCmd === 'function' ? config.diskImageKernelDetectCmd(recipe.kernel) : config.diskImageKernelDetectCmd}
 
 mkdir -p "\${MNT_DIR}/boot/${grubSubdir}"
 cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
@@ -1218,7 +1265,8 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-debootstrap --arch="${debArch}" \\${target.components ? `
+${recipe.kernel && recipe.kernel !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS.\${NC}"
+` : ''}debootstrap --arch="${debArch}" \\${target.components ? `
   --components="${target.components}" \\` : ''}
   --include="${recipe.distro === 'raspbian' ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"

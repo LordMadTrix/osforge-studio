@@ -377,3 +377,50 @@ describe('generateBuildScript — rpi_sd (carte SD Raspberry Pi, pipeline vérif
     expect(script).toContain("n'est pas disponible pour cette combinaison");
   });
 });
+
+describe('generateBuildScript — sélection de noyau réellement câblée pour Arch (vérifié via archlinux.org/packages/search/json)', () => {
+  it.each([
+    ['zen', 'linux-zen'],
+    ['hardened', 'linux-hardened'],
+    ['lts', 'linux-lts'],
+    ['realtime', 'linux-rt'],
+  ] as const)('kernel=%s installe le vrai paquet officiel %s (image disque Arch)', (kernel, expectedPkg) => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel }));
+    expect(script).toContain(`grub ${expectedPkg} linux-firmware`);
+    expect(script).toContain(`/boot/vmlinuz-${expectedPkg}`);
+    expect(script).toContain(`/boot/initramfs-${expectedPkg}.img`);
+  });
+
+  it("kernel=cachyos retombe honnêtement sur 'linux' avec un avertissement visible (linux-cachyos exige le dépôt CachyOS, non configuré)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'cachyos' }));
+    expect(script).toContain("nécessite le dépôt CachyOS");
+    expect(script).toContain('grub linux linux-firmware');
+    // "linux-cachyos" apparaît légitimement DANS le message d'avertissement lui-même (nommer
+    // le paquet indisponible) : ce qui compte, c'est qu'il n'apparaisse PAS comme commande
+    // d'installation pacstrap réelle.
+    expect(script).not.toMatch(/pacstrap[^\n]*linux-cachyos/);
+  });
+
+  it("kernel='generic' n'affiche aucun avertissement de repli", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'generic' }));
+    expect(script).not.toContain('[INFO]');
+    expect(script).toContain('grub linux linux-firmware');
+  });
+});
+
+describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
+  it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
+    expect(script).toContain("n'a pas de paquet officiel dnf");
+  });
+
+  it('Debian (APT) + kernel non générique affiche un avertissement de repli explicite', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernel: 'hardened' }));
+    expect(script).toContain("n'est pas encore câblé pour debian");
+  });
+
+  it('Debian (APT) + kernel="generic" (défaut) ne montre aucun avertissement de repli', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernel: 'generic' }));
+    expect(script).not.toContain("n'est pas encore câblé");
+  });
+});

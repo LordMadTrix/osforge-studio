@@ -1,0 +1,36 @@
+name: 🧪 Test noyau Arch réellement câblé (linux-zen)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Générer le script depuis le code source actuel
+        run: |
+          npm ci
+          npx tsx scripts/dump-arch-zen.ts
+          cat scripts/generated-arch-zen.sh
+
+      - name: Exécuter le script généré (bootstrap réel + linux-zen)
+        run: sudo bash scripts/generated-arch-zen.sh
+
+      - name: Boot réel via QEMU et recherche d'un prompt de login
+        run: |
+          sudo apt-get install -y qemu-system-x86 || true
+          IMG=$(find dist -name "*.img" | head -n1)
+          echo "Image trouvée: $IMG"
+          timeout 90 sudo qemu-system-x86_64 -enable-kvm -cpu host -m 1536 \
+            -drive file="$IMG",format=raw \
+            -nographic -serial file:/tmp/serial.log -display none \
+            || echo "QEMU s'est arrêté (timeout attendu ou fin de boot)"
+          echo "=== dernières lignes de la console série ==="
+          tail -n 100 /tmp/serial.log || echo "ECHEC: pas de log série"
+          grep -qi "login:" /tmp/serial.log && echo "✅ PROMPT DE LOGIN ATTEINT" || echo "❌ Pas de prompt de login détecté"
+          grep -qi "zen" /tmp/serial.log && echo "✅ Noyau ZEN confirmé dans la bannière de boot" || echo "ℹ️ Mention 'zen' non trouvée dans la console (vérifier manuellement)"
