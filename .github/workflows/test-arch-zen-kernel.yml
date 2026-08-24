@@ -15,6 +15,32 @@ jobs:
       - name: Générer le script depuis le code source actuel
         run: |
           npm ci
+          cat > scripts/dump-arch-zen.ts <<'EOF'
+          import { generateBuildScript } from '../src/services/scriptGenerators';
+          import type { OSRecipe } from '../src/types/os';
+          import { writeFileSync } from 'node:fs';
+
+          const recipe: OSRecipe = {
+            distro: 'arch',
+            arch: 'x86_64',
+            hostname: 'diskforge-zen',
+            timezone: 'Europe/Paris',
+            locale: 'fr_FR',
+            outputFormat: 'raw_img',
+            kernel: 'zen',
+            branding: { osName: 'DiskForgeZen', editionName: 'Test', version: '1.0' },
+            user: { username: 'forge', fullName: 'Forge', shell: '/bin/bash', sudo: true, password: 'forge', sshPublicKey: '' },
+            enableSSH: false,
+            selectedPackages: [],
+            customPackages: [],
+            security: { firewall: 'none' },
+            firstBootScript: '',
+          } as unknown as OSRecipe;
+
+          const script = generateBuildScript(recipe);
+          writeFileSync('scripts/generated-arch-zen.sh', script);
+          console.log('written scripts/generated-arch-zen.sh, length', script.length);
+          EOF
           npx tsx scripts/dump-arch-zen.ts
           cat scripts/generated-arch-zen.sh
 
