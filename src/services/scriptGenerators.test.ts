@@ -1198,3 +1198,22 @@ describe('generateBuildScript — noyau "lts" réellement câblé pour Fedora vi
     expect(script).toContain('$DNF_BASE install kernel grub2-pc');
   });
 });
+
+describe('resolvePackageList/generateBuildScript — bureau COSMIC câblé pour Fedora (bug réel trouvé en auditant : "cosmic-session"/"cosmic-greeter"/"cosmic-term"/"cosmic-files" ne sont câblés nulle part en dehors de Debian/Ubuntu et Arch-like, alors que packages.fedoraproject.org confirme en direct leur présence réelle pour Fedora 43/44/45)', () => {
+  it('Fedora + desktop="cosmic" : installe les vrais paquets cosmic-session/greeter/term/files', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'cosmic', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'firefox', 'pipewire']));
+  });
+
+  it('Fedora + desktop="cosmic" + displayManager="cosmic-greeter" : le service est réellement activé au premier boot', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora', outputFormat: 'raw_img', desktop: 'cosmic', displayManager: 'cosmic-greeter', selectedPackages: [],
+    }));
+    expect(script).toContain('systemctl enable cosmic-greeter 2>/dev/null || true');
+  });
+
+  it('Rocky + desktop="cosmic" : aucun paquet cosmic-* installé (non câblé, absent de EPEL/CRB)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'cosmic', selectedPackages: [] }));
+    expect(pkgs).not.toEqual(expect.arrayContaining(['cosmic-session']));
+  });
+});

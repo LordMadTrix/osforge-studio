@@ -391,6 +391,15 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'firefox-esr', 'pipewire', 'mesa-vulkan-drivers');
     } else if (isArchLike) {
       pkgs.push('cosmic-session', 'cosmic-greeter', 'firefox', 'pipewire');
+    } else if (distroId === 'fedora') {
+      // Bug réel trouvé en auditant : COSMIC (bureau Rust de System76) n'était câblé nulle part
+      // en dehors de Debian/Ubuntu et Arch-like, alors que "cosmic-session"/"cosmic-greeter"/
+      // "cosmic-term"/"cosmic-files" sont bien de vrais paquets Fedora officiels, confirmés en
+      // direct sur packages.fedoraproject.org pour Fedora 43/44/45 (dépôt "updates", pas EPEL).
+      // Pas de paquet mesa/vulkan explicite, comme pour KDE/XFCE Fedora juste au-dessus : les
+      // dépendances du paquet tirent déjà la pile graphique nécessaire (convention déjà établie
+      // dans ce fichier pour Fedora, vérifiée ne pas casser KDE/XFCE).
+      pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'i3wm') {
     if (distroId === 'alpine') {
