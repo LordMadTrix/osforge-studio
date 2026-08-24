@@ -1243,3 +1243,26 @@ describe('resolvePackageList/generateBuildScript — bureau COSMIC câblé pour 
     expect(script).toContain('rc-update add cosmic-greeter default 2>/dev/null || true');
   });
 });
+
+describe('generateBuildScript — noyau "liquorix" réellement câblé pour Debian (pas juste Ubuntu/Mint), via le vrai dépôt APT direct de liquorix.net (vérifié en direct : https://liquorix.net/debian/dists/trixie existe, clé liquorix-keyring.gpg accessible, paquets linux-image/linux-headers-liquorix-amd64 confirmés dans le Packages.gz — PAS de PPA, mécanisme propre à Launchpad/Ubuntu absent sur Debian)', () => {
+  it('Debian + kernel="liquorix" : ajoute le vrai dépôt APT signé (pas de PPA) et installe les vrais paquets', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernel: 'liquorix' }));
+    expect(script).toContain('https://liquorix.net/liquorix-keyring.gpg');
+    expect(script).toContain('deb [arch=amd64 signed-by=/etc/apt/keyrings/liquorix-keyring.gpg] https://liquorix.net/debian trixie main');
+    expect(script).toContain('apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-headers-liquorix-amd64');
+    expect(script).not.toContain('ppa:damentz/liquorix');
+    expect(script).not.toContain("n'est pas encore câblé pour debian");
+  });
+
+  it('Ubuntu + kernel="liquorix" : continue d\'utiliser le PPA officiel (non-régression, le nouveau chemin Debian ne doit pas l\'affecter)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'liquorix' }));
+    expect(script).toContain('add-apt-repository -y ppa:damentz/liquorix');
+    expect(script).not.toContain('liquorix.net/debian');
+  });
+
+  it('Debian + kernel="zen" (toujours non câblé) : avertissement honnête inchangé', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernel: 'zen' }));
+    expect(script).toContain("n'est pas encore câblé pour debian");
+    expect(script).not.toContain('liquorix.net');
+  });
+});

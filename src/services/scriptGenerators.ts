@@ -1697,9 +1697,15 @@ exit 1
   // plus loin dans ce script casserait silencieusement s'il y avait deux fichiers correspondants.
   const isUbuntuFamily = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint';
   const isXanmodEligible = (recipe.distro === 'debian' || isUbuntuFamily) && recipe.arch === 'x86_64';
+  // Liquorix pour Debian (pas juste Ubuntu/Mint) : vérifié en direct que liquorix.net publie un
+  // vrai dépôt APT direct pour Debian (https://liquorix.net/debian, suite "trixie" confirmée,
+  // pas de PPA requis) — voir le bloc REAL_ALT_KERNEL === 'liquorix' plus bas. Portée x86_64
+  // uniquement, comme XanMod ci-dessus : aucun build arm64 chez Liquorix (vérifié, 404).
+  const isDebianLiquorixEligible = recipe.distro === 'debian' && recipe.arch === 'x86_64';
   const REAL_ALT_KERNEL =
     (isUbuntuFamily && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)) ||
-    (isXanmodEligible && (['lts', 'realtime'] as string[]).includes(recipe.kernel))
+    (isXanmodEligible && (['lts', 'realtime'] as string[]).includes(recipe.kernel)) ||
+    (isDebianLiquorixEligible && recipe.kernel === 'liquorix')
       ? recipe.kernel
       : null;
 
@@ -1883,7 +1889,7 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Liquorix/Cloud-Micro pour Ubuntu/Mint ; LTS/Realtime (via XanMod) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
+${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Cloud-Micro pour Ubuntu/Mint ; Liquorix pour Debian et Ubuntu/Mint en x86_64 ; LTS/Realtime (via XanMod) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
 ` : ''}${REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
 ` : ''}debootstrap --arch="${debArch}" \\${target.components ? `
   --components="${target.components}" \\` : ''}
@@ -1961,11 +1967,25 @@ else
     apt-get install -y --no-install-recommends linux-image-generic
 fi
 
-` : ''}${REAL_ALT_KERNEL === 'liquorix' ? `# Noyau Liquorix — dépôt PPA officiel (ppa:damentz/liquorix), méthode exacte du vrai script
+` : ''}${REAL_ALT_KERNEL === 'liquorix' && recipe.distro !== 'debian' ? `# Noyau Liquorix — dépôt PPA officiel (ppa:damentz/liquorix), méthode exacte du vrai script
 # d'installation servi par liquorix.net/install-liquorix.sh (branche Ubuntu, vérifiée en direct).
 echo -e "\${YELLOW}[INFO] Ajout du dépôt PPA officiel Liquorix (damentz/liquorix)...\${NC}"
 apt-get install -y --no-install-recommends gpg gpg-agent software-properties-common
 add-apt-repository -y ppa:damentz/liquorix
+apt-get update -y
+apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-headers-liquorix-amd64
+
+` : ''}${REAL_ALT_KERNEL === 'liquorix' && recipe.distro === 'debian' ? `# Noyau Liquorix pour Debian — PAS de PPA (mécanisme propre à Launchpad/Ubuntu, absent sur
+# Debian) : dépôt APT direct signé par clé, méthode exacte de la branche *debian* du vrai script
+# d'installation servi par liquorix.net/install-liquorix.sh (vérifiée en direct : dépôt réel
+# https://liquorix.net/debian, clé réelle liquorix-keyring.gpg, suite "${target.suite}" confirmée
+# publiée avec les deux paquets linux-image/linux-headers-liquorix-amd64 réels — pas de build
+# arm64 chez Liquorix, cohérent avec la portée x86_64 déjà appliquée à XanMod ci-dessous).
+echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel Liquorix (liquorix.net/debian)...\${NC}"
+apt-get install -y --no-install-recommends curl gpg ca-certificates
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://liquorix.net/liquorix-keyring.gpg | gpg --batch --yes --output /etc/apt/keyrings/liquorix-keyring.gpg --dearmor
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/liquorix-keyring.gpg] https://liquorix.net/debian ${target.suite} main" > /etc/apt/sources.list.d/liquorix.list
 apt-get update -y
 apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-headers-liquorix-amd64
 
