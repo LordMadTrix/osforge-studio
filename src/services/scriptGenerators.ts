@@ -1184,13 +1184,17 @@ mkdir -p "\${ISO_DIR}/boot/grub/i386-pc" "\${ISO_DIR}/EFI/BOOT"
 # reçoit alors plusieurs sources pour une destination unique et échouait, silencieusement avalé
 # par le "|| true" final : l'ISO se construisait "avec succès" mais sans aucun noyau dedans.
 # On résout donc explicitement le symlink "vmlinuz" vers son vrai fichier cible ; à défaut (ex.
-# Raspberry Pi OS, qui n'a pas ce symlink), on retombe sur le premier fichier réel trouvé.
+# Raspberry Pi OS, qui n'a pas ce symlink, ou Debian qui le place à la racine du rootfs et non
+# dans /boot — vérifié en live), on retombe sur "find" (jamais "ls" avec plusieurs motifs glob :
+# 2e bug réel trouvé en direct — "ls a b c" renvoie un code d'erreur non-nul dès qu'UN SEUL des
+# motifs ne matche rien, même si un autre a bien trouvé le fichier ; combiné à "pipefail" ça
+# arrêtait le script en silence, sans aucun message, malgré un match reel trouvé par ailleurs).
 VMLINUZ_SRC=$(readlink -f "\${ROOTFS_DIR}/boot/vmlinuz" 2>/dev/null || true)
-[ -n "\$VMLINUZ_SRC" ] && [ -f "\$VMLINUZ_SRC" ] || VMLINUZ_SRC=$(ls "\${ROOTFS_DIR}/boot"/vmlinuz-* "\${ROOTFS_DIR}/boot"/vmlinux-* "\${ROOTFS_DIR}/boot"/kernel*.img 2>/dev/null | grep -v '\\.old$' | head -1)
+[ -n "\$VMLINUZ_SRC" ] && [ -f "\$VMLINUZ_SRC" ] || VMLINUZ_SRC=$(find "\${ROOTFS_DIR}/boot" -maxdepth 1 -type f \\( -name 'vmlinuz-*' -o -name 'vmlinux-*' -o -name 'kernel*.img' \\) ! -name '*.old' 2>/dev/null | sort | head -1)
 [ -n "\$VMLINUZ_SRC" ] && cp "\$VMLINUZ_SRC" "\${ISO_DIR}/live/vmlinuz"
 
 INITRD_SRC=$(readlink -f "\${ROOTFS_DIR}/boot/initrd.img" 2>/dev/null || true)
-[ -n "\$INITRD_SRC" ] && [ -f "\$INITRD_SRC" ] || INITRD_SRC=$(ls "\${ROOTFS_DIR}/boot"/initrd.img-* "\${ROOTFS_DIR}/boot"/initramfs-* 2>/dev/null | grep -v '\\.old$' | head -1)
+[ -n "\$INITRD_SRC" ] && [ -f "\$INITRD_SRC" ] || INITRD_SRC=$(find "\${ROOTFS_DIR}/boot" -maxdepth 1 -type f \\( -name 'initrd.img-*' -o -name 'initramfs-*' \\) ! -name '*.old' 2>/dev/null | sort | head -1)
 [ -n "\$INITRD_SRC" ] && cp "\$INITRD_SRC" "\${ISO_DIR}/live/initrd"
 
 cat << 'GRUB_CONFIG_EOF' > "\${ISO_DIR}/boot/grub/grub.cfg"

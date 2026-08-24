@@ -97,8 +97,16 @@ interface GitHubTag {
 // versions sans dépendre de l'ordre de renvoi de l'API tags (vérifié en direct : GitHub ne trie
 // PAS /tags par version ni par date — swaywm/sway renvoyait "v1.5-rc2" (2019) avant "1.12" (2026),
 // et i3/i3 renvoyait un tag de branche "tree-pr4" sans rapport avec une version réelle).
+// Recherche N'IMPORTE OÙ dans la chaîne (pas seulement en tête) : certains projets préfixent
+// leurs tags par le nom du composant, ex. xfce-mirror/xfce4-session utilise
+// "xfce4-session-4.20.4" — un ancrage en tête aurait matché le "4" isolé de "xfce4" au lieu de
+// "4.20.4". Exige au moins un point pour éviter justement de matcher ce genre de "4" isolé.
+function extractVersion(tag: string): string | null {
+  return tag.match(/\d+\.\d+(\.\d+)*/)?.[0] ?? null;
+}
+
 function versionKey(tag: string): number[] {
-  const digits = tag.replace(/^v/i, '').match(/^\d+(\.\d+)*/)?.[0] ?? '0';
+  const digits = extractVersion(tag) ?? '0';
   return digits.split('.').map(Number);
 }
 
@@ -146,11 +154,11 @@ async function githubLatestTag(
     const tagRes = await fetch(`https://api.github.com/repos/${repo}/tags?per_page=100`);
     if (!tagRes.ok) throw new Error(`HTTP ${tagRes.status}`);
     const tags: GitHubTag[] = await tagRes.json();
-    const versioned = tags.filter(t => /^v?\d+(\.\d+)+/.test(t.name));
+    const versioned = tags.filter(t => extractVersion(t.name) !== null);
     if (!versioned.length) throw new Error('Aucun tag versionné');
     versioned.sort((a, b) => compareVersions(b.name, a.name));
     return {
-      id, name, category, latest: versioned[0].name.replace(/^v/i, ''),
+      id, name, category, latest: extractVersion(versioned[0].name) ?? versioned[0].name,
       releaseDate: null, channel, sourceUrl: `https://github.com/${repo}/tags`, isLive: true,
     };
   } catch (err) {
@@ -213,12 +221,12 @@ export async function fetchLiveDesktopVersions(): Promise<LiveVersionItem[]> {
     githubLatestTag('lxqt', 'LXQt', 'desktop', 'lxqt/lxqt'),
     githubLatestTag('cinnamon', 'Cinnamon', 'desktop', 'linuxmint/cinnamon'),
     githubLatestTag('cosmic', 'System76 COSMIC', 'desktop', 'pop-os/cosmic-epoch', 'beta'),
-    Promise.resolve(honestGap('gnome', 'GNOME', 'desktop', 'stable',
-      'Hébergé sur gitlab.gnome.org (auto-hébergé) : aucun en-tête CORS renvoyé (vérifié en direct), donc injoignable depuis un navigateur.',
-      'https://gitlab.gnome.org/GNOME/gnome-shell/-/tags')),
-    Promise.resolve(honestGap('xfce', 'Xfce', 'desktop', 'stable',
-      'Hébergé sur gitlab.xfce.org (auto-hébergé) : aucun en-tête CORS renvoyé (vérifié en direct), donc injoignable depuis un navigateur.',
-      'https://gitlab.xfce.org/xfce/xfce4-session/-/tags')),
+    // GNOME et Xfce sont développés sur gitlab.gnome.org / gitlab.xfce.org (auto-hébergés, sans
+    // en-tête CORS — vérifié en direct, injoignables depuis un navigateur), mais tous deux
+    // publient un vrai mirroir en lecture seule sur GitHub (confirmé en direct : github.com/GNOME
+    // et github.com/xfce-mirror existent et sont à jour), utilisable via la même API GitHub.
+    githubLatestTag('gnome', 'GNOME', 'desktop', 'GNOME/gnome-shell'),
+    githubLatestTag('xfce', 'Xfce', 'desktop', 'xfce-mirror/xfce4-session'),
   ]);
   return results;
 }
