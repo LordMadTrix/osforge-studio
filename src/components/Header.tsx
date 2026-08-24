@@ -136,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
             { id: 'security', label: lang === 'fr' ? '🛡️ Sécurité' : '🛡️ Security' },
             { id: 'postinstall', label: lang === 'fr' ? '📜 Scripts & Hook' : '📜 Scripts & Hook' },
             { id: 'inspector', label: lang === 'fr' ? '🔍 Code & Recette' : '🔍 Code & Recipe' },
-            { id: 'sandbox', label: lang === 'fr' ? '💻 Simulateur Live' : '💻 Live Simulator' },
+            { id: 'sandbox', label: lang === 'fr' ? '🚀 Démarrage Réel' : '🚀 Real Boot' },
           ].map(tab => (
             <button
               key={tab.id}

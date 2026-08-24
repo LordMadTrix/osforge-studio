@@ -14,7 +14,7 @@ import { RecipeInspector } from './components/RecipeInspector';
 import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap } from 'lucide-react';
 
 // Code-split heavy, non-first-paint views and modals to shrink the initial bundle.
-const LiveSandbox = lazy(() => import('./components/LiveSandbox').then(m => ({ default: m.LiveSandbox })));
+const RealBoot = lazy(() => import('./components/RealBoot').then(m => ({ default: m.RealBoot })));
 const BuildPipelineModal = lazy(() => import('./components/BuildPipelineModal').then(m => ({ default: m.BuildPipelineModal })));
 const AIAssistantModal = lazy(() => import('./components/AIAssistantModal').then(m => ({ default: m.AIAssistantModal })));
 const PresetsModal = lazy(() => import('./components/PresetsModal').then(m => ({ default: m.PresetsModal })));
@@ -190,10 +190,10 @@ export const App: React.FC = () => {
           <RecipeInspector recipe={recipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
         )}
 
-        {/* Tab 7: Live WebVM Sandbox */}
+        {/* Tab 7: Real Linux boot in the browser (v86 WASM x86 emulator) */}
         {activeTab === 'sandbox' && (
           <Suspense fallback={null}>
-            <LiveSandbox recipe={recipe} lang={lang} />
+            <RealBoot lang={lang} />
           </Suspense>
         )}
       </main>
