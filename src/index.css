@@ -1,53 +1,55 @@
 /* ==============================================================================
-   OSForge Studio — Sleek & Refined Dark Design System
+   OSForge Studio — Forge Design System (charcoal + ember, no glassmorphism)
    ============================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Sober, Deep Slate Backgrounds */
-  --bg-main: #0a0f1d;
-  --bg-surface: #0f172a;
-  --bg-card: rgba(15, 23, 42, 0.72);
-  --bg-card-hover: rgba(22, 33, 58, 0.85);
-  --bg-input: #0b1120;
-  --bg-accent-subtle: rgba(14, 165, 233, 0.08);
+  /* Charcoal, not navy — warm near-black instead of cool slate-blue */
+  --bg-main: #0c0a09;
+  --bg-surface: #15120f;
+  --bg-card: #1a1613;
+  --bg-card-hover: #211c18;
+  --bg-input: #100d0b;
+  --bg-accent-subtle: rgba(249, 115, 22, 0.06);
 
-  /* Subtle, Refined Borders */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.16);
-  --border-active: #0ea5e9;
+  /* Warm, opaque borders — no translucent "glass" edges */
+  --border-subtle: rgba(255, 235, 215, 0.08);
+  --border-hover: rgba(255, 235, 215, 0.18);
+  --border-active: #f97316;
 
-  /* Crisp Typography */
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  /* Warm off-white typography, not clinical cool-white */
+  --text-main: #f3ede4;
+  --text-muted: #a89a8c;
+  --text-dim: #6b6058;
 
-  /* Restrained Accents */
-  --cyan: #0ea5e9;
-  --cyan-subtle: rgba(14, 165, 233, 0.12);
-  --emerald: #10b981;
-  --emerald-subtle: rgba(16, 185, 129, 0.12);
-  --violet: #8b5cf6;
-  --violet-subtle: rgba(139, 92, 246, 0.12);
-  --amber: #f59e0b;
-  --rose: #f43f5e;
+  /* One dominant accent (ember/amber) instead of a cyan/emerald/violet trio —
+     functional colors kept but muted, not competing for attention */
+  --cyan: #f97316;
+  --cyan-subtle: rgba(249, 115, 22, 0.12);
+  --emerald: #84a05c;
+  --emerald-subtle: rgba(132, 160, 92, 0.12);
+  --violet: #b45309;
+  --violet-subtle: rgba(180, 83, 9, 0.12);
+  --amber: #f97316;
+  --rose: #dc4c3f;
 
-  /* Fonts */
+  /* Monospace-forward: this is a Linux/terminal tool, not a generic SaaS —
+     headings lean into that instead of a rounded geometric sans */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Outfit', -apple-system, sans-serif;
-  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+  --font-heading: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* Sharper corners — technical tool, not a bubbly consumer app */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
   --radius-full: 9999px;
 
-  /* Natural Shadows (No harsh neon glow) */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  /* Flatter shadows — depth from contrast/borders, not soft ambient glow */
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 0 rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -58,12 +60,10 @@
 
 body {
   background-color: var(--bg-main);
-  background-image: 
-    radial-gradient(circle at 10% 10%, rgba(14, 165, 233, 0.03) 0%, transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.03) 0%, transparent 40%),
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+  background-image:
+    linear-gradient(rgba(255, 235, 215, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 235, 215, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -90,21 +90,23 @@ body {
   background: #334155;
 }
 
-/* Typography Helpers */
+/* Typography Helpers — monospace, uppercase, tracked out: reads like a spec
+   sheet or man page heading, not a rounded consumer-app title */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
 }
 
 code, pre, .font-mono {
   font-family: var(--font-mono);
 }
 
-/* Sober Glass Panel */
+/* Solid panel — no blur/translucency. Depth comes from a flat offset shadow
+   and an opaque fill, like a plated/forged panel, not frosted glass. */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -112,7 +114,7 @@ code, pre, .font-mono {
 }
 
 .glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-hover);
 }
 
 /* Buttons */
@@ -137,56 +139,59 @@ code, pre, .font-mono {
   transform: scale(0.98);
 }
 
-/* Sober Refined Primary Button */
+/* Ember Primary Button */
 .btn-primary {
-  background: #0284c7;
-  border: 1px solid #38bdf8;
-  color: #ffffff;
+  background: #c2410c;
+  border: 1px solid #f97316;
+  color: #fff7ed;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 1px 4px rgba(194, 65, 12, 0.3);
 }
 
 .btn-primary:hover {
-  background: #0369a1;
-  border-color: #7dd3fc;
+  background: #9a3412;
+  border-color: #fb923c;
 }
 
 .btn-secondary {
-  background: rgba(30, 41, 59, 0.5);
+  background: #211c18;
   border: 1px solid var(--border-subtle);
-  color: #cbd5e1;
+  color: var(--text-muted);
 }
 
 .btn-secondary:hover {
-  background: rgba(45, 60, 85, 0.65);
+  background: #2a2420;
   border-color: var(--border-hover);
-  color: #ffffff;
+  color: var(--text-main);
 }
 
+/* Deliberately the one COOL accent in an otherwise warm palette — used only
+   for the AI feature so it reads as "the one special thing", not diluted
+   into a third or fourth competing warm hue. */
 .btn-ai {
-  background: #7c3aed;
-  border: 1px solid #a78bfa;
-  color: #ffffff;
+  background: #155e63;
+  border: 1px solid #2dd4bf;
+  color: #ecfeff;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 1px 4px rgba(21, 94, 99, 0.35);
 }
 
 .btn-ai:hover {
-  background: #6d28d9;
-  border-color: #c4b5fd;
+  background: #0f4c50;
+  border-color: #5eead4;
 }
 
 .btn-emerald {
-  background: #059669;
-  border: 1px solid #34d399;
-  color: #ffffff;
+  background: #4d6b34;
+  border: 1px solid #84a05c;
+  color: #f3ede4;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(5, 150, 105, 0.25);
+  box-shadow: 0 1px 4px rgba(77, 107, 52, 0.3);
 }
 
 .btn-emerald:hover {
-  background: #047857;
-  border-color: #6ee7b7;
+  background: #3e5629;
+  border-color: #a3bc7d;
 }
 
 /* Badges */
@@ -329,8 +334,7 @@ input:checked + .toggle-slider:before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(4, 7, 15, 0.78);
-  backdrop-filter: blur(6px);
+  background: rgba(6, 4, 3, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -340,8 +344,8 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-content {
-  background: #0d1424;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hover);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 860px;
