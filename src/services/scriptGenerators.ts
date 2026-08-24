@@ -557,6 +557,31 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // "patterns-lxqt-lxqt" confirmé vrai pattern zypper officiel (rpmfind.net).
       pkgs.push('patterns-lxqt-lxqt', 'sddm', 'pcmanfm-qt', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
+  } else if (recipe.desktop === 'mate') {
+    // Nouvel environnement de bureau ajouté (MATE, continuation de GNOME 2 classique) — aucune
+    // trace dans le catalogue avant cet ajout. Noms de paquets tous vérifiés en direct avant
+    // câblage : "mate-desktop-environment" réel sur Debian (sources.debian.org, 1.26.0) ; groupes
+    // Arch officiels "mate"/"mate-extra" confirmés (archlinux.org/groups/x86_64/) ; composants
+    // individuels réels sur Fedora ET Rocky/EPEL9 (mate-session-manager, mate-panel, marco,
+    // mate-terminal, caja, mate-control-center — tous confirmés en direct sur
+    // packages.fedoraproject.org et dl.fedoraproject.org/pub/epel/9/.../, contrairement à LXQt qui
+    // est absent d'EPEL9) ; "patterns-mate-mate" confirmé vrai pattern zypper officiel (rpmfind.net,
+    // openSUSE Tumbleweed) ; méta-paquet "mate" confirmé réel et complet sur Void
+    // (raw.githubusercontent.com/void-linux/void-packages srcpkgs/mate/template,
+    // metapackage=yes). Alpine confirmé ABSENT (aucun paquet "mate*" pertinent trouvé sur
+    // pkgs.alpinelinux.org, seuls des paquets de thème "materia" sans rapport) — honnêtement non
+    // câblé plutôt que d'installer un paquet inexistant.
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('mate-desktop-environment', 'lightdm', 'lightdm-gtk-greeter', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('mate', 'mate-extra', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (distroId === 'fedora' || distroId === 'rocky') {
+      pkgs.push('mate-session-manager', 'mate-panel', 'marco', 'mate-terminal', 'caja', 'mate-control-center', 'lightdm', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'void') {
+      pkgs.push('mate', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('patterns-mate-mate', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
+    }
   } else if (recipe.desktop === 'web_kiosk') {
     // Bug réel trouvé en vérifiant : "chromium-browser" est un piège identique à celui déjà
     // corrigé pour Firefox sur Ubuntu (packages.ubuntu.com confirme : "Transitional package -

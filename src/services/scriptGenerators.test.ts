@@ -1331,3 +1331,40 @@ describe('generateBuildScript/resolvePackageList — "appArmorOrSELinux" réelle
     expect(pkgs).not.toContain('apparmor');
   });
 });
+
+describe('resolvePackageList — nouvel environnement de bureau MATE ajouté au catalogue (dérivé de GNOME 2, continuation classique) — paquets tous vérifiés en direct avant câblage : "mate-desktop-environment" réel sur Debian (sources.debian.org, 1.26.0) ; groupes Arch officiels "mate"/"mate-extra" confirmés (archlinux.org/groups/x86_64/) ; composants individuels réels sur Fedora ET Rocky/EPEL9 (mate-session-manager, mate-panel, marco, mate-terminal, caja, mate-control-center — contrairement à LXQt qui est absent d\'EPEL9) ; "patterns-mate-mate" confirmé vrai pattern zypper officiel (rpmfind.net) ; méta-paquet "mate" confirmé réel et complet sur Void (metapackage=yes dans le template source) ; Alpine confirmé ABSENT (aucun paquet "mate*" pertinent trouvé)', () => {
+  it('Debian : installe le vrai méta-paquet "mate-desktop-environment" avec la pile graphique complète', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'mate', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['mate-desktop-environment', 'lightdm', 'lightdm-gtk-greeter', 'firefox-esr']));
+  });
+
+  it('Arch : installe les vrais groupes "mate" et "mate-extra"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['mate', 'mate-extra', 'lightdm']));
+  });
+
+  it('Fedora et Rocky : installent les mêmes composants individuels réels (contrairement à LXQt, MATE existe bien sur les deux)', () => {
+    const fedoraPkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    const rockyPkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    for (const pkgs of [fedoraPkgs, rockyPkgs]) {
+      expect(pkgs).toEqual(expect.arrayContaining(['mate-session-manager', 'mate-panel', 'marco', 'mate-terminal', 'caja', 'mate-control-center']));
+    }
+  });
+
+  it('openSUSE : installe le vrai pattern zypper "patterns-mate-mate"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    expect(pkgs).toContain('patterns-mate-mate');
+    expect(pkgs).toContain('MozillaFirefox');
+  });
+
+  it('Void : installe le vrai méta-paquet complet "mate"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    expect(pkgs).toContain('mate');
+    expect(pkgs).toContain('lightdm-gtk-greeter');
+  });
+
+  it('Alpine : reste honnêtement hors périmètre, aucun paquet mate-* installé (confirmé absent du dépôt)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'mate', selectedPackages: [] }));
+    expect(pkgs.some(p => p.startsWith('mate'))).toBe(false);
+  });
+});
