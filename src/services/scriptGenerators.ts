@@ -18,6 +18,20 @@ const PKG_NAME_FALLBACK: Partial<Record<DistroId, DistroId>> = {
   linuxmint: 'ubuntu',
 };
 
+// Faille réelle trouvée et vérifiée en direct (fichier de preuve local créé, puis neutralisé) :
+// "customPackages" est du texte libre saisi par l'utilisateur (ou importé depuis une recette JSON
+// partagée par quelqu'un d'autre), injecté SANS échappement dans "for pkg in ${pkgs}; do" — un
+// nom de paquet contenant $(commande) s'exécute réellement en shell, avec les privilèges root/sudo
+// du script généré, puisque "${pkgs}" est substitué au moment de la GÉNÉRATION (texte source bash
+// littéral, pas une variable bash évaluée plus tard). Reproduit localement : un for-loop avec
+// littéralement "$(echo X > /tmp/preuve)" dans la liste crée bien le fichier. Corrigé en mettant
+// chaque nom de paquet entre apostrophes (le motif d'échappement shell standard pour une apostrophe
+// à l'intérieur d'une chaîne protégée) : neutralise $(), les backticks et le globbing, tout en
+// préservant le comportement normal pour un vrai nom de paquet.
+function shellQuotePkgList(names: string[]): string {
+  return names.map(n => `'${n.replace(/'/g, `'\\''`)}'`).join(' ');
+}
+
 // Bug réel trouvé en auditant : "keyboardLayout" (data/... via SystemConfig.tsx) n'était
 // référencé NULLE PART dans ce fichier — le clavier gardait toujours la disposition par défaut
 // de l'image, quel que soit le choix de l'utilisateur. Les identifiants de l'UI ("uk", "ca-fr",
@@ -955,7 +969,7 @@ const DISK_IMAGE_FORMATS: Record<string, { qemuFormat: string; ext: string; labe
  * implémentée : le script le signale clairement plutôt que de produire une image qui ne démarre pas.
  */
 function generateNonDebianBuildScript(recipe: OSRecipe, family: NonDebianFamily): string {
-  const pkgs = resolvePackageList(recipe).join(' ');
+  const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const config = NON_DEBIAN_FAMILY_CONFIG[family];
   // Le paquet openssh(-server) est déjà ajouté par resolvePackageList() quand enableSSH est
   // coché, mais son SERVICE ne démarre jamais tout seul au premier boot sans être activé —
@@ -1376,7 +1390,7 @@ echo -e "\${GREEN}=======================================================\${NC}"
 // propre fonction plutôt que de forcer ce cas dans le pipeline générique Debian (ISO + squashfs +
 // live-boot), qui ne correspond pas au mécanisme de démarrage réel du matériel Raspberry Pi.
 function generateRpiSdScript(recipe: OSRecipe): string {
-  const pkgs = resolvePackageList(recipe).join(' ');
+  const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const imgName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.img`;
 
   return `#!/usr/bin/env bash
@@ -1549,7 +1563,7 @@ export function generateBuildScript(recipe: OSRecipe): string {
     return generateRpiSdScript(recipe);
   }
 
-  const pkgs = resolvePackageList(recipe).join(' ');
+  const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const isoName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.iso`;
   const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch;
   const target = DEBOOTSTRAP_TARGETS[recipe.distro];

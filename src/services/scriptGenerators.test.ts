@@ -1031,6 +1031,32 @@ describe('generateBuildScript — "user.autologin" réellement câblé par gesti
   });
 });
 
+describe('generateBuildScript — injection de commande shell via "customPackages" corrigée (faille RÉELLE trouvée et vérifiée : un fichier de preuve a été effectivement créé localement avant correctif, avec les privilèges du script)', () => {
+  it('met chaque nom de paquet entre apostrophes, y compris ceux contenant $(...)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [],
+      customPackages: ['htop', '$(touch /tmp/pwned)'],
+    }));
+    expect(script).toContain("'htop'");
+    expect(script).toContain("'$(touch /tmp/pwned)'");
+    // Le motif dangereux, non protégé, ne doit JAMAIS apparaître tel quel dans la liste du for.
+    expect(script).not.toMatch(/for pkg in[^\n]*[^']\$\(touch \/tmp\/pwned\)[^']/);
+  });
+
+  it('échappe correctement une apostrophe visant à casser la citation (motif classique d\'évasion shell)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [],
+      customPackages: [`vim'; touch /tmp/pwned2 #`],
+    }));
+    expect(script).toContain(`'vim'\\''; touch /tmp/pwned2 #'`);
+  });
+
+  it('un vrai nom de paquet normal fonctionne toujours sans changement de comportement', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['git'] }));
+    expect(script).toContain("'git'");
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
