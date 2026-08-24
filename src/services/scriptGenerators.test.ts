@@ -869,6 +869,58 @@ describe('generateBuildScript — "dotfilesGitUrl" et "customServices" réelleme
   });
 });
 
+describe('generateBuildScript — "fail2ban" et "disableRootSSH" réellement câblés (bug réel trouvé : sur les 6 champs du panneau Sécurité, 5 avaient zéro référence — dont ces deux réglages de protection SSH concrète)', () => {
+  it('fail2ban=true : installe le paquet, écrit un vrai jail.local activant le jail sshd, active le service', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).toContain('/etc/fail2ban/jail.local');
+    expect(script).toContain('[sshd]');
+    expect(script).toContain('enabled = true');
+    expect(script).toContain('systemctl enable fail2ban');
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'debian', enableSSH: true, selectedPackages: [], customPackages: [],
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } as any,
+    }));
+    expect(pkgs).toContain('fail2ban');
+  });
+
+  it('disableRootSSH=true : ajoute "PermitRootLogin no" à sshd_config', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'raw_img', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).toContain('PermitRootLogin no');
+  });
+
+  it('fail2ban/disableRootSSH ignorés quand enableSSH=false (rien à protéger)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: false,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, luksEncryption: false, disableRootSSH: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).not.toContain('PermitRootLogin');
+    expect(script).not.toContain('jail.local');
+  });
+
+  it('Alpine : active fail2ban via rc-update, pas systemctl', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'raw_img', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).toContain('rc-update add fail2ban default');
+  });
+
+  it('fail2ban=false et disableRootSSH=false : aucune trace de ces réglages', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } as any,
+    }));
+    expect(script).not.toContain('jail.local');
+    expect(script).not.toContain('PermitRootLogin');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

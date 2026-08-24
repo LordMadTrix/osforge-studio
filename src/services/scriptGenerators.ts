@@ -150,6 +150,31 @@ ${svc.enabled ? `systemctl enable ${unitName} 2>/dev/null || true` : `# Service 
   }).join('\n');
 }
 
+// Bug réel trouvé en auditant : sur les 6 champs de "security" (panneau Sécurité de l'UI), 5
+// avaient ZERO référence dans ce fichier avant ce correctif — "fail2ban" et "disableRootSSH"
+// (protection SSH concrète) n'étaient jamais appliqués, quel que soit le choix affiché à l'écran.
+// "cisBenchmarkLevel", "appArmorOrSELinux" et "luksEncryption" restent hors périmètre : le
+// benchmark CIS est une checklist de plusieurs centaines de points selon le niveau (0/1/2), et le
+// chiffrement disque nécessite de refondre tout le partitionnement/initramfs — les câbler
+// honnêtement demande une recherche et une vérification bien plus large qu'un correctif ponctuel,
+// contrairement à fail2ban/disableRootSSH qui sont deux réglages concrets et bien délimités.
+function sshHardeningCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableSSH) return '';
+  const parts: string[] = [];
+  if (recipe.security.disableRootSSH) {
+    parts.push(`mkdir -p /etc/ssh
+echo "PermitRootLogin no" >> /etc/ssh/sshd_config`);
+  }
+  if (recipe.security.fail2ban) {
+    parts.push(`cat > /etc/fail2ban/jail.local << 'F2B_EOF'
+[sshd]
+enabled = true
+F2B_EOF
+${serviceEnableCmd('fail2ban', family)}`);
+  }
+  return parts.join('\n');
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -410,6 +435,12 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // n'était jamais cloné, "git" lui-même pas garanti installé pour le faire.
   if (recipe.dotfilesGitUrl) {
     pkgs.push('git');
+  }
+
+  // "fail2ban" confirmé réel paquet sur les 6 familles (archlinux.org, pkgs.alpinelinux.org/main,
+  // packages.fedoraproject.org, rpmfind.net, sources.debian.org, void-packages).
+  if (recipe.enableSSH && recipe.security.fail2ban) {
+    pkgs.push('fail2ban');
   }
 
   return Array.from(new Set(pkgs.filter(Boolean)));
@@ -993,6 +1024,7 @@ chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
+${sshHardeningCmd(recipe, family)}
 ${dmCmd}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
@@ -1177,6 +1209,7 @@ chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
+${sshHardeningCmd(recipe, family)}
 ${dmCmd}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
@@ -1857,6 +1890,7 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 # différent de "sshd" utilisé par les autres familles) réellement actif.
 systemctl enable ssh 2>/dev/null || true
 ` : ''}
+${sshHardeningCmd(recipe, 'debian')}
 
 # Bug réel MAJEUR trouvé en auditant : le paquet du gestionnaire de connexion (installé par le
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
