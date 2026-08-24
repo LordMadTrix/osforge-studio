@@ -40,6 +40,28 @@ function resolveXkb(keyboardLayout: string): { layout: string; variant?: string 
   return KEYBOARD_XKB_MAP[keyboardLayout] || { layout: 'us' };
 }
 
+// Bug réel MAJEUR trouvé en auditant (grep confirme ZERO occurrence de "systemctl enable gdm/
+// sddm/lightdm" ou équivalent OpenRC/runit dans tout ce fichier, sur AUCUN bureau ni AUCUNE
+// distro) : le paquet du gestionnaire de connexion (gdm3/sddm/lightdm/cosmic-greeter) était bien
+// installé par chaque bloc "desktop" ci-dessus, mais son SERVICE n'était jamais activé au premier
+// boot — un système démarrait donc toujours sur une console texte, jamais sur la session
+// graphique, quel que soit l'environnement de bureau choisi. "ly" (recommandé pour Hyprland/Sway)
+// reste hors périmètre : confirmé absent des dépôts Alpine et Void en vérifiant, et jamais
+// installé par les blocs Hyprland/Sway existants — nécessiterait un cablage plus large séparé.
+function resolveDmServiceName(displayManager: string, family: 'debian' | NonDebianFamily): string | null {
+  if (displayManager === 'none' || displayManager === 'ly') return null;
+  if (displayManager === 'gdm3') return family === 'debian' ? 'gdm3' : 'gdm';
+  return displayManager; // "sddm" / "lightdm" / "cosmic-greeter" : même nom partout, déjà vérifié
+}
+
+function dmEnableCmd(displayManager: string, family: 'debian' | NonDebianFamily): string {
+  const svc = resolveDmServiceName(displayManager, family);
+  if (!svc) return '';
+  if (family === 'alpine') return `rc-update add ${svc} default 2>/dev/null || true`;
+  if (family === 'void') return `mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/${svc} /etc/runit/runsvdir/default/${svc} 2>/dev/null || true`;
+  return `systemctl enable ${svc} 2>/dev/null || true`;
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -733,6 +755,7 @@ function generateNonDebianBuildScript(recipe: OSRecipe, family: NonDebianFamily)
       ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
       : 'systemctl enable sshd 2>/dev/null || true';
   const xkb = resolveXkb(recipe.keyboardLayout);
+  const dmCmd = dmEnableCmd(recipe.displayManager, family);
   const label = NON_DEBIAN_LABELS[recipe.distro] || recipe.distro;
   const unameArch = recipe.arch === 'i686' ? 'i686' : recipe.arch;
   const rootfsTarName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-rootfs.tar.gz`;
@@ -865,6 +888,7 @@ chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
+${dmCmd}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -913,6 +937,7 @@ function generateNonDebianDiskImageScript(
       ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
       : 'systemctl enable sshd 2>/dev/null || true';
   const xkb = resolveXkb(recipe.keyboardLayout);
+  const dmCmd = dmEnableCmd(recipe.displayManager, family);
   const baseName = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const rawImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.raw.img`;
   const diskImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}`;
@@ -1044,6 +1069,7 @@ chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
 ${sshEnableCmd}
+${dmCmd}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1298,6 +1324,7 @@ export function generateBuildScript(recipe: OSRecipe): string {
   const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch;
   const target = DEBOOTSTRAP_TARGETS[recipe.distro];
   const xkb = resolveXkb(recipe.keyboardLayout);
+  const dmCmd = dmEnableCmd(recipe.displayManager, 'debian');
 
   if (!target) {
     const nonDebianFamily = NON_DEBIAN_DISTROS[recipe.distro];
@@ -1719,6 +1746,11 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 # différent de "sshd" utilisé par les autres familles) réellement actif.
 systemctl enable ssh 2>/dev/null || true
 ` : ''}
+
+# Bug réel MAJEUR trouvé en auditant : le paquet du gestionnaire de connexion (installé par le
+# bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
+# sur une console texte, jamais sur la session graphique, quel que soit le bureau choisi.
+${dmCmd}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${recipe.security.firewall === 'ufw' ? `

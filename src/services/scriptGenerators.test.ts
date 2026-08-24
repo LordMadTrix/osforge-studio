@@ -717,6 +717,37 @@ describe('generateBuildScript — "keyboardLayout" réellement câblé (bug rée
   });
 });
 
+describe('generateBuildScript — service du gestionnaire de connexion réellement activé au boot (bug MAJEUR trouvé : grep confirmait zéro "systemctl enable gdm/sddm/lightdm" ou équivalent OpenRC/runit dans tout le fichier — le paquet s\'installait mais le systeme demarrait toujours sur une console texte, jamais la session graphique, quel que soit le bureau choisi)', () => {
+  it('Debian/Ubuntu : "gdm3" reste "gdm3" (nom du service Debian), activé via systemctl', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3' }));
+    expect(script).toContain('systemctl enable gdm3');
+  });
+
+  it.each(['arch', 'fedora', 'opensuse'] as const)('%s : "gdm3" se traduit en service "gdm" (pas "gdm3", nom spécifique à Debian)', (distro) => {
+    const script = generateBuildScript(makeRecipe({ distro, outputFormat: 'raw_img', desktop: 'gnome', displayManager: 'gdm3' }));
+    expect(script).toContain('systemctl enable gdm ');
+    expect(script).not.toContain('systemctl enable gdm3');
+  });
+
+  it('Alpine (OpenRC) : active via rc-update, pas systemctl', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'kde', displayManager: 'sddm' }));
+    expect(script).toContain('rc-update add sddm default');
+  });
+
+  it('Void (runit) : active via un lien symbolique runsvdir, pas systemctl ni rc-update', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img', desktop: 'xfce', displayManager: 'lightdm' }));
+    expect(script).toContain('/etc/sv/lightdm');
+    expect(script).toContain('runsvdir/default/lightdm');
+  });
+
+  it('displayManager="none" (headless) n\'active aucun service graphique', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'none', displayManager: 'none' }));
+    expect(script).not.toContain('systemctl enable gdm');
+    expect(script).not.toContain('systemctl enable sddm');
+    expect(script).not.toContain('systemctl enable lightdm');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
