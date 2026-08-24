@@ -688,6 +688,35 @@ describe('resolvePackageList / generateBuildScript — "enableSSH" réellement c
   });
 });
 
+describe('generateBuildScript — "keyboardLayout" réellement câblé (bug réel trouvé : jamais référencé, le clavier gardait toujours la disposition par défaut de l\'image)', () => {
+  it('Debian/Ubuntu : écrit /etc/default/keyboard (vrai mécanisme Debian, pilote console + X11)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', keyboardLayout: 'fr' }));
+    expect(script).toContain('/etc/default/keyboard');
+    expect(script).toContain('XKBLAYOUT="fr"');
+  });
+
+  it('"uk" se traduit en vrai code XKB "gb" (pas "uk", qui n\'existe pas dans XKB)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', keyboardLayout: 'uk' }));
+    expect(script).toContain('XKBLAYOUT="gb"');
+    expect(script).not.toContain('XKBLAYOUT="uk"');
+  });
+
+  it.each([
+    ['ca-fr', 'ca', 'fr'],
+    ['ch-fr', 'ch', 'fr'],
+  ] as const)('"%s" sépare correctement layout="%s" et variant="%s" (convention XKB)', (uiId, layout, variant) => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', keyboardLayout: uiId }));
+    expect(script).toContain(`Option "XkbLayout" "${layout}"`);
+    expect(script).toContain(`Option "XkbVariant" "${variant}"`);
+  });
+
+  it('familles non-Debian : écrit aussi /etc/X11/xorg.conf.d/00-keyboard.conf et /etc/vconsole.conf', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', keyboardLayout: 'de' }));
+    expect(script).toContain('/etc/X11/xorg.conf.d/00-keyboard.conf');
+    expect(script).toContain('KEYMAP=de');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

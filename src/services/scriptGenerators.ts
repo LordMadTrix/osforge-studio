@@ -18,6 +18,28 @@ const PKG_NAME_FALLBACK: Partial<Record<DistroId, DistroId>> = {
   linuxmint: 'ubuntu',
 };
 
+// Bug réel trouvé en auditant : "keyboardLayout" (data/... via SystemConfig.tsx) n'était
+// référencé NULLE PART dans ce fichier — le clavier gardait toujours la disposition par défaut
+// de l'image, quel que soit le choix de l'utilisateur. Les identifiants de l'UI ("uk", "ca-fr",
+// "ch-fr"...) ne sont PAS tous des codes XKB valides tels quels : XKB utilise "gb" (pas "uk") pour
+// le Royaume-Uni, et les variantes régionales s'expriment via layout+variant séparés (convention
+// XKB stable et documentée depuis des décennies, ex. /usr/share/X11/xkb/rules/base.lst).
+const KEYBOARD_XKB_MAP: Record<string, { layout: string; variant?: string }> = {
+  fr: { layout: 'fr' },
+  us: { layout: 'us' },
+  uk: { layout: 'gb' },
+  de: { layout: 'de' },
+  es: { layout: 'es' },
+  it: { layout: 'it' },
+  'ca-fr': { layout: 'ca', variant: 'fr' },
+  be: { layout: 'be' },
+  'ch-fr': { layout: 'ch', variant: 'fr' },
+};
+
+function resolveXkb(keyboardLayout: string): { layout: string; variant?: string } {
+  return KEYBOARD_XKB_MAP[keyboardLayout] || { layout: 'us' };
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -710,6 +732,7 @@ function generateNonDebianBuildScript(recipe: OSRecipe, family: NonDebianFamily)
     : family === 'void'
       ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
       : 'systemctl enable sshd 2>/dev/null || true';
+  const xkb = resolveXkb(recipe.keyboardLayout);
   const label = NON_DEBIAN_LABELS[recipe.distro] || recipe.distro;
   const unameArch = recipe.arch === 'i686' ? 'i686' : recipe.arch;
   const rootfsTarName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-rootfs.tar.gz`;
@@ -813,6 +836,19 @@ HOSTS
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
 
+# Bug réel trouvé en auditant : "keyboardLayout" (choisi dans l'UI) n'était jamais appliqué —
+# le clavier gardait toujours la disposition par défaut de l'image, quel que soit le choix.
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/00-keyboard.conf << 'XKB_EOF'
+Section "InputClass"
+    Identifier "system-keyboard"
+    MatchIsKeyboard "on"
+    Option "XkbLayout" "${xkb.layout}"${xkb.variant ? `
+    Option "XkbVariant" "${xkb.variant}"` : ''}
+EndSection
+XKB_EOF
+echo "KEYMAP=${xkb.layout}" > /etc/vconsole.conf 2>/dev/null || true
+
 if ! id "${recipe.user.username}" >/dev/null 2>&1; then
     useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
     echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
@@ -876,6 +912,7 @@ function generateNonDebianDiskImageScript(
     : family === 'void'
       ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
       : 'systemctl enable sshd 2>/dev/null || true';
+  const xkb = resolveXkb(recipe.keyboardLayout);
   const baseName = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const rawImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.raw.img`;
   const diskImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}`;
@@ -977,6 +1014,19 @@ cat << 'HOSTS' > /etc/hosts
 HOSTS
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
+
+# Bug réel trouvé en auditant : "keyboardLayout" (choisi dans l'UI) n'était jamais appliqué —
+# le clavier gardait toujours la disposition par défaut de l'image, quel que soit le choix.
+mkdir -p /etc/X11/xorg.conf.d
+cat > /etc/X11/xorg.conf.d/00-keyboard.conf << 'XKB_EOF'
+Section "InputClass"
+    Identifier "system-keyboard"
+    MatchIsKeyboard "on"
+    Option "XkbLayout" "${xkb.layout}"${xkb.variant ? `
+    Option "XkbVariant" "${xkb.variant}"` : ''}
+EndSection
+XKB_EOF
+echo "KEYMAP=${xkb.layout}" > /etc/vconsole.conf 2>/dev/null || true
 
 if ! id "${recipe.user.username}" >/dev/null 2>&1; then
     useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
@@ -1247,6 +1297,7 @@ export function generateBuildScript(recipe: OSRecipe): string {
   const isoName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.iso`;
   const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch;
   const target = DEBOOTSTRAP_TARGETS[recipe.distro];
+  const xkb = resolveXkb(recipe.keyboardLayout);
 
   if (!target) {
     const nonDebianFamily = NON_DEBIAN_DISTROS[recipe.distro];
@@ -1634,6 +1685,16 @@ HOSTS
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
 echo "${recipe.locale} UTF-8" >> /etc/locale.gen || true
 locale-gen || true
+
+# Bug réel trouvé en auditant : "keyboardLayout" n'était jamais appliqué — le clavier gardait
+# toujours la disposition par défaut de l'image. /etc/default/keyboard est le vrai mécanisme
+# Debian/Ubuntu (paquet keyboard-configuration) qui pilote à la fois la console ET X11.
+cat > /etc/default/keyboard << 'KBD_EOF'
+XKBMODEL="pc105"
+XKBLAYOUT="${xkb.layout}"
+XKBVARIANT="${xkb.variant || ''}"
+XKBOPTIONS=""
+KBD_EOF
 
 # Création de l'utilisateur principal
 if ! id "${recipe.user.username}" &>/dev/null; then
