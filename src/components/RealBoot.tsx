@@ -15,7 +15,7 @@ interface RealBootProps {
 // (wasm/js/bios) est en revanche auto-hébergé dans public/v86/ pour ne pas dépendre de copy.sh
 // pour le fonctionnement du site lui-même.
 export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
-  const screenRef = useRef<HTMLDivElement>(null);
+  const serialRef = useRef<HTMLTextAreaElement>(null);
   const emulatorRef = useRef<any>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -33,20 +33,26 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
     setStatus('loading');
     setErrorMsg('');
     stopEmulator();
-    if (screenRef.current) screenRef.current.innerHTML = '';
+    if (serialRef.current) serialRef.current.value = '';
 
     try {
       const base = import.meta.env.BASE_URL;
       const { V86 } = await import(/* @vite-ignore */ `${base}v86/libv86.mjs`);
+      // Ce profil Buildroot envoie sa console sur le port série émulé (ttyS0), pas sur le
+      // "screen_container" VGA — bug réel trouvé en live : screen_container seul rendait un
+      // écran VGA texte vide (span par caractère avec couleur premier-plan/fond noir/noir,
+      // le tampon VGA n'étant simplement jamais écrit), alors que le CPU tournait bel et bien
+      // (is_running=true, compteur d'instructions en hausse). "serial_container" est l'option
+      // distincte de v86 qui capture ce flux série — c'est elle qu'il fallait utiliser ici.
       const emulator = new V86({
         wasm_path: `${base}v86/v86.wasm`,
         memory_size: 128 * 1024 * 1024,
         vga_memory_size: 2 * 1024 * 1024,
-        screen_container: screenRef.current,
+        serial_container: serialRef.current,
         bios: { url: `${base}v86/bios/seabios.bin` },
         vga_bios: { url: `${base}v86/bios/vgabios.bin` },
         bzimage: { url: 'https://i.copy.sh/buildroot-bzimage.bin' },
-        cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on',
+        cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
       });
       emulatorRef.current = emulator;
@@ -108,16 +114,22 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
             {lang === 'fr' ? 'Cliquez sur "Démarrer un vrai Linux" pour voir le noyau charger en direct.' : 'Click "Boot a real Linux" to watch the kernel load live.'}
           </p>
         )}
-        <div
-          ref={screenRef}
+        <textarea
+          ref={serialRef}
+          readOnly
           style={{
             display: status === 'idle' ? 'none' : 'block',
+            width: '100%',
+            height: '400px',
+            resize: 'vertical',
             background: '#000',
             color: '#4ade80',
             padding: '12px',
+            border: 'none',
             borderRadius: '8px',
-            overflow: 'auto',
             fontFamily: 'monospace',
+            fontSize: '0.8rem',
+            lineHeight: 1.4,
           }}
         />
       </div>
