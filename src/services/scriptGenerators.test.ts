@@ -544,6 +544,38 @@ describe('resolvePackageList — Alpine Linux : bureaux réellement câblés (au
   });
 });
 
+describe('resolvePackageList — Void Linux : bureaux réellement câblés (aucun n\'était installé auparavant, quel que soit le choix)', () => {
+  it.each([
+    ['gnome', 'gnome'],
+    ['kde', 'plasma-desktop'],
+    ['xfce', 'xfce4'],
+    ['sway', 'sway'],
+    ['lxqt', 'lxqt-session'],
+    ['cinnamon', 'cinnamon'],
+  ] as const)('desktop=%s installe un vrai paquet Void vérifié (%s)', (desktop, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop, selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('desktop=i3wm installe "i3" (ni "i3-wm" ni "i3wm") sur Void — 3e nom différent trouvé pour le même paquet', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'i3wm', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain('i3');
+    expect(pkgs).not.toContain('i3-wm');
+    expect(pkgs).not.toContain('i3wm');
+  });
+
+  it('desktop=hyprland n\'installe rien sur Void (hyprland et waybar confirmés absents du dépôt officiel, contrairement à Alpine)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'hyprland', selectedPackages: [], customPackages: [] }));
+    expect(pkgs.some(p => p.includes('hyprland') || p === 'waybar')).toBe(false);
+  });
+
+  it('desktop=sway n\'installe pas "waybar" sur Void (confirmé absent du dépôt, contrairement à Alpine) mais installe sway', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'sway', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain('sway');
+    expect(pkgs).not.toContain('waybar');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
