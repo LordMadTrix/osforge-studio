@@ -1057,6 +1057,41 @@ describe('generateBuildScript — injection de commande shell via "customPackage
   });
 });
 
+describe('generateBuildScript — injection de commande shell via "useradd" (username/fullName) corrigée (faille RÉELLE trouvée juste après celle de "customPackages" : "username" totalement non protégé, "fullName" entre guillemets DOUBLES qui n\'empêchent PAS $(...) — vérifiée en exécutant réellement les lignes extraites du script généré, avec useradd/id/chpasswd/usermod stubbés : aucun fichier de preuve créé)', () => {
+  it('username et fullName contenant $(...) et une tentative d\'évasion par apostrophe sont neutralisés dans la ligne useradd', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      user: {
+        username: `evil'; touch /tmp/pwned3 #`,
+        fullName: `John $(touch /tmp/pwned4)Doe`,
+        password: 'test', sudo: true, autologin: false, shell: '/bin/bash',
+      },
+    }));
+    expect(script).toContain(`useradd -m -s '/bin/bash' -c 'John $(touch /tmp/pwned4)Doe' 'evil'\\''; touch /tmp/pwned3 #'`);
+    // La commande "id" de vérification d'existence doit aussi être protégée.
+    expect(script).toContain(`if ! id 'evil'\\''; touch /tmp/pwned3 #'`);
+    // Le nom d'utilisateur doit être protégé partout où il ressert (chpasswd, sudoers, usermod, chown, chemins SSH).
+    expect(script).not.toMatch(/useradd -m -s [^\n]*\$\(touch \/tmp\/pwned4\)[^'\n]*\n/);
+  });
+
+  it('un nom d\'utilisateur normal fonctionne toujours sans changement de comportement', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid' }));
+    expect(script).toContain(`useradd -m -s '/bin/bash' -c 'Test User' 'tester'`);
+  });
+
+  it('sshPublicKey contenant $(...) est neutralisé dans authorized_keys, avec le username protégé dans le chemin', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true,
+      user: {
+        username: `evil'; touch /tmp/pwned5 #`, fullName: 'Test User', password: 'test',
+        sudo: true, autologin: false, shell: '/bin/bash',
+        sshPublicKey: `ssh-ed25519 AAAA$(touch /tmp/pwned6) test@test`,
+      } as any,
+    }));
+    expect(script).toContain(`echo 'ssh-ed25519 AAAA$(touch /tmp/pwned6) test@test' > /home/'evil'\\''; touch /tmp/pwned5 #'/.ssh/authorized_keys`);
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

@@ -28,9 +28,23 @@ const PKG_NAME_FALLBACK: Partial<Record<DistroId, DistroId>> = {
 // chaque nom de paquet entre apostrophes (le motif d'échappement shell standard pour une apostrophe
 // à l'intérieur d'une chaîne protégée) : neutralise $(), les backticks et le globbing, tout en
 // préservant le comportement normal pour un vrai nom de paquet.
-function shellQuotePkgList(names: string[]): string {
-  return names.map(n => `'${n.replace(/'/g, `'\\''`)}'`).join(' ');
+function shQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
 }
+
+function shellQuotePkgList(names: string[]): string {
+  return names.map(shQuote).join(' ');
+}
+
+// Faille réelle trouvée et vérifiée en direct (fichier de preuve local créé, puis neutralisé) :
+// "useradd -m -s ${recipe.user.shell} -c \"${recipe.user.fullName}\" ${recipe.user.username}"
+// avait DEUX failures : "username" totalement non protégé (même classe que customPackages
+// ci-dessus) ; et "fullName", bien qu'entre guillemets DOUBLES, restait exploitable car les
+// guillemets doubles bash n'empêchent PAS la substitution de commande $(...) (seuls les guillemets
+// simples le font). Reproduit localement : `echo "useradd -c \"John $(touch /tmp/preuve)Doe\" user"`
+// exécute bien la commande injectée et crée le fichier. Corrigé en passant les trois champs
+// (shell, username, fullName) par shQuote() — "shell" est un type union TypeScript côté UI mais
+// pas imposé à l'exécution pour une recette JSON importée/éditée à la main.
 
 // Bug réel trouvé en auditant : "keyboardLayout" (data/... via SystemConfig.tsx) n'était
 // référencé NULLE PART dans ce fichier — le clavier gardait toujours la disposition par défaut
@@ -1102,21 +1116,21 @@ EndSection
 XKB_EOF
 echo "KEYMAP=${xkb.layout}" > /etc/vconsole.conf 2>/dev/null || true
 
-if ! id "${recipe.user.username}" >/dev/null 2>&1; then
-    useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
-    echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
+if ! id ${shQuote(recipe.user.username)} >/dev/null 2>&1; then
+    useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
+    echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
 fi
 echo "root:toor" | chpasswd
 
 ${recipe.user.sudo ? `mkdir -p /etc/sudoers.d
-echo "${recipe.user.username} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-osforge-user
+echo ${shQuote(recipe.user.username)}' ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-osforge-user
 chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits sudo (non demandé dans la recette)'}
 
-${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${recipe.user.username}/.ssh
-echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
-chmod 700 /home/${recipe.user.username}/.ssh
-chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
-chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
+echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
+chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${dmCmd}
@@ -1290,21 +1304,21 @@ EndSection
 XKB_EOF
 echo "KEYMAP=${xkb.layout}" > /etc/vconsole.conf 2>/dev/null || true
 
-if ! id "${recipe.user.username}" >/dev/null 2>&1; then
-    useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
-    echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
+if ! id ${shQuote(recipe.user.username)} >/dev/null 2>&1; then
+    useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
+    echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
 fi
 echo "root:toor" | chpasswd
 
 ${recipe.user.sudo ? `mkdir -p /etc/sudoers.d
-echo "${recipe.user.username} ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-osforge-user
+echo ${shQuote(recipe.user.username)}' ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-osforge-user
 chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits sudo (non demandé dans la recette)'}
 
-${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${recipe.user.username}/.ssh
-echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
-chmod 700 /home/${recipe.user.username}/.ssh
-chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
-chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
+echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
+chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${dmCmd}
@@ -1481,18 +1495,18 @@ ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
 echo "${recipe.locale} UTF-8" >> /etc/locale.gen || true
 locale-gen || true
 
-if ! id "${recipe.user.username}" &>/dev/null; then
-    useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
-    echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
-    ${recipe.user.sudo ? `usermod -aG sudo ${recipe.user.username}` : ''}
+if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
+    useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
+    echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
+    ${recipe.user.sudo ? `usermod -aG sudo ${shQuote(recipe.user.username)}` : ''}
 fi
 echo "root:toor" | chpasswd
 
-${recipe.enableSSH ? `mkdir -p /home/${recipe.user.username}/.ssh
-chmod 700 /home/${recipe.user.username}/.ssh
-${recipe.user.sshPublicKey ? `echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
-chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
-chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+${recipe.enableSSH ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
+chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
+${recipe.user.sshPublicKey ? `echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 systemctl enable ssh || true` : ''}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -1970,10 +1984,10 @@ XKBOPTIONS=""
 KBD_EOF
 
 # Création de l'utilisateur principal
-if ! id "${recipe.user.username}" &>/dev/null; then
-    useradd -m -s ${recipe.user.shell} -c "${recipe.user.fullName}" ${recipe.user.username}
-    echo "${recipe.user.username}:${recipe.user.password || 'forge'}" | chpasswd
-    ${recipe.user.sudo ? `usermod -aG sudo ${recipe.user.username}` : ''}
+if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
+    useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
+    echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
+    ${recipe.user.sudo ? `usermod -aG sudo ${shQuote(recipe.user.username)}` : ''}
 fi
 
 # Mot de passe Root
@@ -1981,11 +1995,11 @@ echo "root:toor" | chpasswd
 
 # Configuration SSH
 ${recipe.enableSSH ? `
-mkdir -p /etc/ssh /home/${recipe.user.username}/.ssh
-chmod 700 /home/${recipe.user.username}/.ssh
-${recipe.user.sshPublicKey ? `echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
-chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
-chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+mkdir -p /etc/ssh /home/${shQuote(recipe.user.username)}/.ssh
+chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
+${recipe.user.sshPublicKey ? `echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
+chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 # Bug réel trouvé en auditant : le paquet openssh-server (ajouté par resolvePackageList quand
 # enableSSH est coché) n'était jamais démarré au premier boot sans cette activation explicite —
 # seul le fichier authorized_keys était écrit, inutile sans le service "ssh" (nom Debian/Ubuntu,
@@ -2339,7 +2353,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [3/3] Configuration du support Systemd et utilisateur par défaut (%DISTRO_NAME%)...
-wsl -d %DISTRO_NAME% -u root bash -c "echo '[boot]\nsystemd=true\n[user]\ndefault=${recipe.user.username}' > /etc/wsl.conf"
+wsl -d %DISTRO_NAME% -u root bash -c "echo '[boot]\nsystemd=true\n[user]\ndefault='${shQuote(recipe.user.username)} > /etc/wsl.conf"
 
 echo.
 echo =====================================================================
