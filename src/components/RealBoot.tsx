@@ -10,10 +10,14 @@ interface RealBootProps {
 // l'ancien "Simulateur Live" (un faux terminal avec des réponses codées en dur), ceci exécute un
 // VRAI noyau Linux, compilé pour de vrai, dans une VM x86 émulée réelle. Configuration reprise à
 // l'identique du profil officiel "buildroot" de v86 (vérifié en live : boot jusqu'au shell "~%"
-// en ~38s sur copy.sh/v86 avant d'être répliqué ici). L'image du noyau reste hébergée sur le CDN
-// officiel du projet (i.copy.sh) plutôt que dupliquée dans ce dépôt ; le runtime de l'émulateur
-// (wasm/js/bios) est en revanche auto-hébergé dans public/v86/ pour ne pas dépendre de copy.sh
-// pour le fonctionnement du site lui-même.
+// en ~38s sur copy.sh/v86 avant d'être répliqué ici).
+//
+// Tout (runtime wasm/js/bios ET l'image noyau elle-même) est auto-hébergé dans public/v86/,
+// sur le même domaine que le site — pas seulement pour l'indépendance vis-à-vis de copy.sh, mais
+// parce qu'un vrai utilisateur a rencontré en production un bloqueur de pub qui coupait
+// silencieusement les requêtes vers i.copy.sh (un domaine tiers peu connu). Aucune exception JS
+// n'était levée dans ce cas — seul l'évènement "download-error" de v86 (ou, en dernier recours,
+// le minuteur de blocage silencieux ci-dessous) le révèle.
 export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
   const serialRef = useRef<HTMLTextAreaElement>(null);
   const emulatorRef = useRef<any>(null);
@@ -51,7 +55,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
         serial_container: serialRef.current,
         bios: { url: `${base}v86/bios/seabios.bin` },
         vga_bios: { url: `${base}v86/bios/vgabios.bin` },
-        bzimage: { url: 'https://i.copy.sh/buildroot-bzimage.bin' },
+        bzimage: { url: `${base}v86/buildroot-bzimage.bin` },
         cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
       });
