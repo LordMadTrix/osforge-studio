@@ -97,6 +97,39 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   } else if (recipe.desktop === 'i3wm') {
     pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
+  } else if (recipe.desktop === 'sway') {
+    // Noms de paquets vérifiés en direct : sources.debian.org/api/src (sway/swaylock/swaybg/
+    // swayidle = 200) et archlinux.org/packages/search/json (mêmes noms confirmés sur Arch).
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'firefox', 'pipewire', 'NetworkManager');
+    }
+  } else if (recipe.desktop === 'cinnamon') {
+    // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et
+    // archlinux.org/packages/search/json (paquet "cinnamon" présent) ; "@cinnamon-desktop" suit
+    // la même convention de groupe DNF déjà utilisée ci-dessus pour gnome/kde/xfce sur Fedora.
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('@cinnamon-desktop', 'lightdm', 'firefox', 'pipewire');
+    }
+  } else if (recipe.desktop === 'lxqt') {
+    // Meta-paquet "lxqt" confirmé réel sur Debian (sources.debian.org/api/src/lxqt = 200) ;
+    // Arch n'a pas de meta-paquet unique — composants réels du groupe officiel "lxqt" vérifiés
+    // en direct (archlinux.org/groups/x86_64/lxqt/) : lxqt-session, lxqt-panel, lxqt-config,
+    // pcmanfm-qt, openbox. "@lxqt-desktop" suit la même convention de groupe DNF que ci-dessus.
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('lxqt', 'sddm', 'pcmanfm-qt', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('lxqt-session', 'lxqt-panel', 'lxqt-config', 'pcmanfm-qt', 'openbox', 'sddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('@lxqt-desktop', 'sddm', 'firefox', 'pipewire');
+    }
   } else if (recipe.desktop === 'web_kiosk') {
     if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
     else pkgs.push('chromium-browser', 'cage', 'seatd', 'pipewire', 'network-manager');

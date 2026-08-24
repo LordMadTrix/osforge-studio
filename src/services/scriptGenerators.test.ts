@@ -470,6 +470,31 @@ describe('generateBuildScript — noyau LTS/Realtime réellement câblé via Xan
   });
 });
 
+describe('resolvePackageList — Sway/Cinnamon/LXQt réellement câblés (étaient silencieusement ignorés : sélectionnables dans l\'UI mais aucun paquet installé)', () => {
+  it.each([
+    ['debian', 'sway', 'sway'],
+    ['ubuntu', 'sway', 'sway'],
+    ['arch', 'sway', 'sway'],
+    ['fedora', 'sway', 'sway'],
+    ['debian', 'cinnamon', 'cinnamon'],
+    ['arch', 'cinnamon', 'cinnamon'],
+    ['fedora', 'cinnamon', '@cinnamon-desktop'],
+    ['debian', 'lxqt', 'lxqt'],
+    ['arch', 'lxqt', 'lxqt-session'],
+    ['fedora', 'lxqt', '@lxqt-desktop'],
+  ] as const)('%s + desktop=%s installe un vrai paquet (%s)', (distro, desktop, expectedPkg) => {
+    const recipe = makeRecipe({ distro, desktop, selectedPackages: [], customPackages: [] });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('desktop=sway ne contient aucun paquet des autres bureaux', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'sway', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).not.toContain('gnome-core');
+    expect(pkgs).not.toContain('plasma-desktop');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
