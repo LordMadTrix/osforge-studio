@@ -1101,6 +1101,21 @@ exit 1
     : recipe.distro === 'raspbian' ? 'raspberrypi-kernel'
     : `linux-image-${debArch}`;
 
+  // Trois choix de noyau sont réellement câblés pour Ubuntu/Mint (vérifiés en live) :
+  // - mainline_beta : kernel.ubuntu.com/mainline publie de vrais .deb Canonical officiels pour
+  //   CHAQUE version taguée (confirmé en direct : v7.2 y est déjà, quelques heures après le tag
+  //   upstream) — méthode officiellement documentée d'installation d'un noyau mainline.
+  // - liquorix : PPA officiel ppa:damentz/liquorix, exactement la commande du vrai script
+  //   d'installation servi par liquorix.net/install-liquorix.sh (branche *ubuntu*).
+  // - cloud_micro : linux-image-kvm, vrai paquet officiel Ubuntu optimisé invité KVM/cloud.
+  // On exclut alors le noyau par défaut du debootstrap --include (voir plus bas) pour n'avoir
+  // JAMAIS deux noyaux dans /boot en même temps : le glob "cp .../boot/vmlinuz* dest-unique"
+  // plus loin dans ce script casserait silencieusement s'il y avait deux fichiers correspondants.
+  const UBUNTU_REAL_ALT_KERNEL = (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint')
+    && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)
+    ? recipe.kernel
+    : null;
+
   // Formats de sortie réellement implémentés : ISO live (par défaut) et RootFS tar.gz
   // (WSL2 / Docker), qui réutilisent tous les deux le même RootFS déjà construit.
   // Les formats disque (QCOW2, VMDK, RAW, carte SD Raspberry Pi) nécessitent un vrai
@@ -1265,10 +1280,11 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 ||
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-${recipe.kernel && recipe.kernel !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS.\${NC}"
+${recipe.kernel && recipe.kernel !== 'generic' && !UBUNTU_REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Liquorix/Cloud-Micro le sont réellement pour Ubuntu/Mint.\${NC}"
+` : ''}${UBUNTU_REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
 ` : ''}debootstrap --arch="${debArch}" \\${target.components ? `
   --components="${target.components}" \\` : ''}
-  --include="${recipe.distro === 'raspbian' ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
+  --include="${recipe.distro === 'raspbian' || UBUNTU_REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
 
 echo -e "\${YELLOW}[3/7] ⚙️ Configuration du système et installation des paquets...\${NC}"
@@ -1321,6 +1337,38 @@ apt-get update -y
 
 ${recipe.distro === 'raspbian' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
 apt-get install -y --no-install-recommends raspberrypi-kernel raspi-firmware
+
+` : ''}${UBUNTU_REAL_ALT_KERNEL === 'mainline_beta' ? `# Noyau mainline le plus récent — vérifié en direct sur kernel.ubuntu.com/mainline (vrais .deb
+# officiels Canonical, publiés pour chaque version taguée y compris fraîchement sortie).
+echo -e "\${YELLOW}[INFO] Recherche du dernier noyau mainline officiel (kernel.ubuntu.com/mainline)...\${NC}"
+apt-get install -y --no-install-recommends curl ca-certificates
+MAINLINE_VER=$(curl -fsSL https://kernel.ubuntu.com/mainline/ | grep -oP 'href="v\\K[0-9]+\\.[0-9]+(\\.[0-9]+)?(?=/")' | grep -v -i rc | sort -V | tail -1)
+if [ -n "$MAINLINE_VER" ]; then
+    echo -e "\${GREEN}[INFO] Noyau mainline officiel détecté : v\${MAINLINE_VER}\${NC}"
+    MAINLINE_BASE="https://kernel.ubuntu.com/mainline/v\${MAINLINE_VER}/amd64"
+    mkdir -p /tmp/mainline-kernel && cd /tmp/mainline-kernel
+    curl -fsSL "\${MAINLINE_BASE}/" -o index.html
+    for f in $(grep -oP 'href="\\K[^"]+\\.deb' index.html | grep -E '^linux-(headers|image-unsigned|modules)-[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+-generic_[^"]*_amd64\\.deb$|^linux-headers-[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+_[^"]*_all\\.deb$'); do
+        curl -fsSL "\${MAINLINE_BASE}/\${f}" -o "$f"
+    done
+    dpkg -i *.deb || apt-get install -f -y --no-install-recommends
+    cd / && rm -rf /tmp/mainline-kernel
+else
+    echo -e "\${RED}[AVERTISSEMENT] Impossible de déterminer le dernier noyau mainline en direct ; installation du noyau Ubuntu standard à la place.\${NC}"
+    apt-get install -y --no-install-recommends linux-image-generic
+fi
+
+` : ''}${UBUNTU_REAL_ALT_KERNEL === 'liquorix' ? `# Noyau Liquorix — dépôt PPA officiel (ppa:damentz/liquorix), méthode exacte du vrai script
+# d'installation servi par liquorix.net/install-liquorix.sh (branche Ubuntu, vérifiée en direct).
+echo -e "\${YELLOW}[INFO] Ajout du dépôt PPA officiel Liquorix (damentz/liquorix)...\${NC}"
+apt-get install -y --no-install-recommends gpg gpg-agent software-properties-common
+add-apt-repository -y ppa:damentz/liquorix
+apt-get update -y
+apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-headers-liquorix-amd64
+
+` : ''}${UBUNTU_REAL_ALT_KERNEL === 'cloud_micro' ? `# Noyau officiel Ubuntu optimisé invité cloud/KVM (vrai paquet, dépôt Ubuntu standard).
+echo -e "\${YELLOW}[INFO] Installation du noyau officiel Ubuntu invité cloud/KVM (linux-image-kvm)...\${NC}"
+apt-get install -y --no-install-recommends linux-image-kvm
 
 ` : ''}# Installation sécurisée et résiliente des logiciels sélectionnés
 for pkg in ${pkgs}; do

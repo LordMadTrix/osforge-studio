@@ -408,6 +408,46 @@ describe('generateBuildScript — sélection de noyau réellement câblée pour 
   });
 });
 
+describe('generateBuildScript — sélection de noyau réellement câblée pour Ubuntu/Mint (vérifié en live : kernel.ubuntu.com/mainline, PPA Liquorix officiel, boot QEMU réel)', () => {
+  it("kernel=mainline_beta télécharge en direct le dernier noyau mainline officiel (kernel.ubuntu.com) et exclut le noyau générique du bootstrap", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'mainline_beta' }));
+    expect(script).toContain('https://kernel.ubuntu.com/mainline/');
+    expect(script).toContain('MAINLINE_VER=');
+    expect(script).not.toMatch(/--include="linux-image-generic,/);
+  });
+
+  it("kernel=liquorix ajoute le vrai PPA officiel (ppa:damentz/liquorix) et installe linux-image-liquorix-amd64", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'liquorix' }));
+    expect(script).toContain('add-apt-repository -y ppa:damentz/liquorix');
+    expect(script).toContain('linux-image-liquorix-amd64');
+    expect(script).not.toMatch(/--include="linux-image-generic,/);
+  });
+
+  it("kernel=cloud_micro installe le vrai paquet officiel Ubuntu linux-image-kvm", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'cloud_micro' }));
+    expect(script).toContain('apt-get install -y --no-install-recommends linux-image-kvm');
+    expect(script).not.toMatch(/--include="linux-image-generic,/);
+  });
+
+  it("Linux Mint hérite du même câblage réel (mainline_beta)", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'linuxmint', outputFormat: 'iso_hybrid', kernel: 'mainline_beta' }));
+    expect(script).toContain('https://kernel.ubuntu.com/mainline/');
+  });
+
+  it("kernel=zen (non câblé pour Ubuntu) retombe honnêtement sur linux-image-generic avec avertissement visible", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'zen' }));
+    expect(script).toContain("n'est pas encore câblé pour ubuntu");
+    expect(script).toContain('--include="linux-image-generic,');
+    expect(script).not.toContain('kernel.ubuntu.com/mainline');
+  });
+
+  it("kernel='generic' n'affiche aucun avertissement de repli sur Ubuntu", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', kernel: 'generic' }));
+    expect(script).not.toContain("n'est pas encore câblé");
+    expect(script).toContain('--include="linux-image-generic,');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
