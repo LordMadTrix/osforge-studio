@@ -812,6 +812,63 @@ describe('generateBuildScript — mode kiosque ("kioskUrl") réellement câblé 
   });
 });
 
+describe('generateBuildScript — "dotfilesGitUrl" et "customServices" réellement câblés (bug réel trouvé : jamais référencés — le dépôt de dotfiles n\'était jamais cloné, les services personnalisés jamais écrits sur le disque, quel que soit leur contenu)', () => {
+  it('dotfilesGitUrl : clone réellement le dépôt et installe "git"', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', dotfilesGitUrl: 'https://github.com/user/dotfiles.git' } as any));
+    expect(script).toContain("git clone --depth 1 'https://github.com/user/dotfiles.git'");
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', dotfilesGitUrl: 'https://x.test/d.git', selectedPackages: [], customPackages: [] } as any));
+    expect(pkgs).toContain('git');
+  });
+
+  it('sans dotfilesGitUrl, aucune commande git clone n\'est générée', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid' }));
+    expect(script).not.toContain('git clone');
+  });
+
+  it('customServices : écrit un vrai fichier .service avec le contenu EXACT choisi (pas d\'échappement shell erroné dans le corps du heredoc, qui corromprait le fichier réellement produit)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      customServices: [{ name: 'my-app', description: "It's a test", execStart: `/usr/bin/echo 'hello' && echo "test"`, enabled: true }],
+    } as any));
+    expect(script).toContain('/etc/systemd/system/my-app.service');
+    expect(script).toContain(`ExecStart=/usr/bin/echo 'hello' && echo "test"`);
+    expect(script).toContain("Description=It's a test");
+    expect(script).toContain('systemctl enable my-app ');
+  });
+
+  it('customServices avec enabled=false : crée le fichier mais ne l\'active pas', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      customServices: [{ name: 'quiet-svc', description: 'x', execStart: '/bin/true', enabled: false }],
+    } as any));
+    expect(script).toContain('/etc/systemd/system/quiet-svc.service');
+    expect(script).not.toContain('systemctl enable quiet-svc');
+  });
+
+  it('nom de service se terminant déjà par ".service" : pas de double suffixe', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      customServices: [{ name: 'already-suffixed.service', description: 'x', execStart: '/bin/true', enabled: true }],
+    } as any));
+    expect(script).toContain('/etc/systemd/system/already-suffixed.service');
+    expect(script).not.toContain('already-suffixed.service.service');
+  });
+
+  it('Alpine/Void : n\'écrit pas de fichier .service inerte, affiche un avertissement honnête à la place', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'raw_img',
+      customServices: [{ name: 'x', description: 'x', execStart: '/bin/true', enabled: true }],
+    } as any));
+    expect(script).toContain('non câblé');
+    expect(script).not.toContain('/etc/systemd/system/');
+  });
+
+  it('customServices=[] ne génère rien', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', customServices: [] } as any));
+    expect(script).not.toContain('/etc/systemd/system/');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

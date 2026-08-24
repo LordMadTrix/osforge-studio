@@ -105,6 +105,51 @@ KIOSK_EOF
 chown ${username}:${username} /home/${username}/.bash_profile 2>/dev/null || true`;
 }
 
+// Bug réel trouvé en auditant : "dotfilesGitUrl" (choisi dans l'UI : "clonera et appliquera
+// automatiquement vos configurations... dans le home de l'utilisateur") n'était référencé nulle
+// part — le dépôt n'était jamais cloné, peu importe l'URL saisie.
+function dotfilesCloneCmd(recipe: OSRecipe): string {
+  if (!recipe.dotfilesGitUrl) return '';
+  const url = recipe.dotfilesGitUrl.replace(/'/g, `'\\''`);
+  const username = recipe.user.username;
+  return `git clone --depth 1 '${url}' /home/${username}/.dotfiles 2>/dev/null || true
+chown -R ${username}:${username} /home/${username}/.dotfiles 2>/dev/null || true`;
+}
+
+// Bug réel trouvé en auditant : "customServices" (choisi dans l'UI : "Génère des fichiers
+// /etc/systemd/system/*.service avec démarrage automatique") n'était référencé nulle part — les
+// services personnalisés ajoutés par l'utilisateur n'étaient jamais écrits sur le disque, quel que
+// soit leur contenu. L'UI promet explicitement "systemd" (pas une abstraction multi-init-system
+// comme SSH/DM/kiosque plus haut) : hors périmètre honnête pour Alpine (OpenRC) et Void (runit),
+// avertissement explicite au lieu de fichiers .service inertes qui ne seraient jamais lus.
+function customServicesCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.customServices.length) return '';
+  if (family === 'alpine' || family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] ${recipe.customServices.length} service(s) personnalisé(s) non câblé(s) sur cette distribution : le générateur ne produit que de vrais fichiers systemd .service, non lus par OpenRC (Alpine) ni runit (Void).\${NC:-}" 2>/dev/null || true`;
+  }
+  return recipe.customServices.map(svc => {
+    const unitName = svc.name.replace(/\.service$/i, '').replace(/[^a-zA-Z0-9_.-]/g, '-') || 'osforge-custom';
+    // Corps d'un heredoc à délimiteur protégé ('UNIT_EOF') : aucune expansion shell n'y a lieu,
+    // le contenu est écrit tel quel — échapper les apostrophes ici (comme pour un argument shell)
+    // corromprait le fichier .service réellement produit sur le disque.
+    const execStart = svc.execStart;
+    const description = svc.description || unitName;
+    return `cat > /etc/systemd/system/${unitName}.service << 'UNIT_EOF'
+[Unit]
+Description=${description}
+After=network.target
+
+[Service]
+ExecStart=${execStart}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+UNIT_EOF
+${svc.enabled ? `systemctl enable ${unitName} 2>/dev/null || true` : `# Service créé mais non activé automatiquement (case "Démarrage auto" décochée dans l'UI)`}`;
+  }).join('\n');
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -358,6 +403,13 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'alpine' || isFedoraLike) {
       pkgs.push('openssh-server');
     }
+  }
+
+  // Bug réel trouvé en auditant : "dotfilesGitUrl" (choisi dans l'UI : "clonera automatiquement
+  // vos configurations... dans le home de l'utilisateur") n'était jamais référencé — le dépôt
+  // n'était jamais cloné, "git" lui-même pas garanti installé pour le faire.
+  if (recipe.dotfilesGitUrl) {
+    pkgs.push('git');
   }
 
   return Array.from(new Set(pkgs.filter(Boolean)));
@@ -943,6 +995,8 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 ${sshEnableCmd}
 ${dmCmd}
 ${kioskSetupCmd(recipe, family)}
+${dotfilesCloneCmd(recipe)}
+${customServicesCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1125,6 +1179,8 @@ chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.use
 ${sshEnableCmd}
 ${dmCmd}
 ${kioskSetupCmd(recipe, family)}
+${dotfilesCloneCmd(recipe)}
+${customServicesCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1807,6 +1863,8 @@ systemctl enable ssh 2>/dev/null || true
 # sur une console texte, jamais sur la session graphique, quel que soit le bureau choisi.
 ${dmCmd}
 ${kioskSetupCmd(recipe, 'debian')}
+${dotfilesCloneCmd(recipe)}
+${customServicesCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${recipe.security.firewall === 'ufw' ? `
