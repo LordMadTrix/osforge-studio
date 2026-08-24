@@ -4,6 +4,7 @@ import { DISTROS } from '../data/distros';
 import { KERNEL_OPTIONS } from '../data/kernels';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
+import { KernelUpdateChecker } from './KernelUpdateChecker';
 import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DISTRO_LOGOS } from '../data/logos';
@@ -379,6 +380,8 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
               : 'Tune the kernel for low latency desktop, e-sport gaming, high-security hardening, or long term stability.'}
           </p>
         </div>
+
+        <KernelUpdateChecker lang={lang} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
           {KERNEL_OPTIONS.map(k => {
