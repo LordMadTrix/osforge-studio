@@ -1,0 +1,68 @@
+name: 🧪 Test noyau mainline reel pour Ubuntu (kernel.ubuntu.com)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Générer le script depuis le code source actuel
+        run: |
+          npm ci
+          mkdir -p scripts
+          cat > scripts/dump-ubuntu-mainline.ts <<'EOF'
+          import { generateBuildScript } from '../src/services/scriptGenerators';
+          import type { OSRecipe } from '../src/types/os';
+          import { writeFileSync } from 'node:fs';
+
+          const recipe: OSRecipe = {
+            distro: 'ubuntu',
+            arch: 'x86_64',
+            hostname: 'diskforge-mainline',
+            timezone: 'Europe/Paris',
+            locale: 'fr_FR',
+            outputFormat: 'iso',
+            kernel: 'mainline_beta',
+            branding: { osName: 'DiskForgeMainline', editionName: 'Test', version: '1.0' },
+            user: { username: 'forge', fullName: 'Forge', shell: '/bin/bash', sudo: true, password: 'forge', sshPublicKey: '' },
+            enableSSH: false,
+            selectedPackages: [],
+            customPackages: [],
+            security: { firewall: 'none' },
+            firstBootScript: '',
+          } as unknown as OSRecipe;
+
+          const script = generateBuildScript(recipe);
+          writeFileSync('scripts/generated-ubuntu-mainline.sh', script);
+          console.log('written scripts/generated-ubuntu-mainline.sh, length', script.length);
+          EOF
+          npx tsx scripts/dump-ubuntu-mainline.ts
+
+      - name: Exécuter le script généré (bootstrap Ubuntu réel + noyau mainline live)
+        run: sudo bash scripts/generated-ubuntu-mainline.sh 2>&1 | tee /tmp/build.log
+
+      - name: Extraire le noyau embarqué dans l'ISO produite et vérifier sa version réelle
+        run: |
+          sudo apt-get install -y xorriso >/dev/null 2>&1 || true
+          ISO=$(find dist -name "*.iso" | head -n1)
+          echo "ISO trouvée: $ISO"
+          xorriso -indev "$ISO" -osirrox on -extract /live/vmlinuz /tmp/vmlinuz
+          echo "=== version détectée pendant le build (log) ==="
+          DETECTED=$(grep -oP 'officiel détecté : v\K[0-9.]+' /tmp/build.log | head -1)
+          echo "Version live détectée pendant le build : $DETECTED"
+          echo "=== version réellement embarquée dans /live/vmlinuz de l'ISO finale ==="
+          file /tmp/vmlinuz
+          EMBEDDED=$(file /tmp/vmlinuz | grep -oP 'version \K[0-9]+\.[0-9]+\.[0-9]+-[0-9]+-generic')
+          echo "Version embarquée : $EMBEDDED"
+          if [ -n "$DETECTED" ] && echo "$EMBEDDED" | grep -q "^${DETECTED}\."; then
+            echo "✅ Le noyau réellement embarqué dans l'ISO correspond au dernier mainline détecté en direct ($DETECTED)"
+          else
+            echo "❌ Incohérence entre la version détectée ($DETECTED) et la version embarquée ($EMBEDDED)"
+            exit 1
+          fi
