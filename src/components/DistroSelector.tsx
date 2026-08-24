@@ -5,9 +5,10 @@ import { KERNEL_OPTIONS } from '../data/kernels';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import { KernelUpdateChecker } from './KernelUpdateChecker';
-import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon, Rss } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DISTRO_LOGOS } from '../data/logos';
+import { useLiveVersions } from '../hooks/useLiveVersions';
 
 interface DistroSelectorProps {
   recipe: OSRecipe;
@@ -18,6 +19,7 @@ interface DistroSelectorProps {
 }
 
 export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
+  const { distros: liveDistros } = useLiveVersions();
   const formats: { id: OutputFormat; name: string; desc: string; icon: string; tooltipFr: string; tooltipEn: string }[] = [
     {
       id: 'iso_hybrid',
@@ -194,8 +196,18 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   </div>
                 </div>
 
-                <div style={{ fontSize: '0.72rem', color: distro.color, fontWeight: 600, marginBottom: '4px' }}>
-                  {distro.version}
+                <div style={{ fontSize: '0.72rem', color: distro.color, fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  {liveDistros[distro.id]?.isLive ? (
+                    <>
+                      <Rss size={9} />
+                      <span>{liveDistros[distro.id].latest}{liveDistros[distro.id].codename ? ` "${liveDistros[distro.id].codename}"` : ''}</span>
+                      {liveDistros[distro.id].releaseDate && (
+                        <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({liveDistros[distro.id].releaseDate})</span>
+                      )}
+                    </>
+                  ) : (
+                    <span>{distro.version}</span>
+                  )}
                 </div>
 
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '10px', minHeight: '38px' }}>

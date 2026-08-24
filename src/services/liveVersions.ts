@@ -129,6 +129,7 @@ async function githubLatestTag(
     // fiable quand le projet en publie (confirmé : hyprwm/Hyprland, swaywm/sway, lxqt/lxqt,
     // pop-os/cosmic-epoch en ont toutes une).
     const relRes = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
+    if (relRes.status === 403) throw new Error('rate-limit');
     if (relRes.ok) {
       const rel = await relRes.json();
       if (rel?.tag_name) {
@@ -152,11 +153,13 @@ async function githubLatestTag(
       id, name, category, latest: versioned[0].name.replace(/^v/i, ''),
       releaseDate: null, channel, sourceUrl: `https://github.com/${repo}/tags`, isLive: true,
     };
-  } catch {
+  } catch (err) {
     return {
       id, name, category, latest: null, releaseDate: null,
       channel, sourceUrl, isLive: false,
-      note: 'Source en direct temporairement indisponible (api.github.com).',
+      note: err instanceof Error && err.message === 'rate-limit'
+        ? 'Limite de requêtes GitHub atteinte pour votre connexion (60/heure sans authentification) : réessayez plus tard.'
+        : 'Source en direct temporairement indisponible (api.github.com).',
     };
   }
 }

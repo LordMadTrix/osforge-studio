@@ -29,6 +29,11 @@ export const KernelUpdateChecker: React.FC<KernelUpdateCheckerProps> = ({ lang }
     setErrorMsg('');
     try {
       const res = await fetch('https://api.github.com/repos/torvalds/linux/tags?per_page=30');
+      if (res.status === 403) throw new Error(
+        lang === 'fr'
+          ? "Limite de requêtes GitHub atteinte pour votre connexion (60/heure sans authentification) : réessayez dans quelques minutes."
+          : 'GitHub API rate limit reached for your connection (60/hour unauthenticated): try again in a few minutes.'
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const allTags: { name: string; commit: { url: string } }[] = await res.json();
 

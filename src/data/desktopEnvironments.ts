@@ -22,7 +22,7 @@ export const DESKTOPS: DesktopInfo[] = [
   },
   {
     id: 'hyprland',
-    name: 'Hyprland v0.47+ (Wayland Tiling & Shaders)',
+    name: 'Hyprland (Wayland Tiling & Shaders)',
     type: 'Tiling WM',
     description: 'Le gestionnaire de fenêtres Wayland moderne le plus populaire avec animations physiques fluides, coins arrondis, bordures lumineuses et effets de flou natifs.',
     ramUsageMB: 240,
@@ -31,7 +31,7 @@ export const DESKTOPS: DesktopInfo[] = [
     wayland: true,
     previewGradient: 'linear-gradient(135deg, #581c87 0%, #a855f7 50%, #ec4899 100%)',
     features: ['Animations physiques fluides', 'Effets de flou & Glassmorphism natif', 'Contrôle 100% clavier/raccourcis', 'Consommation mémoire très basse'],
-    versionBadge: 'v0.47 Wayland',
+    versionBadge: 'Wayland Tiling',
     screenshotMockup: {
       layoutType: 'tiling',
       activeWindow: 'kitty (nvim + fastfetch)',
@@ -51,7 +51,7 @@ export const DESKTOPS: DesktopInfo[] = [
     previewGradient: 'linear-gradient(135deg, #78350f 0%, #d97706 50%, #fbbf24 100%)',
     features: ['Écrit 100% en Rust (Memory Safe)', 'Tiling automatique hybride optionnel', 'Applets modulaires COSMIC', 'Wayland natif avec animations GPU'],
     isBeta: true,
-    versionBadge: 'Rust Beta 1',
+    versionBadge: 'Rust Desktop',
     screenshotMockup: {
       layoutType: 'dock',
       activeWindow: 'cosmic-term (rustc + cargo)',
@@ -61,7 +61,7 @@ export const DESKTOPS: DesktopInfo[] = [
   },
   {
     id: 'kde',
-    name: 'KDE Plasma 6.3 (Qt6 & HDR Wayland)',
+    name: 'KDE Plasma (Qt6 & HDR Wayland)',
     type: 'Full Desktop',
     description: 'Interface élégante, ultra-rapide basée sur Qt6 avec effets graphiques modernes, gestion HDR/VRR, widgets de bureau et personnalisation infinie.',
     ramUsageMB: 620,
@@ -70,7 +70,7 @@ export const DESKTOPS: DesktopInfo[] = [
     wayland: true,
     previewGradient: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 50%, #2dd4bf 100%)',
     features: ['KDE Connect (synchro smartphone)', 'Effets de fenêtres KWin 3D', 'Support complet HDR & VRR Freesync', 'Faible consommation RAM pour un bureau complet'],
-    versionBadge: 'Plasma 6.3 Qt6',
+    versionBadge: 'Qt6 Desktop',
     screenshotMockup: {
       layoutType: 'panel',
       activeWindow: 'Dolphin File Manager & Konsole',
@@ -156,7 +156,7 @@ export const DESKTOPS: DesktopInfo[] = [
   },
   {
     id: 'cinnamon',
-    name: 'Cinnamon 6 (Élégant façon Linux Mint)',
+    name: 'Cinnamon (Élégant façon Linux Mint)',
     type: 'Full Desktop',
     description: 'Environnement moderne conçu par l’équipe de Linux Mint. Menu démarrer complet, barre de tâches intuitive et interface familière pour les utilisateurs venant de Windows.',
     ramUsageMB: 590,
@@ -175,7 +175,7 @@ export const DESKTOPS: DesktopInfo[] = [
   },
   {
     id: 'lxqt',
-    name: 'LXQt 2.1 (Ultra-Léger basé sur Qt6)',
+    name: 'LXQt (Ultra-Léger basé sur Qt6)',
     type: 'Lightweight',
     description: 'Le successeur moderne de LXDE conçu avec la bibliothèque Qt6. Très réactif même sur des machines ayant seulement 512 Mo à 1 Go de RAM.',
     ramUsageMB: 280,

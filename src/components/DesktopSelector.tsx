@@ -3,9 +3,10 @@ import { OSRecipe, DisplayManagerId } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon } from 'lucide-react';
+import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon, Rss } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
+import { useLiveVersions } from '../hooks/useLiveVersions';
 
 interface DesktopSelectorProps {
   recipe: OSRecipe;
@@ -16,6 +17,7 @@ interface DesktopSelectorProps {
 }
 
 export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
+  const { desktops: liveDesktops } = useLiveVersions();
   const displayManagers: { id: DisplayManagerId; name: string; desc: string; tipFr: string; tipEn: string }[] = [
     {
       id: 'gdm3',
@@ -155,6 +157,20 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                         {de.type}
                       </span>
                     </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    {liveDesktops[de.id]?.isLive ? (
+                      <>
+                        <Rss size={9} color="var(--cyan)" />
+                        <span style={{ color: 'var(--cyan)' }}>{liveDesktops[de.id].latest}</span>
+                        {liveDesktops[de.id].releaseDate && (
+                          <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>({liveDesktops[de.id].releaseDate})</span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>{de.versionBadge}</span>
+                    )}
                   </div>
 
                   <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: '1.35', marginBottom: '10px' }}>
