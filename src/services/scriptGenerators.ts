@@ -468,6 +468,18 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('fail2ban');
   }
 
+  // Bug réel MAJEUR trouvé en auditant : "useradd -s ${recipe.user.shell}" fixe le shell de
+  // connexion SANS JAMAIS installer le paquet correspondant quand zsh/fish est choisi (bash et sh
+  // font partie du système de base partout, mais pas zsh/fish) — le binaire du shell choisi
+  // n'existe alors pas sur le disque, ce qui casse la CONNEXION AU COMPTE dès le premier login.
+  // Noms vérifiés en direct sur les 6 familles : "zsh"/"fish" partout, SAUF Void où le paquet
+  // s'appelle "fish-shell" (confirmé : aucun srcpkgs/fish, mais bien srcpkgs/fish-shell).
+  if (recipe.user.shell === '/bin/zsh') {
+    pkgs.push('zsh');
+  } else if (recipe.user.shell === '/bin/fish') {
+    pkgs.push(distroId === 'void' ? 'fish-shell' : 'fish');
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }
 

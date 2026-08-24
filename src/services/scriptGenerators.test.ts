@@ -948,6 +948,31 @@ describe('generateBuildScript — "/etc/os-release" réellement personnalisé (b
   });
 });
 
+describe('resolvePackageList — le paquet du shell choisi (zsh/fish) est réellement installé (bug MAJEUR trouvé : "useradd -s /bin/zsh" fixait le shell SANS installer le paquet, cassant la connexion au compte dès le premier login puisque bash/sh sont dans le système de base mais pas zsh/fish)', () => {
+  it.each([
+    ['debian', '/bin/zsh', 'zsh'],
+    ['arch', '/bin/zsh', 'zsh'],
+    ['alpine', '/bin/zsh', 'zsh'],
+    ['debian', '/bin/fish', 'fish'],
+    ['arch', '/bin/fish', 'fish'],
+  ] as const)('%s + shell=%s installe le vrai paquet (%s)', (distro, shell, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro, selectedPackages: [], customPackages: [], user: { username: 'u', fullName: 'U', shell, sudo: true, password: 'x', sshPublicKey: '', autologin: false } as any }));
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('Void + shell=/bin/fish installe "fish-shell" (pas "fish", qui n\'existe pas sur Void — piège réel trouvé en vérifiant)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', selectedPackages: [], customPackages: [], user: { username: 'u', fullName: 'U', shell: '/bin/fish', sudo: true, password: 'x', sshPublicKey: '', autologin: false } as any }));
+    expect(pkgs).toContain('fish-shell');
+    expect(pkgs).not.toContain('fish');
+  });
+
+  it('shell=/bin/bash ou /bin/sh : aucun paquet supplémentaire (déjà dans le système de base)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', selectedPackages: [], customPackages: [], user: { username: 'u', fullName: 'U', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '', autologin: false } as any }));
+    expect(pkgs).not.toContain('zsh');
+    expect(pkgs).not.toContain('fish');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
