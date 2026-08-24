@@ -495,6 +495,31 @@ describe('resolvePackageList — Sway/Cinnamon/LXQt réellement câblés (étaie
   });
 });
 
+describe('generateBuildScript — Rocky Linux : EPEL/CRB activés, bureaux réellement disponibles vérifiés individuellement (vs groupes @dnf non garantis)', () => {
+  it('active les dépôts EPEL et CRB, requis pour KDE/XFCE/Cinnamon sur Rocky (docs.rockylinux.org)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'kde' }));
+    expect(script).toContain('[epel]');
+    expect(script).toContain('[crb]');
+    expect(script).toContain('--repo=epel');
+    expect(script).toContain('--repo=crb');
+  });
+
+  it.each([
+    ['kde', 'plasma-desktop'],
+    ['xfce', 'xfce4-session'],
+    ['cinnamon', 'cinnamon-desktop'],
+  ] as const)('desktop=%s installe un vrai paquet EPEL9 (%s) au lieu d\'un groupe @dnf non garanti sur Rocky', (desktop, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'rocky', desktop, selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain(expectedPkg);
+    expect(pkgs.some(p => p.startsWith('@'))).toBe(false);
+  });
+
+  it.each(['sway', 'lxqt'] as const)('desktop=%s n\'installe rien sur Rocky (confirmé absent même d\'EPEL9, contrairement à Fedora)', (desktop) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'rocky', desktop, selectedPackages: [], customPackages: [] }));
+    expect(pkgs.some(p => p.includes('sway') || p.includes('lxqt'))).toBe(false);
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

@@ -67,8 +67,12 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       );
     } else if (isArchLike) {
       pkgs.push('plasma', 'kde-applications', 'sddm', 'firefox', 'pipewire', 'networkmanager', 'mesa');
-    } else if (isFedoraLike) {
+    } else if (distroId === 'fedora') {
       pkgs.push('@kde-desktop', 'sddm', 'firefox', 'pipewire');
+    } else if (distroId === 'rocky') {
+      // Rocky n'a pas de groupe dnf "@kde-desktop" garanti (comps propre à Fedora) ; "plasma-desktop"
+      // est en revanche un vrai paquet EPEL9 confirmé (dl.fedoraproject.org/pub/epel/9/.../p/).
+      pkgs.push('plasma-desktop', 'plasma-workspace', 'sddm', 'konsole', 'dolphin', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'hyprland') {
     if (isArchLike) {
@@ -86,8 +90,12 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       );
     } else if (isArchLike) {
       pkgs.push('xfce4', 'xfce4-goodies', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire');
-    } else if (isFedoraLike) {
+    } else if (distroId === 'fedora') {
       pkgs.push('@xfce-desktop', 'lightdm', 'firefox', 'pipewire');
+    } else if (distroId === 'rocky') {
+      // "xfce4-session" confirmé vrai paquet EPEL9 (dl.fedoraproject.org/pub/epel/9/.../x/) ;
+      // pas de groupe "@xfce-desktop" garanti sur Rocky, donc paquets individuels.
+      pkgs.push('xfce4-session', 'xfce4-panel', 'xfce4-terminal', 'thunar', 'lightdm', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'cosmic') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -104,30 +112,40 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
-    } else if (isFedoraLike) {
+    } else if (distroId === 'fedora') {
+      // "sway" existe dans les dépôts Fedora officiels (vraie Fedora Sway Spin, vérifié en
+      // direct sur packages.fedoraproject.org). Rocky/EPEL9 ne l'a en revanche PAS du tout
+      // (vérifié en direct : dl.fedoraproject.org/pub/epel/9/.../s/ ne contient aucun "sway-*") —
+      // ne rien installer plutôt que de prétendre à un paquet inexistant sur Rocky.
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'firefox', 'pipewire', 'NetworkManager');
     }
   } else if (recipe.desktop === 'cinnamon') {
     // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et
-    // archlinux.org/packages/search/json (paquet "cinnamon" présent) ; "@cinnamon-desktop" suit
-    // la même convention de groupe DNF déjà utilisée ci-dessus pour gnome/kde/xfce sur Fedora.
+    // archlinux.org/packages/search/json (paquet "cinnamon" présent).
     if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
-    } else if (isFedoraLike) {
+    } else if (distroId === 'fedora') {
       pkgs.push('@cinnamon-desktop', 'lightdm', 'firefox', 'pipewire');
+    } else if (distroId === 'rocky') {
+      // "cinnamon-desktop" confirmé vrai paquet EPEL9 (dl.fedoraproject.org/pub/epel/9/.../c/) ;
+      // pas de groupe "@cinnamon-desktop" garanti sur Rocky, donc paquet individuel.
+      pkgs.push('cinnamon-desktop', 'lightdm', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'lxqt') {
     // Meta-paquet "lxqt" confirmé réel sur Debian (sources.debian.org/api/src/lxqt = 200) ;
     // Arch n'a pas de meta-paquet unique — composants réels du groupe officiel "lxqt" vérifiés
     // en direct (archlinux.org/groups/x86_64/lxqt/) : lxqt-session, lxqt-panel, lxqt-config,
-    // pcmanfm-qt, openbox. "@lxqt-desktop" suit la même convention de groupe DNF que ci-dessus.
+    // pcmanfm-qt, openbox. Fedora a son propre groupe "@lxqt-desktop" (vraie Fedora LXQt Spin,
+    // vérifié via packages.fedoraproject.org) ; Rocky/EPEL9 n'a EN REVANCHE AUCUN paquet LXQt du
+    // tout (vérifié en direct : dl.fedoraproject.org/pub/epel/9/.../l/ ne contient rien) — ne rien
+    // installer plutôt que de prétendre à un paquet inexistant.
     if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push('lxqt', 'sddm', 'pcmanfm-qt', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('lxqt-session', 'lxqt-panel', 'lxqt-config', 'pcmanfm-qt', 'openbox', 'sddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
-    } else if (isFedoraLike) {
+    } else if (distroId === 'fedora') {
       pkgs.push('@lxqt-desktop', 'sddm', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'web_kiosk') {
@@ -385,6 +403,18 @@ gpgcheck=0
 name=Rocky Linux 9 - AppStream
 baseurl=https://download.rockylinux.org/pub/rocky/9/AppStream/$basearch/os/
 enabled=1
+gpgcheck=0
+
+[epel]
+name=Extra Packages for Enterprise Linux 9 - $basearch
+baseurl=https://dl.fedoraproject.org/pub/epel/9/Everything/$basearch/
+enabled=1
+gpgcheck=0
+
+[crb]
+name=Rocky Linux 9 - CRB
+baseurl=https://download.rockylinux.org/pub/rocky/9/CRB/$basearch/os/
+enabled=1
 gpgcheck=0`
         : `[fedora]
 name=Fedora $releasever - $basearch
@@ -397,8 +427,16 @@ name=Fedora $releasever - $basearch - Updates
 baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/$releasever/Everything/$basearch/
 enabled=1
 gpgcheck=0`;
+      // EPEL ("Extra Packages for Enterprise Linux") ajouté pour Rocky : la plupart des bureaux
+      // alternatifs (KDE/XFCE/Cinnamon) n'existent pas du tout dans baseos/appstream — vérifié en
+      // direct sur dl.fedoraproject.org/pub/epel/9/Everything/x86_64/Packages/ (plasma-desktop,
+      // xfce4-session, cinnamon-desktop confirmés présents ; lxqt-session et sway confirmés ABSENTS
+      // même dans EPEL, d'où leur exclusion pour Rocky ci-dessus plutôt qu'un paquet inexistant).
       const releasever = isRocky ? '9' : '44';
-      const repoIds = isRocky ? '--repo=baseos --repo=appstream' : '--repo=fedora --repo=updates';
+      // "crb" (CodeReady Builder) est officiellement documenté comme requis aux côtés d'EPEL sur
+      // Rocky 9 (docs.rockylinux.org) : de nombreuses dépendances d'EPEL y résident et non dans
+      // baseos/appstream ; sans lui, la résolution de dépendances dnf pour KDE/XFCE/Cinnamon échoue.
+      const repoIds = isRocky ? '--repo=baseos --repo=appstream --repo=epel --repo=crb' : '--repo=fedora --repo=updates';
       const releasePkg = isRocky ? 'rocky-release' : 'fedora-release';
       return `mkdir -p "\${WORK_DIR}/yum.repos.d"
 cat > "\${WORK_DIR}/yum.repos.d/target.repo" << 'DNF_REPO_EOF'
