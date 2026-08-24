@@ -113,8 +113,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
           style={{
             display: status === 'idle' ? 'none' : 'block',
             background: '#000',
+            color: '#4ade80',
+            padding: '12px',
             borderRadius: '8px',
-            overflow: 'hidden',
+            overflow: 'auto',
             fontFamily: 'monospace',
           }}
         />
