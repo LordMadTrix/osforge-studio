@@ -646,6 +646,48 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
   });
 });
 
+describe('resolvePackageList / generateBuildScript — "enableSSH" réellement câblé (bug réel trouvé : n\'installait ni n\'activait jamais le serveur SSH, sur AUCUNE distro — seul le fichier authorized_keys était écrit)', () => {
+  it.each([
+    ['debian', 'openssh-server'],
+    ['ubuntu', 'openssh-server'],
+    ['arch', 'openssh'],
+    ['fedora', 'openssh-server'],
+    ['rocky', 'openssh-server'],
+    ['alpine', 'openssh-server'],
+    ['opensuse', 'openssh'],
+    ['void', 'openssh'],
+  ] as const)('distro=%s + enableSSH=true installe le vrai paquet SSH (%s)', (distro, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro, enableSSH: true, selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('enableSSH=false n\'installe aucun paquet SSH', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', enableSSH: false, selectedPackages: [], customPackages: [] }));
+    expect(pkgs.some(p => p.includes('ssh'))).toBe(false);
+  });
+
+  it('Debian/Ubuntu : active le service "ssh" (pas "sshd") au premier boot', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true }));
+    expect(script).toContain('systemctl enable ssh ');
+  });
+
+  it.each(['arch', 'fedora', 'opensuse'] as const)('%s (systemd) : active le service "sshd" au premier boot', (distro) => {
+    const script = generateBuildScript(makeRecipe({ distro, outputFormat: 'raw_img', enableSSH: true }));
+    expect(script).toContain('systemctl enable sshd');
+  });
+
+  it('Alpine (OpenRC) : active sshd via rc-update, pas systemctl', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', enableSSH: true }));
+    expect(script).toContain('rc-update add sshd default');
+  });
+
+  it('Void (runit) : active sshd via un lien symbolique runsvdir, pas systemctl ni rc-update', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img', enableSSH: true }));
+    expect(script).toContain('/etc/sv/sshd');
+    expect(script).toContain('runsvdir/default/sshd');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));

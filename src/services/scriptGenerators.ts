@@ -247,6 +247,22 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('linux', 'linux-firmware', 'shadow', 'sudo', 'curl', 'wget', 'ca-certificates', 'dhcpcd');
   }
 
+  // Bug réel trouvé en auditant : "enableSSH" n'a jamais installé le serveur SSH lui-même, sur
+  // AUCUNE distro (Debian/Ubuntu inclus) — seul le fichier authorized_keys était écrit, sans
+  // paquet openssh ni service sshd actif pour s'en servir. Noms de paquets vérifiés en direct
+  // (archlinux.org, pkgs.alpinelinux.org, packages.fedoraproject.org, rpmfind.net,
+  // raw.githubusercontent.com/void-linux/void-packages) : "openssh-server" existe partout SAUF
+  // sur Arch/openSUSE/Void, où le paquet unique "openssh" fournit déjà le serveur.
+  if (recipe.enableSSH) {
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('openssh-server');
+    } else if (isArchLike || distroId === 'opensuse' || distroId === 'void') {
+      pkgs.push('openssh');
+    } else if (distroId === 'alpine' || isFedoraLike) {
+      pkgs.push('openssh-server');
+    }
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }
 
@@ -683,6 +699,17 @@ const DISK_IMAGE_FORMATS: Record<string, { qemuFormat: string; ext: string; labe
 function generateNonDebianBuildScript(recipe: OSRecipe, family: NonDebianFamily): string {
   const pkgs = resolvePackageList(recipe).join(' ');
   const config = NON_DEBIAN_FAMILY_CONFIG[family];
+  // Le paquet openssh(-server) est déjà ajouté par resolvePackageList() quand enableSSH est
+  // coché, mais son SERVICE ne démarre jamais tout seul au premier boot sans être activé —
+  // mécanisme différent par init system (systemd/OpenRC/runit), vérifié en direct : Alpine=OpenRC
+  // ("rc-update"), Void=runit (symlink dans runsvdir, même schéma que agetty-ttyS0 plus haut),
+  // les 3 autres familles=systemd. Nom du service = "sshd" partout sauf Debian/Ubuntu (hors
+  // périmètre de cette fonction) qui utilisent "ssh".
+  const sshEnableCmd = !recipe.enableSSH ? '' : family === 'alpine'
+    ? 'rc-update add sshd default 2>/dev/null || true'
+    : family === 'void'
+      ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
+      : 'systemctl enable sshd 2>/dev/null || true';
   const label = NON_DEBIAN_LABELS[recipe.distro] || recipe.distro;
   const unameArch = recipe.arch === 'i686' ? 'i686' : recipe.arch;
   const rootfsTarName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-rootfs.tar.gz`;
@@ -801,6 +828,7 @@ echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authoriz
 chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+${sshEnableCmd}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -842,6 +870,12 @@ function generateNonDebianDiskImageScript(
   diskTarget: { qemuFormat: string; ext: string; label: string }
 ): string {
   const config = NON_DEBIAN_FAMILY_CONFIG[family];
+  // Voir generateNonDebianBuildScript ci-dessus pour le contexte complet du bug corrigé.
+  const sshEnableCmd = !recipe.enableSSH ? '' : family === 'alpine'
+    ? 'rc-update add sshd default 2>/dev/null || true'
+    : family === 'void'
+      ? 'mkdir -p /etc/runit/runsvdir/default && ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
+      : 'systemctl enable sshd 2>/dev/null || true';
   const baseName = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const rawImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.raw.img`;
   const diskImageName = `${baseName}-${recipe.branding.version}-${recipe.arch}.${diskTarget.ext}`;
@@ -959,6 +993,7 @@ echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authoriz
 chmod 700 /home/${recipe.user.username}/.ssh
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+${sshEnableCmd}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -1617,6 +1652,11 @@ chmod 700 /home/${recipe.user.username}/.ssh
 ${recipe.user.sshPublicKey ? `echo "${recipe.user.sshPublicKey}" > /home/${recipe.user.username}/.ssh/authorized_keys
 chmod 600 /home/${recipe.user.username}/.ssh/authorized_keys
 chown -R ${recipe.user.username}:${recipe.user.username} /home/${recipe.user.username}/.ssh` : ''}
+# Bug réel trouvé en auditant : le paquet openssh-server (ajouté par resolvePackageList quand
+# enableSSH est coché) n'était jamais démarré au premier boot sans cette activation explicite —
+# seul le fichier authorized_keys était écrit, inutile sans le service "ssh" (nom Debian/Ubuntu,
+# différent de "sshd" utilisé par les autres familles) réellement actif.
+systemctl enable ssh 2>/dev/null || true
 ` : ''}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
