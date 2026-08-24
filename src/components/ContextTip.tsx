@@ -36,7 +36,7 @@ export const ContextTip: React.FC<ContextTipProps> = ({
   return (
     <div
       style={{
-        background: 'rgba(15, 23, 42, 0.45)',
+        background: 'rgba(26, 22, 19, 0.45)',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: '10px',
         padding: '12px 16px',
@@ -68,7 +68,7 @@ export const ContextTip: React.FC<ContextTipProps> = ({
 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.84rem' }}>
+            <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.84rem' }}>
               {lang === 'fr' ? 'Astuce Pro' : 'Pro Tip'} : {lang === 'fr' ? currentTip.titleFr : currentTip.titleEn}
             </span>
             <span

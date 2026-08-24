@@ -116,7 +116,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
       <div className="glass-panel" style={{ padding: '20px' }}>
         <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h2 style={{ fontSize: '1.08rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontSize: '1.08rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <HardDrive size={18} color="var(--cyan)" />
               {lang === 'fr' ? 'Distribution Linux Socle & Canal (Stable / Beta / Testing)' : 'Base Linux Distribution & Release Channel'}
               <InfoTooltip
@@ -177,7 +177,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                     }}>
                       <BrandLogo logo={DISTRO_LOGOS[distro.id]} size={15} />
                     </div>
-                    <h3 style={{ fontSize: '0.94rem', fontWeight: 700, color: '#f8fafc' }}>
+                    <h3 style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {distro.name}
                     </h3>
                   </div>
@@ -222,7 +222,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: '#38bdf8',
+                        color: '#fb923c',
                         cursor: 'pointer',
                         fontSize: '0.68rem',
                         display: 'flex',
@@ -253,7 +253,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         {/* Architecture */}
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Cpu size={16} color="var(--cyan)" />
             {lang === 'fr' ? 'Architecture Processeur' : 'Target CPU Architecture'}
             <InfoTooltip
@@ -276,7 +276,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: isSelected ? 'rgba(14, 165, 233, 0.1)' : 'rgba(10, 15, 28, 0.4)',
+                    background: isSelected ? 'rgba(249, 115, 22, 0.1)' : 'rgba(10, 15, 28, 0.4)',
                     border: `1px solid ${isSelected ? 'var(--cyan)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
                     display: 'flex',
@@ -287,7 +287,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : '#e2e8f0' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
                         {arch.name}
                       </span>
                       <InfoTooltip text={lang === 'fr' ? arch.tipFr : arch.tipEn} />
@@ -305,7 +305,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
 
         {/* Output Format */}
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Layers size={16} color="var(--emerald)" />
             {lang === 'fr' ? 'Format de Sortie / Image' : 'Target Output Format'}
             <InfoTooltip
@@ -329,7 +329,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(10, 15, 28, 0.4)',
+                    background: isSelected ? 'rgba(132, 160, 92, 0.1)' : 'rgba(10, 15, 28, 0.4)',
                     border: `1px solid ${isSelected ? 'var(--emerald)' : 'var(--border-subtle)'}`,
                     cursor: isRpiSdUnavailable ? 'not-allowed' : 'pointer',
                     opacity: isRpiSdUnavailable ? 0.45 : 1,
@@ -342,7 +342,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>{fmt.icon}</span>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : '#e2e8f0' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
                         {fmt.name}
                       </span>
                       <InfoTooltip text={lang === 'fr' ? fmt.tooltipFr : fmt.tooltipEn} />
@@ -364,7 +364,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
       {/* 3. Kernel Selection */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={16} color="#f59e0b" />
             {lang === 'fr' ? 'Optimisation du Noyau Linux (Kernels 6.13, 6.14 Beta, CachyOS BORE)' : 'Linux Kernel Tuning (6.13, 6.14 Beta, CachyOS BORE)'}
             <InfoTooltip
@@ -398,7 +398,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.86rem', color: isSelected ? '#fbbf24' : '#f8fafc' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.86rem', color: isSelected ? '#fbbf24' : 'var(--text-main)' }}>
                     {k.name}
                   </span>
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
@@ -419,8 +419,8 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   {k.description}
                 </p>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', borderTop: '1px solid var(--border-subtle)', paddingTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Latence : <strong style={{ color: '#e2e8f0' }}>{k.latency}</strong></span>
-                  <span>Stabilité : <strong style={{ color: '#e2e8f0' }}>{k.stability}</strong></span>
+                  <span>Latence : <strong style={{ color: 'var(--text-main)' }}>{k.latency}</strong></span>
+                  <span>Stabilité : <strong style={{ color: 'var(--text-main)' }}>{k.stability}</strong></span>
                 </div>
               </div>
             );

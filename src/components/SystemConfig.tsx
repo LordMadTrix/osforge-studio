@@ -44,7 +44,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
 
       {/* 1. Hostname & System Identity */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <TerminalSquare size={16} color="var(--cyan)" />
           {lang === 'fr' ? 'Identité du Système & Nom d’Hôte' : 'System Identity & Hostname'}
           <InfoTooltip
@@ -102,7 +102,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
 
       {/* 2. User Accounts & Credentials */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={16} color="var(--emerald)" />
           {lang === 'fr' ? 'Compte Utilisateur Principal' : 'Primary User Account'}
           <InfoTooltip
@@ -216,7 +216,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
       {/* 3. SSH & Remote Access */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Key size={16} color="var(--violet)" />
             {lang === 'fr' ? 'Accès SSH & Clés Publiques' : 'SSH Access & Public Keys'}
             <InfoTooltip
@@ -261,7 +261,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
 
       {/* 4. Timezone, Locale & Keyboard */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Globe size={16} color="#f59e0b" />
           {lang === 'fr' ? 'Localisation & Disposition Clavier' : 'Localization & Keyboard'}
         </h3>

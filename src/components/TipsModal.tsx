@@ -86,7 +86,7 @@ export const TipsModal: React.FC<TipsModalProps> = ({
               <Lightbulb size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {lang === 'fr' ? 'Guide d’Optimisation & Astuces Pro' : 'OS Engineering Best Practices & Pro Tips'}
               </h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
@@ -133,7 +133,7 @@ export const TipsModal: React.FC<TipsModalProps> = ({
                     padding: '5px 10px',
                     borderRadius: '6px',
                     border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                    background: isSelected ? 'rgba(6, 182, 212, 0.12)' : 'rgba(15, 23, 42, 0.6)',
+                    background: isSelected ? 'rgba(6, 182, 212, 0.12)' : 'rgba(26, 22, 19, 0.6)',
                     color: isSelected ? 'var(--cyan)' : 'var(--text-muted)',
                     fontWeight: isSelected ? 600 : 400,
                     fontSize: '0.78rem',
@@ -163,8 +163,8 @@ export const TipsModal: React.FC<TipsModalProps> = ({
                   borderRadius: '4px',
                   border: '1px solid',
                   borderColor: selectedLevel === lvl.id ? 'var(--emerald)' : 'transparent',
-                  background: selectedLevel === lvl.id ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                  color: selectedLevel === lvl.id ? '#34d399' : 'var(--text-dim)',
+                  background: selectedLevel === lvl.id ? 'rgba(132, 160, 92, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                  color: selectedLevel === lvl.id ? '#a3bc7d' : 'var(--text-dim)',
                   fontSize: '0.72rem',
                   cursor: 'pointer',
                   fontWeight: selectedLevel === lvl.id ? 600 : 400,
@@ -189,7 +189,7 @@ export const TipsModal: React.FC<TipsModalProps> = ({
             <div
               key={tip.id}
               style={{
-                background: 'rgba(15, 23, 42, 0.6)',
+                background: 'rgba(26, 22, 19, 0.6)',
                 border: '1px solid var(--border-subtle)',
                 borderRadius: '8px',
                 padding: '14px',
@@ -216,14 +216,14 @@ export const TipsModal: React.FC<TipsModalProps> = ({
                   </span>
                   <span style={{
                     fontSize: '0.66rem',
-                    color: tip.level === 'expert' ? '#f43f5e' : tip.level === 'intermediate' ? '#f59e0b' : '#10b981',
+                    color: tip.level === 'expert' ? '#f43f5e' : tip.level === 'intermediate' ? '#f59e0b' : '#84a05c',
                     fontWeight: 600,
                   }}>
                     {tip.level === 'expert' ? 'Expert' : tip.level === 'intermediate' ? 'Avancé' : 'Débutant'}
                   </span>
                 </div>
 
-                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f8fafc', marginBottom: '6px' }}>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>
                   {lang === 'fr' ? tip.titleFr : tip.titleEn}
                 </h4>
 

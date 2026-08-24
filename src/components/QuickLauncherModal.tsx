@@ -341,7 +341,7 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
           gap: '12px',
           padding: '14px 18px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: '#090e1a',
+          background: '#0c0a09',
         }}>
           <Search size={18} color="var(--cyan)" />
           <input
@@ -357,7 +357,7 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#f8fafc',
+              color: 'var(--text-main)',
               fontSize: '0.94rem',
             }}
           />
@@ -405,8 +405,8 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
                 style={{
                   padding: '9px 12px',
                   borderRadius: '6px',
-                  background: isSelected ? 'rgba(14, 165, 233, 0.12)' : 'transparent',
-                  border: isSelected ? '1px solid rgba(14, 165, 233, 0.3)' : '1px solid transparent',
+                  background: isSelected ? 'rgba(249, 115, 22, 0.12)' : 'transparent',
+                  border: isSelected ? '1px solid rgba(249, 115, 22, 0.3)' : '1px solid transparent',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -428,7 +428,7 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
                     <div style={{
                       fontSize: '0.84rem',
                       fontWeight: isSelected ? 600 : 500,
-                      color: isSelected ? '#ffffff' : '#e2e8f0',
+                      color: isSelected ? '#ffffff' : 'var(--text-main)',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -472,7 +472,7 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
         <div style={{
           padding: '8px 16px',
           borderTop: '1px solid var(--border-subtle)',
-          background: '#090e1a',
+          background: '#0c0a09',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

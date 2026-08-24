@@ -162,8 +162,8 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
               width: '32px',
               height: '32px',
               borderRadius: '6px',
-              background: 'rgba(14, 165, 233, 0.12)',
-              border: '1px solid rgba(14, 165, 233, 0.25)',
+              background: 'rgba(249, 115, 22, 0.12)',
+              border: '1px solid rgba(249, 115, 22, 0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -172,7 +172,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
               <Terminal size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {lang === 'fr' ? 'Centre de Compilation & Exportation d’OS' : 'OS Build & Export Hub'}
               </h3>
               <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
@@ -209,7 +209,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                 padding: '9px',
                 borderRadius: '6px',
                 border: buildMode === 'github' ? '1px solid var(--cyan)' : '1px solid transparent',
-                background: buildMode === 'github' ? 'rgba(14, 165, 233, 0.12)' : 'transparent',
+                background: buildMode === 'github' ? 'rgba(249, 115, 22, 0.12)' : 'transparent',
                 color: buildMode === 'github' ? 'var(--cyan)' : 'var(--text-muted)',
                 fontWeight: 600,
                 fontSize: '0.86rem',
@@ -231,8 +231,8 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                 padding: '9px',
                 borderRadius: '6px',
                 border: buildMode === 'local' ? '1px solid var(--emerald)' : '1px solid transparent',
-                background: buildMode === 'local' ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                color: buildMode === 'local' ? '#34d399' : 'var(--text-muted)',
+                background: buildMode === 'local' ? 'rgba(132, 160, 92, 0.12)' : 'transparent',
+                color: buildMode === 'local' ? '#a3bc7d' : 'var(--text-muted)',
                 fontWeight: 600,
                 fontSize: '0.86rem',
                 cursor: 'pointer',
@@ -251,8 +251,8 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
               <div
                 onClick={handleLaunchInAppDirectly}
                 style={{
-                  background: 'rgba(14, 165, 233, 0.06)',
-                  border: '1px solid rgba(14, 165, 233, 0.3)',
+                  background: 'rgba(249, 115, 22, 0.06)',
+                  border: '1px solid rgba(249, 115, 22, 0.3)',
                   borderRadius: '8px',
                   padding: '16px 20px',
                   cursor: 'pointer',
@@ -305,7 +305,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Cloud size={18} color="var(--cyan)" />
-                        <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
                           Build Cloud GitHub
                         </h4>
                       </div>
@@ -345,7 +345,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <HardDrive size={18} color="var(--emerald)" />
-                        <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc' }}>
+                        <h4 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
                           Build en Local
                         </h4>
                       </div>
@@ -377,7 +377,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
               <div className="glass-panel" style={{ padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h4 style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <GitBranch size={16} color="var(--cyan)" />
                       {lang === 'fr' ? 'Guide : Compilation Cloud GitHub Actions' : 'GitHub Actions Cloud Build'}
                     </h4>
@@ -390,7 +390,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                 </div>
 
                 <div style={{ padding: '9px 12px', marginBottom: '10px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '6px', fontSize: '0.76rem', color: '#fbbf24' }}>
-                  ⚠️ <strong>Prérequis (une seule fois)</strong> : <a href="https://git-scm.com/downloads" target="_blank" rel="noreferrer" style={{ color: '#fbbf24' }}>Git</a> et <a href="https://cli.github.com/" target="_blank" rel="noreferrer" style={{ color: '#fbbf24' }}>GitHub CLI (gh)</a> installés, puis dans un terminal : <code style={{ color: '#f8fafc' }}>gh auth login</code> (connexion à votre compte GitHub).
+                  ⚠️ <strong>Prérequis (une seule fois)</strong> : <a href="https://git-scm.com/downloads" target="_blank" rel="noreferrer" style={{ color: '#fbbf24' }}>Git</a> et <a href="https://cli.github.com/" target="_blank" rel="noreferrer" style={{ color: '#fbbf24' }}>GitHub CLI (gh)</a> installés, puis dans un terminal : <code style={{ color: 'var(--text-main)' }}>gh auth login</code> (connexion à votre compte GitHub).
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -407,7 +407,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                     <div style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--cyan)', marginBottom: '4px' }}>
                       2. Collez cette commande dans le terminal, puis Entrée
                     </div>
-                    <pre style={{ background: '#040711', padding: '8px 10px', borderRadius: '4px', fontSize: '0.78rem', color: '#38bdf8', overflowX: 'auto' }}>
+                    <pre style={{ background: '#040711', padding: '8px 10px', borderRadius: '4px', fontSize: '0.78rem', color: '#fb923c', overflowX: 'auto' }}>
                       <code>git init -b main && git add . && git commit -m "init OS recipe" && gh repo create "{repoSlug}" --public --source=. --push</code>
                     </pre>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
@@ -425,16 +425,16 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                     </p>
                   </div>
 
-                  <div style={{ padding: '10px 12px', background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#34d399', marginBottom: '4px' }}>
+                  <div style={{ padding: '10px 12px', background: 'rgba(132, 160, 92, 0.08)', border: '1px solid rgba(132, 160, 92, 0.25)', borderRadius: '6px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#a3bc7d', marginBottom: '4px' }}>
                       4. Récupérez votre ISO
                     </div>
                     <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      Une fois le run terminé (coche verte), deux cas selon la taille de <code style={{ color: '#f8fafc' }}>{isoFileName}</code> :
+                      Une fois le run terminé (coche verte), deux cas selon la taille de <code style={{ color: 'var(--text-main)' }}>{isoFileName}</code> :
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
-                        <span style={{ color: '#34d399', fontWeight: 700 }}>✓</span>
+                        <span style={{ color: '#a3bc7d', fontWeight: 700 }}>✓</span>
                         <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
                           <strong>Moins de 2 Go</strong> : publiée automatiquement dans la section <strong>"Releases"</strong> de votre
                           dépôt — lien permanent, prêt à partager.
@@ -444,7 +444,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                         <span style={{ color: '#fbbf24', fontWeight: 700 }}>⚠</span>
                         <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
                           <strong>2 Go ou plus</strong> (GitHub limite les Releases à 2 Go) : ouvrez le run terminé → onglet <strong>"Summary"</strong>
-                          → section <strong>"Artifacts"</strong> tout en bas de page. Le fichier téléchargé est un <code style={{ color: '#f8fafc' }}>.zip</code> à
+                          → section <strong>"Artifacts"</strong> tout en bas de page. Le fichier téléchargé est un <code style={{ color: 'var(--text-main)' }}>.zip</code> à
                           dézipper, disponible <strong>14 jours seulement</strong>. Pour débloquer la Release permanente, allégez la recette
                           (moins de paquets, bureau plus léger type XFCE/i3) pour repasser sous 2 Go.
                         </p>
@@ -480,8 +480,8 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                         padding: '6px 12px',
                         borderRadius: '6px',
                         border: isSel ? '1px solid var(--emerald)' : '1px solid var(--border-subtle)',
-                        background: isSel ? 'rgba(16, 185, 129, 0.12)' : 'rgba(15, 23, 42, 0.6)',
-                        color: isSel ? '#34d399' : 'var(--text-muted)',
+                        background: isSel ? 'rgba(132, 160, 92, 0.12)' : 'rgba(26, 22, 19, 0.6)',
+                        color: isSel ? '#a3bc7d' : 'var(--text-muted)',
                         fontWeight: isSel ? 600 : 400,
                         fontSize: '0.78rem',
                         cursor: 'pointer',
@@ -500,14 +500,14 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                 {localSubTab === 'bash' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f8fafc' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
                         Exécution sous Ubuntu / Debian (dépôts APT) :
                       </span>
                       <button onClick={downloadStandaloneBuildSh} className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}>
                         <Download size={11} /> build.sh
                       </button>
                     </div>
-                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#34d399', overflowX: 'auto' }}>
+                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#a3bc7d', overflowX: 'auto' }}>
                       <code>chmod +x build.sh{'\n'}sudo ./build.sh</code>
                     </pre>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px' }}>
@@ -521,7 +521,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                 {localSubTab === 'docker' && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f8fafc' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
                         Compilation dans un conteneur Docker étanche :
                       </span>
                       <div style={{ display: 'flex', gap: '6px' }}>
@@ -533,7 +533,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                         </button>
                       </div>
                     </div>
-                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#34d399', overflowX: 'auto' }}>
+                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#a3bc7d', overflowX: 'auto' }}>
                       <code>docker build -t osforge-builder .{'\n'}docker run --rm --privileged -v $(pwd)/dist:/osbuilder/dist osforge-builder</code>
                     </pre>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px' }}>
@@ -547,10 +547,10 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
 
                 {localSubTab === 'wsl' && (
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f8fafc', marginBottom: '6px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)', marginBottom: '6px' }}>
                       Depuis Windows WSL2 :
                     </div>
-                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#34d399', overflowX: 'auto' }}>
+                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#a3bc7d', overflowX: 'auto' }}>
                       <code>chmod +x build.sh && sudo ./build.sh</code>
                     </pre>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px' }}>
@@ -563,10 +563,10 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
 
                 {localSubTab === 'qemu' && (
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f8fafc', marginBottom: '6px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)', marginBottom: '6px' }}>
                       Tester votre ISO avec QEMU (Linux / KVM) :
                     </div>
-                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#34d399', overflowX: 'auto' }}>
+                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#a3bc7d', overflowX: 'auto' }}>
                       <code>qemu-system-x86_64 -cdrom dist/{isoFileName} -m 4G -enable-kvm -vga virtio</code>
                     </pre>
                     <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px' }}>
@@ -581,7 +581,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
               {/* Simulation Box */}
               <div className="glass-panel" style={{ padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h4 style={{ fontSize: '0.94rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <h4 style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-main)' }}>
                     Simulateur de Déroulement de Build
                   </h4>
                   {!isSimulating && (
@@ -622,12 +622,12 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                       fontFamily: 'var(--font-mono)',
                       fontSize: '0.76rem',
                       lineHeight: '1.45',
-                      color: '#34d399',
+                      color: '#a3bc7d',
                       height: '180px',
                       overflowY: 'auto',
                     }}>
                       {logs.map((l, i) => (
-                        <div key={i} style={{ color: l.startsWith('🎉') ? '#34d399' : l.startsWith('[ETAPE') ? '#fbbf24' : '#38bdf8' }}>
+                        <div key={i} style={{ color: l.startsWith('🎉') ? '#a3bc7d' : l.startsWith('[ETAPE') ? '#fbbf24' : '#fb923c' }}>
                           {l}
                         </div>
                       ))}

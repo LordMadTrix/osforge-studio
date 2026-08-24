@@ -25,7 +25,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang }) => {
 
   return (
     <div style={{
-      background: 'rgba(15, 23, 42, 0.45)',
+      background: 'rgba(26, 22, 19, 0.45)',
       borderBottom: '1px solid var(--border-subtle)',
       padding: '8px 24px',
     }}>
@@ -102,7 +102,7 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang }) => {
             <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
               Bureau :
             </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#e2e8f0' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-main)' }}>
               {desktop.name.split(' (')[0]}
             </span>
           </div>
@@ -120,14 +120,14 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang }) => {
 
           {/* Hardening Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Shield size={14} color={recipe.security.cisBenchmarkLevel > 0 ? '#10b981' : '#94a3b8'} />
+            <Shield size={14} color={recipe.security.cisBenchmarkLevel > 0 ? 'var(--emerald)' : 'var(--text-dim)'} />
             <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
               CIS :
             </span>
             <span style={{
               fontSize: '0.76rem',
               fontWeight: 600,
-              color: recipe.security.cisBenchmarkLevel > 0 ? '#34d399' : 'var(--text-muted)',
+              color: recipe.security.cisBenchmarkLevel > 0 ? '#a3bc7d' : 'var(--text-muted)',
             }}>
               {recipe.security.cisBenchmarkLevel > 0 ? `Level ${recipe.security.cisBenchmarkLevel}` : 'Standard'}
             </span>

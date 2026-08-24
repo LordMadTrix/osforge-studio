@@ -60,7 +60,7 @@ export const InfoTooltip: React.FC<InfoTooltipProps> = ({
             padding: '8px 12px',
             fontSize: '0.75rem',
             lineHeight: '1.4',
-            color: '#e2e8f0',
+            color: 'var(--text-main)',
             fontWeight: 400,
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
             pointerEvents: 'none',

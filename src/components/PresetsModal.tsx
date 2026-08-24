@@ -44,8 +44,8 @@ export const PresetsModal: React.FC<PresetsModalProps> = ({ isOpen, onClose, onS
               width: '30px',
               height: '30px',
               borderRadius: '6px',
-              background: 'rgba(14, 165, 233, 0.12)',
-              border: '1px solid rgba(14, 165, 233, 0.25)',
+              background: 'rgba(249, 115, 22, 0.12)',
+              border: '1px solid rgba(249, 115, 22, 0.25)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -54,7 +54,7 @@ export const PresetsModal: React.FC<PresetsModalProps> = ({ isOpen, onClose, onS
               <Sparkles size={16} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {lang === 'fr' ? 'Modèles Préconfigurés (Presets)' : 'Preconfigured Distro Templates'}
               </h3>
               <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
@@ -80,7 +80,7 @@ export const PresetsModal: React.FC<PresetsModalProps> = ({ isOpen, onClose, onS
                 padding: '5px 12px',
                 borderRadius: '6px',
                 border: selectedCat === cat.id ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                background: selectedCat === cat.id ? 'rgba(14, 165, 233, 0.12)' : 'rgba(15, 23, 42, 0.6)',
+                background: selectedCat === cat.id ? 'rgba(249, 115, 22, 0.12)' : 'rgba(26, 22, 19, 0.6)',
                 color: selectedCat === cat.id ? 'var(--cyan)' : 'var(--text-muted)',
                 fontWeight: selectedCat === cat.id ? 600 : 400,
                 fontSize: '0.78rem',
@@ -110,7 +110,7 @@ export const PresetsModal: React.FC<PresetsModalProps> = ({ isOpen, onClose, onS
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                  <h4 style={{ fontSize: '0.94rem', fontWeight: 700, color: '#f8fafc' }}>
+                  <h4 style={{ fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-main)' }}>
                     {preset.title}
                   </h4>
                   <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>

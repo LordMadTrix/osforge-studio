@@ -201,7 +201,7 @@ export const App: React.FC = () => {
       {/* Footer */}
       <footer style={{
         borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(10, 15, 29, 0.95)',
+        background: 'rgba(12, 10, 9, 0.95)',
         padding: '14px 24px',
         marginTop: 'auto',
       }}>
@@ -217,7 +217,7 @@ export const App: React.FC = () => {
           color: 'var(--text-muted)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, color: '#f8fafc' }}>OSForge Studio</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>OSForge Studio</span>
             <span>—</span>
             <span>Concepteur & Compilateur de Distributions Linux</span>
           </div>
@@ -225,7 +225,7 @@ export const App: React.FC = () => {
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
             <button
               onClick={() => setIsVersionCheckerOpen(true)}
-              style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'none', border: 'none', color: '#84a05c', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <Zap size={13} />
               <span>{lang === 'fr' ? 'Mises à jour' : 'Updates'}</span>
@@ -267,7 +267,7 @@ export const App: React.FC = () => {
             </button>
             <button
               onClick={() => import('./services/buildExport').then(m => m.downloadBuildPackage(recipe))}
-              style={{ background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: 'none', border: 'none', color: '#fb923c', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <Download size={13} />
               <span>{lang === 'fr' ? 'Kit Export (ZIP)' : 'Export Kit (ZIP)'}</span>

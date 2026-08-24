@@ -67,8 +67,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               width: '30px',
               height: '30px',
               borderRadius: '6px',
-              background: 'rgba(139, 92, 246, 0.15)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
+              background: 'rgba(45, 212, 191, 0.15)',
+              border: '1px solid rgba(45, 212, 191, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -77,7 +77,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               <Wand2 size={16} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 {lang === 'fr' ? 'Architecte IA — Génération par Prompt' : 'AI OS Architect — Prompt to Distro'}
               </h3>
               <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
@@ -166,8 +166,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
           {/* AI Analysis Result Display */}
           {analysis && (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.65)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
+              background: 'rgba(26, 22, 19, 0.65)',
+              border: '1px solid rgba(45, 212, 191, 0.3)',
               borderRadius: '8px',
               padding: '16px',
               display: 'flex',
@@ -199,7 +199,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                 borderRadius: '6px',
                 padding: '10px 12px',
                 fontSize: '0.8rem',
-                color: '#e2e8f0',
+                color: 'var(--text-main)',
                 lineHeight: '1.45',
                 whiteSpace: 'pre-line',
                 border: '1px solid var(--border-subtle)',
@@ -216,19 +216,19 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               }}>
                 <div style={{ padding: '6px 8px', background: 'rgba(0,0,0,0.25)', borderRadius: '5px' }}>
                   <span style={{ color: 'var(--text-dim)' }}>Distribution :</span>
-                  <div style={{ fontWeight: 600, color: '#f8fafc' }}>{analysis.recipe.distro}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{analysis.recipe.distro}</div>
                 </div>
                 <div style={{ padding: '6px 8px', background: 'rgba(0,0,0,0.25)', borderRadius: '5px' }}>
                   <span style={{ color: 'var(--text-dim)' }}>Bureau :</span>
-                  <div style={{ fontWeight: 600, color: '#f8fafc' }}>{analysis.recipe.desktop}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{analysis.recipe.desktop}</div>
                 </div>
                 <div style={{ padding: '6px 8px', background: 'rgba(0,0,0,0.25)', borderRadius: '5px' }}>
                   <span style={{ color: 'var(--text-dim)' }}>Noyau :</span>
-                  <div style={{ fontWeight: 600, color: '#f8fafc' }}>{analysis.recipe.kernel}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{analysis.recipe.kernel}</div>
                 </div>
                 <div style={{ padding: '6px 8px', background: 'rgba(0,0,0,0.25)', borderRadius: '5px' }}>
                   <span style={{ color: 'var(--text-dim)' }}>Paquets :</span>
-                  <div style={{ fontWeight: 600, color: '#f8fafc' }}>{analysis.recipe.selectedPackages?.length || 0} logiciels</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{analysis.recipe.selectedPackages?.length || 0} logiciels</div>
                 </div>
               </div>
             </div>

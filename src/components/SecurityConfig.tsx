@@ -51,7 +51,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
       {/* 1. CIS Benchmark Profiles */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ marginBottom: '14px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileCheck size={16} color="var(--emerald)" />
             {lang === 'fr' ? 'Profils de Conformité CIS Benchmark' : 'CIS Benchmark Compliance Profiles'}
             <InfoTooltip
@@ -77,14 +77,14 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
                 style={{
                   padding: '12px',
                   borderRadius: '8px',
-                  background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(10, 15, 28, 0.4)',
+                  background: isSelected ? 'rgba(132, 160, 92, 0.1)' : 'rgba(10, 15, 28, 0.4)',
                   border: `1px solid ${isSelected ? 'var(--emerald)' : 'var(--border-subtle)'}`,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.86rem', color: isSelected ? '#34d399' : '#f8fafc' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.86rem', color: isSelected ? '#a3bc7d' : 'var(--text-main)' }}>
                     {cis.title}
                   </span>
                   <span className="badge badge-emerald" style={{ fontSize: '0.64rem' }}>
@@ -102,7 +102,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
 
       {/* 2. Firewall & Network Defense */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Flame size={16} color="#ef4444" />
           {lang === 'fr' ? 'Pare-feu & Filtrage Réseau' : 'Firewall & Network Filtering'}
           <InfoTooltip
@@ -132,7 +132,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
                   transition: 'all 0.15s ease',
                 }}
               >
-                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#f87171' : '#f8fafc' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#f87171' : 'var(--text-main)' }}>
                   {fw.name}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '3px' }}>
@@ -146,7 +146,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
 
       {/* 3. Security Hardening Toggles */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Lock size={16} color="var(--cyan)" />
           {lang === 'fr' ? 'Options de Durcissement Avancées' : 'Advanced Hardening Options'}
         </h3>

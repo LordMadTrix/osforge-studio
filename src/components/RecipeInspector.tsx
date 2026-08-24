@@ -115,7 +115,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
                 padding: '5px 10px',
                 borderRadius: '6px',
                 border: activeFile === key ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                background: activeFile === key ? 'rgba(14, 165, 233, 0.12)' : 'rgba(15, 23, 42, 0.6)',
+                background: activeFile === key ? 'rgba(249, 115, 22, 0.12)' : 'rgba(26, 22, 19, 0.6)',
                 color: activeFile === key ? 'var(--cyan)' : 'var(--text-muted)',
                 fontWeight: activeFile === key ? 600 : 400,
                 fontSize: '0.78rem',
@@ -131,7 +131,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
 
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={copyToClipboard} className="btn btn-secondary" style={{ padding: '5px 10px', fontSize: '0.78rem' }}>
-            {copied ? <Check size={13} color="#34d399" /> : <Copy size={13} />}
+            {copied ? <Check size={13} color="#a3bc7d" /> : <Copy size={13} />}
             <span>{copied ? (lang === 'fr' ? 'Copié !' : 'Copied!') : (lang === 'fr' ? 'Copier' : 'Copy')}</span>
           </button>
           <button onClick={() => import('../services/buildExport').then(m => m.downloadBuildPackage(recipe))} className="btn btn-primary" style={{ padding: '5px 12px', fontSize: '0.78rem' }}>
@@ -145,7 +145,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       <div className="glass-panel" style={{ padding: '16px', background: '#080d1a', border: '1px solid var(--border-subtle)' }}>
         <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>
+            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
               {current.title}
             </h4>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
@@ -165,7 +165,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
           overflowX: 'auto',
           fontSize: '0.8rem',
           lineHeight: '1.5',
-          color: '#38bdf8',
+          color: '#fb923c',
           maxHeight: '500px',
         }}>
           <code>{current.content}</code>

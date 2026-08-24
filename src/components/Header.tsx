@@ -31,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header style={{
       borderBottom: '1px solid var(--border-subtle)',
-      background: 'rgba(10, 15, 29, 0.95)',
+      background: 'rgba(12, 10, 9, 0.95)',
       backdropFilter: 'blur(12px)',
       position: 'sticky',
       top: 0,
@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
             width: '34px',
             height: '34px',
             borderRadius: '8px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            background: 'linear-gradient(135deg, #c2410c 0%, #9a3412 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+              <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
                 OSForge <span style={{ color: 'var(--cyan)' }}>Studio</span>
               </h1>
               <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 4px' }}>
@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            background: 'rgba(15, 23, 42, 0.7)',
+            background: 'rgba(26, 22, 19, 0.7)',
             border: '1px solid var(--border-subtle)',
             borderRadius: '6px',
             padding: '5px 12px',
@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Studio Tabs */}
         <nav style={{
           display: 'flex',
-          background: 'rgba(15, 23, 42, 0.65)',
+          background: 'rgba(26, 22, 19, 0.65)',
           padding: '3px',
           borderRadius: '8px',
           border: '1px solid var(--border-subtle)',
@@ -175,7 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenVersionChecker}
             className="btn btn-secondary"
-            style={{ padding: '5px 9px', fontSize: '0.78rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.25)' }}
+            style={{ padding: '5px 9px', fontSize: '0.78rem', color: '#84a05c', borderColor: 'rgba(132, 160, 92, 0.25)' }}
             title={lang === 'fr' ? 'Vérifier et mettre à jour vers les dernières versions' : 'Check for latest updates'}
           >
             <Zap size={13} />

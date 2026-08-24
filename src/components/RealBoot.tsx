@@ -54,12 +54,26 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
         wasm_path: `${base}v86/v86.wasm`,
         memory_size: 128 * 1024 * 1024,
         vga_memory_size: 2 * 1024 * 1024,
-        serial_container: serialRef.current,
         bios: { url: `${base}v86/bios/seabios.bin` },
         vga_bios: { url: `${base}v86/bios/vgabios.bin` },
         bzimage: { url: `${base}v86/buildroot-bzimage.bin` },
         cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
+      });
+      // "serial_container" (l'option auto-liée de v86 pour bios/vga_bios/etc.) a été délibérément
+      // évitée ici : un utilisateur réel a rapporté que le clavier n'atteignait jamais la VM avec
+      // cette option — probablement un gestionnaire clavier interne (déprécié, potentiellement
+      // incomplet) qui entre en conflit avec le nôtre. À la place, on reproduit exactement le
+      // pattern de l'exemple officiel examples/serial.html : écouter "serial0-output-byte" pour
+      // l'affichage, appeler serial0_send() nous-mêmes pour la saisie — deux chemins totalement
+      // indépendants, sans aucune liaison automatique de v86 entre les deux.
+      emulator.add_listener('serial0-output-byte', (byte: number) => {
+        const char = String.fromCharCode(byte);
+        if (char === '\r') return;
+        if (serialRef.current) {
+          serialRef.current.value += char;
+          serialRef.current.scrollTop = serialRef.current.scrollHeight;
+        }
       });
       // Les 4 fichiers (wasm/bios/vgabios/bzimage) n'exposent pas de "total" fiable dans leurs
       // évènements de progression (lengthComputable=false, vérifié en live) : tailles réelles
@@ -78,13 +92,6 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
         loadedByFile[short] = e.loaded;
         const sum = Object.values(loadedByFile).reduce((a, b) => a + b, 0);
         setProgress(Math.min(100, Math.round((sum / GRAND_TOTAL) * 100)));
-      });
-
-      // "serial_container" écrit directement dans le textarea sans jamais faire défiler la vue :
-      // sans ceci, une fois le tampon assez rempli, le prompt final ("~%") sort du cadre visible
-      // et l'utilisateur croit que ça s'est arrêté. On fait défiler nous-mêmes à chaque octet.
-      emulator.add_listener('serial0-output-byte', () => {
-        if (serialRef.current) serialRef.current.scrollTop = serialRef.current.scrollHeight;
       });
 
       // v86 charge bios/vga_bios/bzimage de façon asynchrone APRÈS le constructeur : un blocage
@@ -125,7 +132,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           🚀 {lang === 'fr' ? 'Démarrage Réel dans le Navigateur' : 'Real Boot in the Browser'}
         </h3>
         <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -166,7 +173,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
               {lang === 'fr' ? `Téléchargement du noyau et de l'émulateur… ${progress}%` : `Downloading kernel and emulator… ${progress}%`}
             </div>
             <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--emerald, #10b981)', transition: 'width 0.2s ease' }} />
+              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--emerald, #84a05c)', transition: 'width 0.2s ease' }} />
             </div>
           </div>
         )}
@@ -186,11 +193,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
             {lang === 'fr' ? '⌨️ Cliquez dans le terminal ci-dessous puis tapez — le shell répond réellement (essayez "ls", "uname -a").' : '⌨️ Click inside the terminal below and type — the shell really responds (try "ls", "uname -a").'}
           </p>
         )}
-        {/* "serial_container" ne gère QUE l'affichage (écrit les octets série reçus dans
-            .value) — vérifié en live : taper dedans insère juste du texte navigateur normal,
-            jamais transmis à la VM. La saisie réelle passe par serial0_send() ci-dessous
-            (méthode confirmée dans l'exemple officiel examples/serial.html), avec
-            preventDefault() pour empêcher toute insertion native en double. */}
+        {/* Textarea gérée intégralement à la main : l'affichage vient du listener
+            "serial0-output-byte" ci-dessus, la saisie part via serial0_send() ci-dessous
+            (preventDefault empêche toute insertion native pour ne garder que l'écho réel
+            renvoyé par la VM). */}
         <textarea
           ref={serialRef}
           spellCheck={false}

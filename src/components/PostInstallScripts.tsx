@@ -46,7 +46,7 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
       {/* 1. First Boot Hook Script */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Terminal size={16} color="var(--cyan)" />
             {lang === 'fr' ? 'Script Bash au Premier Démarrage (First-Boot Hook)' : 'First-Boot Hook Bash Script'}
             <InfoTooltip
@@ -77,7 +77,7 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
 
       {/* 2. Dotfiles Git Repo Injection */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GitBranch size={16} color="var(--violet)" />
           {lang === 'fr' ? 'Clonage Automatique de Dotfiles Git' : 'Automatic Git Dotfiles Injection'}
           <InfoTooltip
@@ -103,7 +103,7 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
 
       {/* 3. Custom Systemd Units Generator */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Server size={16} color="var(--emerald)" />
           {lang === 'fr' ? 'Créateur de Services Systemd Dédiés' : 'Custom Systemd Services Generator'}
           <InfoTooltip

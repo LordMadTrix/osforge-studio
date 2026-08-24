@@ -86,8 +86,8 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
 
           {/* Distro package manager indicator */}
           <div style={{
-            background: 'rgba(14, 165, 233, 0.08)',
-            border: '1px solid rgba(14, 165, 233, 0.2)',
+            background: 'rgba(249, 115, 22, 0.08)',
+            border: '1px solid rgba(249, 115, 22, 0.2)',
             padding: '6px 12px',
             borderRadius: '6px',
             fontSize: '0.78rem',
@@ -97,7 +97,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             gap: '6px',
           }}>
             <span>Gestionnaire :</span>
-            <strong style={{ textTransform: 'uppercase', color: '#f8fafc' }}>{distro.packageManager}</strong>
+            <strong style={{ textTransform: 'uppercase', color: 'var(--text-main)' }}>{distro.packageManager}</strong>
             <InfoTooltip
               text={lang === 'fr'
                 ? `Les paquets seront traduits et installés nativement via ${distro.packageManager.toUpperCase()}.`
@@ -122,7 +122,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                   padding: '5px 11px',
                   borderRadius: '6px',
                   border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                  background: isSelected ? 'rgba(14, 165, 233, 0.12)' : 'rgba(15, 23, 42, 0.6)',
+                  background: isSelected ? 'rgba(249, 115, 22, 0.12)' : 'rgba(26, 22, 19, 0.6)',
                   color: isSelected ? 'var(--cyan)' : 'var(--text-muted)',
                   fontWeight: isSelected ? 600 : 400,
                   fontSize: '0.78rem',
@@ -142,7 +142,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
       {/* Selected Packages Summary — voir et retirer d'un clic tout ce qui est déjà sélectionné */}
       {(recipe.selectedPackages.length > 0 || recipe.customPackages.length > 0) && (
         <div className="glass-panel" style={{ padding: '14px 16px' }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <CheckCircle2 size={15} color="var(--emerald)" />
             {lang === 'fr' ? 'Logiciels déjà sélectionnés' : 'Already Selected Software'}
             <span className="badge badge-emerald" style={{ fontSize: '0.64rem' }}>
@@ -159,9 +159,9 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.25)',
-                    color: '#34d399',
+                    background: 'rgba(132, 160, 92, 0.1)',
+                    border: '1px solid rgba(132, 160, 92, 0.25)',
+                    color: '#a3bc7d',
                     padding: '3px 8px',
                     borderRadius: '5px',
                     fontSize: '0.78rem',
@@ -183,9 +183,9 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(14, 165, 233, 0.1)',
-                  border: '1px solid rgba(14, 165, 233, 0.25)',
-                  color: '#38bdf8',
+                  background: 'rgba(249, 115, 22, 0.1)',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  color: '#fb923c',
                   padding: '3px 8px',
                   borderRadius: '5px',
                   fontSize: '0.78rem',
@@ -219,7 +219,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             >
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : '#f8fafc' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : 'var(--text-main)' }}>
                     {pkg.name}
                   </h3>
                   <span className="badge badge-emerald" style={{ fontSize: '0.64rem' }}>
@@ -266,7 +266,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
 
       {/* Custom Packages Manual Input */}
       <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Plus size={16} color="var(--cyan)" />
           {lang === 'fr' ? 'Ajouter des Paquets Personnalisés' : 'Add Custom Packages'}
           <InfoTooltip
@@ -305,9 +305,9 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(14, 165, 233, 0.1)',
-                  border: '1px solid rgba(14, 165, 233, 0.25)',
-                  color: '#38bdf8',
+                  background: 'rgba(249, 115, 22, 0.1)',
+                  border: '1px solid rgba(249, 115, 22, 0.25)',
+                  color: '#fb923c',
                   padding: '3px 8px',
                   borderRadius: '5px',
                   fontSize: '0.78rem',

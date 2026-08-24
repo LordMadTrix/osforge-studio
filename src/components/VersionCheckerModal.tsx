@@ -68,7 +68,7 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
           maxHeight: '90vh',
           padding: 0,
           overflow: 'hidden',
-          background: '#090e1a',
+          background: '#0c0a09',
           border: '1px solid rgba(255, 255, 255, 0.14)',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
           display: 'flex',
@@ -83,14 +83,14 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
           alignItems: 'center',
           padding: '14px 20px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: '#0c1222',
+          background: '#100d0b',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '32px',
               height: '32px',
               borderRadius: '6px',
-              background: 'rgba(16, 185, 129, 0.15)',
+              background: 'rgba(132, 160, 92, 0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -99,7 +99,7 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
               <RefreshCw size={18} className={isScanning ? 'animate-spin' : ''} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 {lang === 'fr' ? 'Vérification & Mises à Jour en Direct' : 'Live Upstream Version Checker & Updates'}
               </h3>
               <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
@@ -138,8 +138,8 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
             flexWrap: 'wrap',
             gap: '12px',
             padding: '12px 16px',
-            background: 'rgba(14, 165, 233, 0.08)',
-            border: '1px solid rgba(14, 165, 233, 0.3)',
+            background: 'rgba(249, 115, 22, 0.08)',
+            border: '1px solid rgba(249, 115, 22, 0.3)',
             borderRadius: '8px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -147,11 +147,11 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
                 width: '10px',
                 height: '10px',
                 borderRadius: '50%',
-                background: '#10b981',
-                boxShadow: '0 0 10px #10b981',
+                background: '#84a05c',
+                boxShadow: '0 0 10px #84a05c',
               }} />
               <div>
-                <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#f8fafc' }}>
+                <div style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-main)' }}>
                   {lang === 'fr' ? 'Miroirs officiels synchronisés' : 'Upstream mirrors synchronized'}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -186,7 +186,7 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
                   padding: '5px 11px',
                   borderRadius: '6px',
                   border: categoryFilter === tab.id ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                  background: categoryFilter === tab.id ? 'rgba(14, 165, 233, 0.12)' : 'rgba(15, 23, 42, 0.5)',
+                  background: categoryFilter === tab.id ? 'rgba(249, 115, 22, 0.12)' : 'rgba(26, 22, 19, 0.5)',
                   color: categoryFilter === tab.id ? 'var(--cyan)' : 'var(--text-muted)',
                   fontSize: '0.76rem',
                   fontWeight: categoryFilter === tab.id ? 600 : 400,
@@ -213,12 +213,12 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
                   alignItems: 'center',
                   flexWrap: 'wrap',
                   gap: '12px',
-                  background: 'rgba(15, 23, 42, 0.5)',
+                  background: 'rgba(26, 22, 19, 0.5)',
                 }}
               >
                 <div style={{ minWidth: '240px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f8fafc' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>
                       {item.name}
                     </span>
                     <span className={`badge badge-${item.channel === 'beta' ? 'amber' : (item.channel === 'lts' ? 'emerald' : 'cyan')}`} style={{ fontSize: '0.62rem' }}>
@@ -254,7 +254,7 @@ export const VersionCheckerModal: React.FC<VersionCheckerModalProps> = ({
         <div style={{
           padding: '10px 20px',
           borderTop: '1px solid var(--border-subtle)',
-          background: '#0c1222',
+          background: '#100d0b',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

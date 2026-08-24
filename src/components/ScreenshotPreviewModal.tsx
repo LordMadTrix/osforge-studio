@@ -46,7 +46,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
           maxHeight: '90vh',
           padding: 0,
           overflow: 'hidden',
-          background: '#090e1a',
+          background: '#0c0a09',
           border: '1px solid rgba(255, 255, 255, 0.14)',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
           display: 'flex',
@@ -61,14 +61,14 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
           alignItems: 'center',
           padding: '14px 20px',
           borderBottom: '1px solid var(--border-subtle)',
-          background: '#0c1222',
+          background: '#100d0b',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '32px',
               height: '32px',
               borderRadius: '6px',
-              background: 'rgba(14, 165, 233, 0.15)',
+              background: 'rgba(249, 115, 22, 0.15)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -77,7 +77,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
               <ImageIcon size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 {lang === 'fr' ? 'Galerie des Captures & Aperçus Graphiques' : 'Visual Screenshots & Previews'}
               </h3>
               <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
@@ -90,7 +90,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
             {/* Tab switch */}
             <div style={{
               display: 'flex',
-              background: 'rgba(15, 23, 42, 0.8)',
+              background: 'rgba(26, 22, 19, 0.8)',
               padding: '2px',
               borderRadius: '6px',
               border: '1px solid var(--border-subtle)',
@@ -153,8 +153,8 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                     padding: '5px 12px',
                     borderRadius: '6px',
                     border: currentDistroId === d.id ? `1px solid ${d.color}` : '1px solid var(--border-subtle)',
-                    background: currentDistroId === d.id ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.5)',
-                    color: currentDistroId === d.id ? '#f8fafc' : 'var(--text-muted)',
+                    background: currentDistroId === d.id ? 'rgba(255, 255, 255, 0.08)' : 'rgba(26, 22, 19, 0.5)',
+                    color: currentDistroId === d.id ? 'var(--text-main)' : 'var(--text-muted)',
                     fontSize: '0.76rem',
                     fontWeight: currentDistroId === d.id ? 600 : 400,
                     cursor: 'pointer',
@@ -164,7 +164,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color }} />
                   <span>{d.name}</span>
                   {DISTRO_SCREENSHOTS[d.id] && (
-                    <Camera size={10} color="#34d399" />
+                    <Camera size={10} color="#a3bc7d" />
                   )}
                   {d.isBeta && (
                     <span style={{ fontSize: '0.6rem', padding: '0 4px', borderRadius: '3px', background: '#f59e0b', color: '#000', fontWeight: 700 }}>
@@ -185,7 +185,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                     padding: '5px 12px',
                     borderRadius: '6px',
                     border: currentDesktopId === de.id ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                    background: currentDesktopId === de.id ? 'rgba(14, 165, 233, 0.12)' : 'rgba(15, 23, 42, 0.5)',
+                    background: currentDesktopId === de.id ? 'rgba(249, 115, 22, 0.12)' : 'rgba(26, 22, 19, 0.5)',
                     color: currentDesktopId === de.id ? 'var(--cyan)' : 'var(--text-muted)',
                     fontSize: '0.76rem',
                     fontWeight: currentDesktopId === de.id ? 600 : 400,
@@ -195,7 +195,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                 >
                   <span>{de.name.split(' ')[0]}</span>
                   {DESKTOP_SCREENSHOTS[de.id] && (
-                    <Camera size={10} color="#34d399" />
+                    <Camera size={10} color="#a3bc7d" />
                   )}
                   {de.versionBadge && (
                     <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
@@ -253,7 +253,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
             overflow: 'hidden',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             background: activeTab === 'distro'
-              ? (currentDistro.screenshotMockup?.wallpaper || 'linear-gradient(135deg, #090e1a 0%, #1e293b 100%)')
+              ? (currentDistro.screenshotMockup?.wallpaper || 'linear-gradient(135deg, #150f0c 0%, #2b1f18 100%)')
               : currentDesktop.previewGradient,
             boxShadow: 'inset 0 0 100px rgba(0, 0, 0, 0.4), 0 15px 35px rgba(0, 0, 0, 0.5)',
             minHeight: '340px',
@@ -272,7 +272,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
               backdropFilter: 'blur(10px)',
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
               fontSize: '0.74rem',
-              color: '#e2e8f0',
+              color: 'var(--text-main)',
               fontFamily: 'var(--font-mono)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -320,7 +320,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                   <div style={{ display: 'flex', gap: '6px' }}>
                     <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
                     <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
-                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#84a05c' }} />
                   </div>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                     {activeTab === 'distro' ? 'terminal — fastfetch & sysinfo' : (currentDesktop.screenshotMockup?.activeWindow || 'Desktop Session')}
@@ -331,12 +331,12 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                 {/* Window Body */}
                 <div style={{ padding: '16px', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.5' }}>
                   {activeTab === 'distro' ? (
-                    <pre style={{ margin: 0, color: '#38bdf8', whiteSpace: 'pre-wrap' }}>
+                    <pre style={{ margin: 0, color: '#fb923c', whiteSpace: 'pre-wrap' }}>
                       <code>{currentDistro.screenshotMockup?.terminalText || `OS: ${currentDistro.name}\nKernel: Linux 6.13-cachyos\nRAM: ${currentDistro.baseRamMB} MB`}</code>
                     </pre>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div style={{ color: '#38bdf8', fontWeight: 600 }}>
+                      <div style={{ color: '#fb923c', fontWeight: 600 }}>
                         {currentDesktop.name} — {currentDesktop.type}
                       </div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
@@ -372,7 +372,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                       padding: '3px 10px',
                       borderRadius: '4px',
                       background: 'rgba(255, 255, 255, 0.08)',
-                      color: '#f8fafc',
+                      color: 'var(--text-main)',
                       fontSize: '0.7rem',
                       fontFamily: 'var(--font-mono)',
                     }}
@@ -393,12 +393,12 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
             flexWrap: 'wrap',
             gap: '12px',
             padding: '12px 16px',
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'rgba(26, 22, 19, 0.6)',
             borderRadius: '8px',
             border: '1px solid var(--border-subtle)',
           }}>
             <div>
-              <div style={{ fontWeight: 600, fontSize: '0.86rem', color: '#f8fafc' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--text-main)' }}>
                 {activeTab === 'distro' ? currentDistro.name : currentDesktop.name} ({activeTab === 'distro' ? currentDistro.version : currentDesktop.type})
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>

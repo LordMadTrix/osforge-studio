@@ -70,7 +70,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
       <div>
         <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Monitor size={18} color="var(--violet)" />
               {lang === 'fr' ? 'Environnement de Bureau & Gestionnaire de Fenêtres' : 'Desktop Environment & Window Manager'}
               <InfoTooltip
@@ -141,7 +141,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                           <BrandLogo logo={DESKTOP_LOGOS[de.id]} size={15} />
                         </div>
                       )}
-                      <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : '#f8fafc' }}>
+                      <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : 'var(--text-main)' }}>
                         {de.name}
                       </h3>
                     </div>
@@ -198,7 +198,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '4px',
                         padding: '2px 6px',
-                        color: '#a78bfa',
+                        color: '#fb923c',
                         cursor: 'pointer',
                         fontSize: '0.68rem',
                         display: 'flex',
@@ -252,7 +252,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
         {/* Display Manager */}
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sliders size={16} color="var(--cyan)" />
             {lang === 'fr' ? 'Gestionnaire de Connexion (Display Manager)' : 'Display Manager'}
             <InfoTooltip
@@ -271,7 +271,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: isSelected ? 'rgba(14, 165, 233, 0.1)' : 'rgba(10, 15, 28, 0.4)',
+                    background: isSelected ? 'rgba(249, 115, 22, 0.1)' : 'rgba(10, 15, 28, 0.4)',
                     border: `1px solid ${isSelected ? 'var(--cyan)' : 'var(--border-subtle)'}`,
                     cursor: 'pointer',
                     display: 'flex',
@@ -282,7 +282,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : '#e2e8f0' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
                         {dm.name}
                       </span>
                       <InfoTooltip text={lang === 'fr' ? dm.tipFr : dm.tipEn} />
@@ -300,7 +300,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
 
         {/* Branding & Boot Theme */}
         <div className="glass-panel" style={{ padding: '18px' }}>
-          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#f8fafc', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Palette size={16} color="var(--violet)" />
             {lang === 'fr' ? 'Thème de Démarrage & Plymouth Splash' : 'Boot Splash & Wallpaper Preset'}
             <InfoTooltip
@@ -316,7 +316,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                 {lang === 'fr' ? 'Couleur d’Accentuation Système' : 'System Accent Color'}
               </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {['#0ea5e9', '#10b981', '#a855f7', '#f59e0b', '#ec4899', '#f43f5e', '#6366f1'].map(color => (
+                {['#0ea5e9', '#84a05c', '#a855f7', '#f59e0b', '#ec4899', '#f43f5e', '#6366f1'].map(color => (
                   <button
                     key={color}
                     onClick={() => onChange({
