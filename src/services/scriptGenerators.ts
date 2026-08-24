@@ -400,6 +400,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // dépendances du paquet tirent déjà la pile graphique nécessaire (convention déjà établie
       // dans ce fichier pour Fedora, vérifiée ne pas casser KDE/XFCE).
       pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'firefox', 'pipewire');
+    } else if (distroId === 'opensuse') {
+      // Bug réel trouvé en auditant, même classe que pour Fedora ci-dessus : COSMIC n'était câblé
+      // nulle part pour openSUSE, alors que "cosmic-session"/"cosmic-greeter"/"cosmic-term"/
+      // "cosmic-files" sont confirmés en direct sur rpmfind.net pour openSUSE Tumbleweed (plusieurs
+      // versions listées sous le nommage propre à Tumbleweed, sans suffixe ".fcNN"/"omvNNNN" propre
+      // aux autres distros — la présence du paquet est ce qui compte ici, pas un numéro de version
+      // précis sur une rolling release). "MozillaFirefox" (pas "firefox", déjà établi ailleurs dans
+      // ce fichier pour openSUSE) et "wireplumber"/"NetworkManager" ajoutés en suivant la même
+      // convention que sway/hyprland/i3wm pour openSUSE (paquets individuels, pas de pattern zypper
+      // dédié à COSMIC — bureau trop récent pour ça).
+      pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'i3wm') {
     if (distroId === 'alpine') {

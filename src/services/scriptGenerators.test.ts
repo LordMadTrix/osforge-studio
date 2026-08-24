@@ -1216,4 +1216,17 @@ describe('resolvePackageList/generateBuildScript — bureau COSMIC câblé pour 
     const pkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'cosmic', selectedPackages: [] }));
     expect(pkgs).not.toEqual(expect.arrayContaining(['cosmic-session']));
   });
+
+  it('openSUSE + desktop="cosmic" : installe les vrais paquets cosmic-session/greeter/term/files (confirmés en direct sur rpmfind.net pour Tumbleweed) avec MozillaFirefox/wireplumber/NetworkManager', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'cosmic', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager']));
+    expect(pkgs).not.toContain('firefox');
+  });
+
+  it('openSUSE + desktop="cosmic" + displayManager="cosmic-greeter" : le service est réellement activé au premier boot', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse', outputFormat: 'raw_img', desktop: 'cosmic', displayManager: 'cosmic-greeter', selectedPackages: [],
+    }));
+    expect(script).toContain('systemctl enable cosmic-greeter 2>/dev/null || true');
+  });
 });
