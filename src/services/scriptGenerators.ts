@@ -1397,13 +1397,22 @@ apt-get install -y --no-install-recommends linux-image-kvm
 echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel XanMod (deb.xanmod.org)...\${NC}"
 apt-get install -y --no-install-recommends curl gnupg
 mkdir -p /etc/apt/keyrings
-# curl -L (pas wget) : la clé passe par une redirection Cloudflare -> gitlab.com (vérifié en
-# direct) ; un test réel en CI a montré que wget échouait sur cette chaîne de redirection
-# ("gpg: no valid OpenPGP data found") alors que curl -fsSL la suit correctement.
-curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${target.suite} main" > /etc/apt/sources.list.d/xanmod-release.list
-apt-get update -y
-apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}
+# curl (pas wget) : la clé passe par une redirection Cloudflare -> gitlab.com (vérifié en direct).
+# Repli non-fatal si l'un des deux échoue : vu en CI que gitlab.com peut renvoyer 403 aux IP de
+# datacenter (anti-bot Cloudflare), un blocage réseau/pare-feu ne doit jamais laisser l'image
+# SANS AUCUN noyau installé (le noyau par défaut n'est plus dans le debootstrap --include pour ce
+# chemin) — on installe alors ${kernelPkg} en repli pour garantir un système qui démarre.
+if curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg; then
+    echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${target.suite} main" > /etc/apt/sources.list.d/xanmod-release.list
+    apt-get update -y
+    if ! apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}; then
+        echo -e "\${RED}[AVERTISSEMENT] Le paquet noyau XanMod n'a pas pu être installé : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
+        apt-get install -y --no-install-recommends ${kernelPkg}
+    fi
+else
+    echo -e "\${RED}[AVERTISSEMENT] Dépôt XanMod injoignable (bloqué par le réseau/pare-feu ?) : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
+    apt-get install -y --no-install-recommends ${kernelPkg}
+fi
 
 ` : ''}# Installation sécurisée et résiliente des logiciels sélectionnés
 for pkg in ${pkgs}; do
