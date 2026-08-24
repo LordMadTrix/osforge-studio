@@ -15,6 +15,7 @@ jobs:
       - name: Générer le script depuis le code source actuel
         run: |
           npm ci
+          mkdir -p scripts
           cat > scripts/dump-arch-zen.ts <<'EOF'
           import { generateBuildScript } from '../src/services/scriptGenerators';
           import type { OSRecipe } from '../src/types/os';
