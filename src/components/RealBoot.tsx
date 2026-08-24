@@ -55,8 +55,33 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
         cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
       });
+      // v86 charge bios/vga_bios/bzimage de façon asynchrone APRÈS le constructeur : un blocage
+      // réseau (bloqueur de pub/extension qui coupe i.copy.sh, un domaine peu connu) ne lève
+      // aucune exception JS ici — seul cet évènement le signale. Sans ce hook, l'échec était
+      // invisible (aucune erreur affichée, juste un écran qui reste vide indéfiniment).
+      emulator.add_listener('download-error', (e: { file_name: string }) => {
+        setErrorMsg(
+          lang === 'fr'
+            ? `Impossible de télécharger "${e.file_name}". Un bloqueur de pub ou une extension de vie privée bloque probablement ce domaine externe — essayez de le désactiver pour ce site, ou ouvrez la page en navigation privée.`
+            : `Failed to download "${e.file_name}". An ad blocker or privacy extension is likely blocking this external domain — try disabling it for this site, or open the page in a private/incognito window.`
+        );
+        setStatus('error');
+      });
       emulatorRef.current = emulator;
       setStatus('running');
+
+      // Filet de sécurité : si rien n'apparaît après un délai généreux, le blocage est silencieux
+      // (pas d'évènement download-error, juste un CPU qui tourne dans le vide) — prévenir plutôt
+      // que de laisser un écran vide sans aucune explication.
+      setTimeout(() => {
+        if (emulatorRef.current === emulator && serialRef.current?.value.trim() === '') {
+          setErrorMsg(
+            lang === 'fr'
+              ? "Rien ne s'affiche après 15 secondes. Si un bloqueur de pub ou une extension est actif, essayez de le désactiver pour ce site ou d'ouvrir la page en navigation privée."
+              : "Nothing has appeared after 15 seconds. If an ad blocker or extension is active, try disabling it for this site or opening the page in a private/incognito window."
+          );
+        }
+      }, 15000);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setStatus('error');
