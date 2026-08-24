@@ -1303,3 +1303,31 @@ describe('generateBuildScript/resolvePackageList — gestionnaire de connexion "
     expect(script).not.toContain('ly@tty2.service');
   });
 });
+
+describe('generateBuildScript/resolvePackageList — "appArmorOrSELinux" réellement câblé (bug réel trouvé en auditant : regroupé à tort avec cisBenchmarkLevel/luksEncryption comme "trop large" alors que c\'est un réglage aussi concret que fail2ban/disableRootSSH déjà câblés — le LSM est déjà actif par défaut dans le noyau Debian/Ubuntu/Kali (confirmé via wiki.debian.org/AppArmor/HowToUse, qui documente comment le DÉSACTIVER), mais le paquet userspace n\'était jamais installé ; SELinux "targeted" réécrit explicitement en "enforcing" pour Fedora/Rocky plutôt que de compter sur une valeur par défaut du paquet)', () => {
+  it('Debian + appArmorOrSELinux=true : installe "apparmor" et active son service', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).toContain('apparmor');
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain('systemctl enable apparmor 2>/dev/null || true');
+  });
+
+  it('Fedora + appArmorOrSELinux=true : installe selinux-policy-targeted/policycoreutils et réécrit /etc/selinux/config en enforcing', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).toEqual(expect.arrayContaining(['selinux-policy-targeted', 'policycoreutils']));
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain('SELINUX=enforcing');
+    expect(script).toContain('SELINUXTYPE=targeted');
+  });
+
+  it('Arch + appArmorOrSELinux=true : reste honnêtement hors périmètre (LSM non actif par défaut, pas de politique équivalente)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).not.toContain('apparmor');
+    expect(pkgs).not.toContain('selinux-policy-targeted');
+  });
+
+  it('Debian + appArmorOrSELinux=false : aucune trace du paquet ou du service (comportement par défaut inchangé)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).not.toContain('apparmor');
+  });
+});

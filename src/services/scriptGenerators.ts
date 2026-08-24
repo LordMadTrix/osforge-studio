@@ -252,6 +252,35 @@ ${serviceEnableCmd('fail2ban', family)}`);
   return parts.join('\n');
 }
 
+// Bug réel trouvé en auditant : "appArmorOrSELinux" (panneau Sécurité) avait ZERO référence, à
+// tort regroupé avec cisBenchmarkLevel/luksEncryption comme "trop large" dans le commentaire
+// ci-dessus — alors que c'est en réalité un réglage aussi concret que fail2ban/disableRootSSH.
+// Vérifié en direct (wiki.debian.org/AppArmor/HowToUse documente comment DÉSACTIVER AppArmor via
+// un paramètre GRUB, preuve qu'il est actif par défaut dans le noyau Debian/Ubuntu) : le LSM est
+// déjà compilé et activé, mais le paquet userspace qui fournit les profils et le service qui les
+// charge au boot n'étaient jamais installés par ce pipeline — donc zéro protection réelle malgré
+// le LSM actif. Pour Fedora/Rocky, SELinux "targeted" est la politique standard documentée (RHEL/
+// Fedora), mais rien ne garantit son état "enforcing" sur un système construit via
+// "dnf --installroot" plutôt qu'un vrai installeur Anaconda — /etc/selinux/config réécrit
+// explicitement plutôt que de compter sur une valeur par défaut du paquet. Arch/openSUSE/Alpine/
+// Void restent honnêtement hors périmètre : AppArmor y nécessite un paramètre de ligne de
+// commande noyau (LSM non actif par défaut) ou n'a pas de politique préconfigurée équivalente à
+// "targeted" — recherche plus large nécessaire, comme cisBenchmarkLevel/luksEncryption.
+function macHardeningCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.security.appArmorOrSELinux) return '';
+  if (family === 'debian') {
+    return serviceEnableCmd('apparmor', family);
+  }
+  if (family === 'fedora') {
+    return `mkdir -p /etc/selinux
+cat > /etc/selinux/config << 'SELINUX_EOF'
+SELINUX=enforcing
+SELINUXTYPE=targeted
+SELINUX_EOF`;
+  }
+  return '';
+}
+
 // Bug réel trouvé en auditant : les 4 champs de branding visuel (accentColor, wallpaperPreset,
 // customWallpaperUrl, bootSplashTheme) ont ZERO référence, mais leur câblage réel nécessiterait
 // des assets de thème Plymouth/fond d'écran par bureau — invérifiable dans cet environnement sans
@@ -588,6 +617,20 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // packages.fedoraproject.org, rpmfind.net, sources.debian.org, void-packages).
   if (recipe.enableSSH && recipe.security.fail2ban) {
     pkgs.push('fail2ban');
+  }
+
+  // "appArmorOrSELinux" — voir macHardeningCmd (activation du service/écriture de la politique)
+  // pour le détail de la vérification. Paquets confirmés réels en direct : "apparmor" (présent
+  // sur sources.debian.org, Launchpad Ubuntu, ET http.kali.org/kali/dists/kali-rolling — les 4
+  // distros qui partagent le family "debian" dans macHardeningCmd, pour rester cohérent) ;
+  // "selinux-policy-targeted"/"policycoreutils" (packages.fedoraproject.org, et
+  // download.rockylinux.org/.../BaseOS/.../Packages/ pour Rocky).
+  if (recipe.security.appArmorOrSELinux) {
+    if (distroId === 'debian' || distroId === 'ubuntu' || distroId === 'linuxmint' || distroId === 'kali') {
+      pkgs.push('apparmor');
+    } else if (isFedoraLike) {
+      pkgs.push('selinux-policy-targeted', 'policycoreutils');
+    }
   }
 
   // Bug réel MAJEUR trouvé en auditant : "useradd -s ${recipe.user.shell}" fixe le shell de
@@ -1217,6 +1260,7 @@ chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
 chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
+${macHardeningCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1405,6 +1449,7 @@ chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
 chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
+${macHardeningCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -2111,6 +2156,7 @@ chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home
 systemctl enable ssh 2>/dev/null || true
 ` : ''}
 ${sshHardeningCmd(recipe, 'debian')}
+${macHardeningCmd(recipe, 'debian')}
 
 # Bug réel MAJEUR trouvé en auditant : le paquet du gestionnaire de connexion (installé par le
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
