@@ -65,6 +65,11 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // Noms vérifiés en direct sur le vrai dépôt source (raw.githubusercontent.com/void-linux/
       // void-packages/master/srcpkgs/<pkg>/template) : "gnome", "gdm", "dbus", "eudev" tous réels.
       pkgs.push('gnome', 'gdm', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'wireplumber', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // Noms vérifiés en direct via rpmfind.net (miroir indexant les vrais paquets Tumbleweed
+      // x86_64) : "patterns-gnome-gnome" est le vrai pattern zypper officiel, "MozillaFirefox"
+      // (PAS "firefox") est le vrai nom openSUSE du paquet Firefox.
+      pkgs.push('patterns-gnome-gnome', 'gdm', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'kde') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -86,6 +91,10 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('plasma-desktop', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'konsole', 'dolphin', 'firefox', 'pipewire', 'networkmanager');
     } else if (distroId === 'void') {
       pkgs.push('plasma-desktop', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa', 'konsole', 'dolphin', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // "plasma6-desktop" confirmé vrai paquet openSUSE Tumbleweed (rpmfind.net) — la distro suit
+      // KDE Plasma 6, pas de méta-paquet "plasma-desktop" générique ici.
+      pkgs.push('plasma6-desktop', 'plasma6-workspace', 'sddm', 'konsole', 'dolphin', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'hyprland') {
     if (isArchLike) {
@@ -95,10 +104,13 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'alpine') {
       // "hyprland" et "waybar" confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
       pkgs.push('hyprland', 'waybar', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire', 'wireplumber');
+    } else if (distroId === 'opensuse') {
+      // "hyprland" et "waybar" confirmés réels sur openSUSE Tumbleweed (rpmfind.net).
+      pkgs.push('hyprland', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
     // Void : "hyprland" et "waybar" confirmés ABSENTS du dépôt officiel (vérifié en direct,
     // aucun srcpkgs/hyprland ni srcpkgs/waybar) — honnêtement non câblé plutôt que d'installer
-    // un paquet inexistant, contrairement à Alpine qui les a réellement.
+    // un paquet inexistant, contrairement à Alpine et openSUSE qui les ont réellement.
   } else if (recipe.desktop === 'xfce') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push(
@@ -119,6 +131,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('xfce4', 'xfce4-terminal', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire');
     } else if (distroId === 'void') {
       pkgs.push('xfce4', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire');
+    } else if (distroId === 'opensuse') {
+      // "patterns-xfce-xfce" confirmé vrai pattern zypper officiel (rpmfind.net).
+      pkgs.push('patterns-xfce-xfce', 'lightdm', 'MozillaFirefox', 'pipewire');
     }
   } else if (recipe.desktop === 'cosmic') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -135,6 +150,10 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // Autre piège de nommage réel : le paquet s'appelle juste "i3" sur Void (ni "i3-wm" ni
       // "i3wm"), vérifié en direct sur srcpkgs/i3/template.
       pkgs.push('i3', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // Tous confirmés réels sur openSUSE Tumbleweed (rpmfind.net) : i3, i3status, i3lock, dmenu,
+      // alacritty, lightdm.
+      pkgs.push('i3', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     } else {
       pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
     }
@@ -158,6 +177,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // "waybar" confirmé ABSENT du dépôt Void (contrairement à Alpine qui l'a) — sway/swaylock/
       // swaybg/swayidle/foot sont en revanche tous réels, on les installe sans barre d'état.
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'foot', 'dbus', 'eudev', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // sway/swaylock/swaybg/swayidle/waybar tous confirmés réels sur openSUSE (rpmfind.net).
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'cinnamon') {
     // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et
@@ -175,6 +197,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'void') {
       // "cinnamon" (meta-paquet complet, pas juste "cinnamon-desktop") confirmé réel sur Void.
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // "cinnamon" et "nemo" confirmés réels sur openSUSE Tumbleweed (rpmfind.net).
+      pkgs.push('cinnamon', 'lightdm', 'nemo', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
   } else if (recipe.desktop === 'lxqt') {
     // Meta-paquet "lxqt" confirmé réel sur Debian (sources.debian.org/api/src/lxqt = 200) ;
@@ -195,6 +220,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('lxqt-session', 'lxqt-panel', 'pcmanfm-qt', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
     } else if (distroId === 'void') {
       pkgs.push('lxqt-session', 'lxqt-panel', 'lxqt-config', 'pcmanfm-qt', 'openbox', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // "patterns-lxqt-lxqt" confirmé vrai pattern zypper officiel (rpmfind.net).
+      pkgs.push('patterns-lxqt-lxqt', 'sddm', 'pcmanfm-qt', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
   } else if (recipe.desktop === 'web_kiosk') {
     if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');

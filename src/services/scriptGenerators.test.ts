@@ -576,6 +576,28 @@ describe('resolvePackageList — Void Linux : bureaux réellement câblés (aucu
   });
 });
 
+describe('resolvePackageList — openSUSE Tumbleweed : bureaux réellement câblés (aucun n\'était installé auparavant, quel que soit le choix)', () => {
+  it.each([
+    ['gnome', 'patterns-gnome-gnome'],
+    ['kde', 'plasma6-desktop'],
+    ['xfce', 'patterns-xfce-xfce'],
+    ['hyprland', 'hyprland'],
+    ['i3wm', 'i3'],
+    ['sway', 'sway'],
+    ['cinnamon', 'cinnamon'],
+    ['lxqt', 'patterns-lxqt-lxqt'],
+  ] as const)('desktop=%s installe un vrai paquet/pattern openSUSE vérifié (%s)', (desktop, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', desktop, selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('installe "MozillaFirefox" (pas "firefox") sur openSUSE — nom de paquet spécifique trouvé en vérifiant', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', desktop: 'gnome', selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain('MozillaFirefox');
+    expect(pkgs).not.toContain('firefox');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
