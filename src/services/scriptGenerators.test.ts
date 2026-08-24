@@ -1368,3 +1368,35 @@ describe('resolvePackageList — nouvel environnement de bureau MATE ajouté au 
     expect(pkgs.some(p => p.startsWith('mate'))).toBe(false);
   });
 });
+
+describe('resolvePackageList — nouvel environnement de bureau Budgie ajouté au catalogue (développé à l\'origine par Solus, désormais indépendant) — paquets tous vérifiés en direct avant câblage : "budgie-desktop-environment" réel sur Debian (sources.debian.org) ; groupe Arch officiel "budgie" confirmé (archlinux.org/groups/x86_64/budgie/) ; "budgie-desktop" confirmé réel individuellement sur Fedora, openSUSE ET Void ; "patterns-budgie-budgie" confirmé vrai pattern zypper Tumbleweed (rpmfind.net, filtré explicitement sur Tumbleweed et non Leap) ; Rocky/EPEL9 ET Alpine confirmés ABSENTS', () => {
+  it('Debian : installe le vrai méta-paquet "budgie-desktop-environment" avec Nautilus/GNOME Terminal', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'budgie', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['budgie-desktop-environment', 'lightdm', 'nautilus', 'gnome-terminal']));
+  });
+
+  it('Arch : installe le vrai groupe "budgie-desktop"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['budgie-desktop', 'nautilus', 'gnome-terminal', 'lightdm']));
+  });
+
+  it('Fedora et Void : installent "budgie-desktop" (Rocky en revanche n\'a rien, absent d\'EPEL9)', () => {
+    const fedoraPkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    const voidPkgs = resolvePackageList(makeRecipe({ distro: 'void', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    const rockyPkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    expect(fedoraPkgs).toContain('budgie-desktop');
+    expect(voidPkgs).toContain('budgie-desktop');
+    expect(rockyPkgs.some(p => p.includes('budgie'))).toBe(false);
+  });
+
+  it('openSUSE : installe le vrai pattern zypper "patterns-budgie-budgie" (Tumbleweed, pas Leap)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    expect(pkgs).toContain('patterns-budgie-budgie');
+    expect(pkgs).toContain('MozillaFirefox');
+  });
+
+  it('Alpine : reste honnêtement hors périmètre, aucun paquet budgie-* installé (confirmé absent du dépôt)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'budgie', selectedPackages: [] }));
+    expect(pkgs.some(p => p.includes('budgie'))).toBe(false);
+  });
+});

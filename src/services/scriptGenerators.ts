@@ -582,6 +582,31 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'opensuse') {
       pkgs.push('patterns-mate-mate', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
+  } else if (recipe.desktop === 'budgie') {
+    // Nouvel environnement de bureau ajouté (Budgie, développé à l'origine par Solus, désormais
+    // indépendant) — même audit que MATE ci-dessus, aucune trace dans le catalogue avant cet
+    // ajout. Noms de paquets tous vérifiés en direct avant câblage : "budgie-desktop-environment"
+    // réel sur Debian (sources.debian.org, 200) ; groupe Arch officiel "budgie" confirmé
+    // (archlinux.org/groups/x86_64/budgie/, 200) ; "budgie-desktop" confirmé réel individuellement
+    // sur Fedora, openSUSE (via rpmfind.net) ET Void (raw.githubusercontent.com/void-linux/
+    // void-packages srcpkgs/budgie-desktop/template, 200) ; "patterns-budgie-budgie" confirmé vrai
+    // pattern zypper officiel openSUSE Tumbleweed (rpmfind.net, PAS Leap — vérifié avec le filtre
+    // "OpenSuSE Tumbleweed for x86_64" déjà utilisé pour les autres patterns de ce fichier).
+    // "nautilus"/"gnome-terminal" (gestionnaire de fichiers/terminal par défaut de Budgie)
+    // confirmés réels sur les 4 familles câblées. Rocky/EPEL9 ET Alpine confirmés ABSENTS (aucun
+    // paquet "budgie-desktop" ni dans dl.fedoraproject.org/pub/epel/9/.../b/ ni sur
+    // pkgs.alpinelinux.org) — honnêtement non câblés plutôt que d'installer un paquet inexistant.
+    if (distroId === 'debian' || distroId === 'ubuntu') {
+      pkgs.push('budgie-desktop-environment', 'lightdm', 'lightdm-gtk-greeter', 'nautilus', 'gnome-terminal', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('budgie-desktop', 'nautilus', 'gnome-terminal', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (distroId === 'fedora') {
+      pkgs.push('budgie-desktop', 'nautilus', 'gnome-terminal', 'lightdm', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'void') {
+      pkgs.push('budgie-desktop', 'nautilus', 'gnome-terminal', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('patterns-budgie-budgie', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
+    }
   } else if (recipe.desktop === 'web_kiosk') {
     // Bug réel trouvé en vérifiant : "chromium-browser" est un piège identique à celui déjà
     // corrigé pour Firefox sur Ubuntu (packages.ubuntu.com confirme : "Transitional package -

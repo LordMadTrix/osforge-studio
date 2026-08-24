@@ -36,6 +36,7 @@ export type DesktopEnvironmentId =
   | 'cinnamon'
   | 'lxqt'
   | 'mate'
+  | 'budgie'
   | 'web_kiosk';
 
 export type DisplayManagerId = 'gdm3' | 'sddm' | 'lightdm' | 'ly' | 'cosmic-greeter' | 'none';
