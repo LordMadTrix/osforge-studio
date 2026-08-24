@@ -73,11 +73,19 @@ function resolveXkb(keyboardLayout: string): { layout: string; variant?: string 
 // distro) : le paquet du gestionnaire de connexion (gdm3/sddm/lightdm/cosmic-greeter) était bien
 // installé par chaque bloc "desktop" ci-dessus, mais son SERVICE n'était jamais activé au premier
 // boot — un système démarrait donc toujours sur une console texte, jamais sur la session
-// graphique, quel que soit l'environnement de bureau choisi. "ly" (recommandé pour Hyprland/Sway)
-// reste hors périmètre : confirmé absent des dépôts Alpine et Void en vérifiant, et jamais
-// installé par les blocs Hyprland/Sway existants — nécessiterait un cablage plus large séparé.
+// graphique, quel que soit l'environnement de bureau choisi.
+// "ly" (recommandé pour Hyprland/Sway) était initialement exclu ici en attendant un câblage plus
+// large ; désormais câblé pour les familles où le paquet est réellement installé ci-dessus
+// (arch/fedora/suse) : contrairement à gdm/sddm/lightdm, "ly" est un service systemd À GABARIT
+// (template unit "ly@.service", pas "ly.service") — vérifié en direct sur le fichier réel
+// (raw.githubusercontent.com/fairyglade/ly res/ly@.service) qui déclare
+// "DefaultInstance=tty2" ; on active explicitement l'instance "ly@tty2.service" plutôt que de
+// compter sur le support de DefaultInstance par "systemctl enable" seul.
 function resolveDmServiceName(displayManager: string, family: 'debian' | NonDebianFamily): string | null {
-  if (displayManager === 'none' || displayManager === 'ly') return null;
+  if (displayManager === 'none') return null;
+  if (displayManager === 'ly') {
+    return (family === 'arch' || family === 'fedora' || family === 'suse') ? 'ly@tty2.service' : null;
+  }
   if (displayManager === 'gdm3') return family === 'debian' ? 'gdm3' : 'gdm';
   return displayManager; // "sddm" / "lightdm" / "cosmic-greeter" : même nom partout, déjà vérifié
 }
@@ -348,8 +356,19 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('plasma6-desktop', 'plasma6-workspace', 'sddm', 'konsole', 'dolphin', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'hyprland') {
+    // Bug réel MAJEUR trouvé en auditant : "ly" est le gestionnaire de connexion RECOMMANDÉ pour
+    // Hyprland/Sway (desktopEnvironments.ts, appliqué automatiquement par l'UI via recommendedDM
+    // dès qu'on choisit ces bureaux), mais son paquet n'était installé NULLE PART et son service
+    // était explicitement exclu de l'activation (resolveDmServiceName renvoyait null pour "ly")
+    // — un système Hyprland/Sway démarrait donc TOUJOURS sur une console texte, quel que soit le
+    // gestionnaire de connexion choisi. Paquet "ly" confirmé réel en direct sur Arch
+    // (archlinux.org/packages/search/json) et openSUSE Tumbleweed (download.opensuse.org/
+    // tumbleweed/repo/oss, version 2.0.1) ; confirmé ABSENT sur Debian/Ubuntu (sources.debian.org
+    // 404, Launchpad 0 résultat) et Alpine (déjà vérifié plus tôt pour d'autres bureaux) — ces
+    // combinaisons restent honnêtement sans gestionnaire de connexion installé (hors périmètre
+    // pour ce correctif, nécessiterait un choix de repli différent, pas juste "ly").
     if (isArchLike) {
-      pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'dunst', 'xdg-desktop-portal-hyprland', 'polkit-kde-agent', 'thunar', 'firefox', 'pipewire', 'wireplumber');
+      pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'dunst', 'xdg-desktop-portal-hyprland', 'polkit-kde-agent', 'thunar', 'firefox', 'pipewire', 'wireplumber', 'ly');
     } else if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'xdg-desktop-portal-hyprland', 'thunar', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (distroId === 'alpine') {
@@ -357,7 +376,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('hyprland', 'waybar', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire', 'wireplumber');
     } else if (distroId === 'opensuse') {
       // "hyprland" et "waybar" confirmés réels sur openSUSE Tumbleweed (rpmfind.net).
-      pkgs.push('hyprland', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
+      pkgs.push('hyprland', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager', 'ly');
     }
     // Void : "hyprland" et "waybar" confirmés ABSENTS du dépôt officiel (vérifié en direct,
     // aucun srcpkgs/hyprland ni srcpkgs/waybar) — honnêtement non câblé plutôt que d'installer
@@ -440,16 +459,21 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   } else if (recipe.desktop === 'sway') {
     // Noms de paquets vérifiés en direct : sources.debian.org/api/src (sway/swaylock/swaybg/
     // swayidle = 200) et archlinux.org/packages/search/json (mêmes noms confirmés sur Arch).
+    // "ly" (DM recommandé pour Sway, même bug/même correctif que pour Hyprland juste au-dessus) :
+    // réel sur Arch et openSUSE, réel aussi pour Fedora (confirmé en direct sur
+    // packages.fedoraproject.org — mais PAS pour Rocky/EPEL9, absent d'EPEL9 vérifié via
+    // dl.fedoraproject.org/pub/epel/9/.../l/ ; sans conséquence pratique ici puisque "sway"
+    // lui-même n'est déjà installé nulle part pour Rocky, voir juste en dessous).
     if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
-      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox', 'pipewire', 'wireplumber', 'networkmanager', 'ly');
     } else if (distroId === 'fedora') {
       // "sway" existe dans les dépôts Fedora officiels (vraie Fedora Sway Spin, vérifié en
       // direct sur packages.fedoraproject.org). Rocky/EPEL9 ne l'a en revanche PAS du tout
       // (vérifié en direct : dl.fedoraproject.org/pub/epel/9/.../s/ ne contient aucun "sway-*") —
       // ne rien installer plutôt que de prétendre à un paquet inexistant sur Rocky.
-      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'firefox', 'pipewire', 'NetworkManager');
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'firefox', 'pipewire', 'NetworkManager', 'ly');
     } else if (distroId === 'alpine') {
       // sway/swaylock confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
@@ -459,7 +483,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'foot', 'dbus', 'eudev', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
     } else if (distroId === 'opensuse') {
       // sway/swaylock/swaybg/swayidle/waybar tous confirmés réels sur openSUSE (rpmfind.net).
-      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager', 'ly');
     }
   } else if (recipe.desktop === 'cinnamon') {
     // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et

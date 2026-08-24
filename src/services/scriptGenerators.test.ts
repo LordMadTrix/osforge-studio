@@ -1266,3 +1266,40 @@ describe('generateBuildScript — noyau "liquorix" réellement câblé pour Debi
     expect(script).not.toContain('liquorix.net');
   });
 });
+
+describe('generateBuildScript/resolvePackageList — gestionnaire de connexion "ly" (recommandé pour Hyprland/Sway) réellement câblé (bug réel MAJEUR trouvé en auditant : ni le paquet ni le service systemd n\'étaient jamais installés/activés, quel que soit le choix — un système Hyprland/Sway démarrait donc toujours sur une console texte). Paquet confirmé réel en direct pour Arch/Fedora/openSUSE, absent pour Debian/Ubuntu/Alpine. Service confirmé être un GABARIT systemd ("ly@.service", pas "ly.service") via le fichier réel du projet, avec DefaultInstance=tty2', () => {
+  it('Arch + desktop="hyprland" + displayManager="ly" : le paquet "ly" est installé et le service "ly@tty2.service" est activé', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'hyprland', displayManager: 'ly', selectedPackages: [] }));
+    expect(pkgs).toContain('ly');
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'hyprland', displayManager: 'ly', selectedPackages: [] }));
+    expect(script).toContain('systemctl enable ly@tty2.service 2>/dev/null || true');
+  });
+
+  it('openSUSE + desktop="sway" + displayManager="ly" : paquet installé et service activé (rolling release, package.rpm confirmé sur download.opensuse.org)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(pkgs).toContain('ly');
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(script).toContain('systemctl enable ly@tty2.service 2>/dev/null || true');
+  });
+
+  it('Fedora + desktop="sway" + displayManager="ly" : paquet installé et service activé', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(pkgs).toContain('ly');
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(script).toContain('systemctl enable ly@tty2.service 2>/dev/null || true');
+  });
+
+  it('Debian + desktop="hyprland" + displayManager="ly" : "ly" reste honnêtement non installé (absent des dépôts Debian, confirmé)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'hyprland', displayManager: 'ly', selectedPackages: [] }));
+    expect(pkgs).not.toContain('ly');
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'hyprland', displayManager: 'ly', selectedPackages: [] }));
+    expect(script).not.toContain('ly@tty2.service');
+  });
+
+  it('Alpine + desktop="sway" + displayManager="ly" : "ly" reste honnêtement non installé (absent du dépôt Alpine, confirmé)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(pkgs).not.toContain('ly');
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'sway', displayManager: 'ly', selectedPackages: [] }));
+    expect(script).not.toContain('ly@tty2.service');
+  });
+});
