@@ -115,9 +115,9 @@ function dmAutologinCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): s
     const confPath = family === 'debian' ? '/etc/gdm3/custom.conf' : '/etc/gdm/custom.conf';
     return `mkdir -p $(dirname ${confPath})
 if [ -f ${confPath} ] && grep -q '^\\[daemon\\]' ${confPath}; then
-    sed -i '/^\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=${username}' ${confPath}
+    sed -i '/^\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin='${shQuote(username)} ${confPath}
 else
-    printf '[daemon]\\nAutomaticLoginEnable=true\\nAutomaticLogin=${username}\\n' >> ${confPath}
+    printf '[daemon]\\nAutomaticLoginEnable=true\\nAutomaticLogin='${shQuote(username)}'\\n' >> ${confPath}
 fi`;
   }
   if (recipe.displayManager === 'sddm') {
@@ -166,12 +166,12 @@ GETTY_EOF`;
   return `
 ${autologin}
 ${serviceEnableCmd('seatd', family)}
-cat >> /home/${username}/.bash_profile << 'KIOSK_EOF'
+cat >> /home/${shQuote(username)}/.bash_profile << 'KIOSK_EOF'
 if [ -z "\${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
     exec cage -- ${browserCmd} '${url}'
 fi
 KIOSK_EOF
-chown ${username}:${username} /home/${username}/.bash_profile 2>/dev/null || true`;
+chown ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.bash_profile 2>/dev/null || true`;
 }
 
 // Bug réel trouvé en auditant : "dotfilesGitUrl" (choisi dans l'UI : "clonera et appliquera
@@ -181,8 +181,8 @@ function dotfilesCloneCmd(recipe: OSRecipe): string {
   if (!recipe.dotfilesGitUrl) return '';
   const url = recipe.dotfilesGitUrl.replace(/'/g, `'\\''`);
   const username = recipe.user.username;
-  return `git clone --depth 1 '${url}' /home/${username}/.dotfiles 2>/dev/null || true
-chown -R ${username}:${username} /home/${username}/.dotfiles 2>/dev/null || true`;
+  return `git clone --depth 1 '${url}' /home/${shQuote(username)}/.dotfiles 2>/dev/null || true
+chown -R ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.dotfiles 2>/dev/null || true`;
 }
 
 // Bug réel trouvé en auditant : "customServices" (choisi dans l'UI : "Génère des fichiers

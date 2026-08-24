@@ -981,7 +981,7 @@ describe('generateBuildScript — "user.autologin" réellement câblé par gesti
     }));
     expect(script).toContain('/etc/gdm3/custom.conf');
     expect(script).toContain('AutomaticLoginEnable=true');
-    expect(script).toContain('AutomaticLogin=kim');
+    expect(script).toContain("AutomaticLogin=''kim'");
   });
 
   it('GDM (non-Debian) : configure /etc/gdm/custom.conf (pas gdm3, nom spécifique à Debian)', () => {
@@ -1106,6 +1106,56 @@ describe('generateBuildScript — injection de commande shell via "hostname" cor
   it('un hostname normal fonctionne toujours sans changement de comportement', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', hostname: 'forge-box' }));
     expect(script).toContain(`echo 'forge-box' > /etc/hostname`);
+  });
+});
+
+describe('generateBuildScript — injection de commande shell via "username" dans dmAutologinCmd (GDM)/kioskSetupCmd/dotfilesCloneCmd corrigée (faille RÉELLE, PLUS GRAVE que les précédentes : le script sed/printf de dmAutologinCmd(GDM) enveloppait "username" dans des guillemets SIMPLES SANS AUCUN échappement — une simple apostrophe dans le nom suffisait à casser la citation et injecter n\'importe quelle commande, sans même avoir besoin de $(...). Vérifié en exécutant réellement le bloc sed/printf extrait d\'un script généré, avec /etc/gdm3/custom.conf redirigé vers un fichier factice : le payload malveillant est écrit tel quel dans le fichier de conf, la commande injectée ne s\'exécute jamais)', () => {
+  it('dmAutologinCmd (GDM) : une apostrophe dans le username ne casse plus la citation du script sed/printf', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3',
+      user: {
+        username: `x'; touch /tmp/pwned8 #`, fullName: 'X', shell: '/bin/bash',
+        sudo: true, autologin: true, password: 'test',
+      },
+    }));
+    expect(script).toContain(`AutomaticLogin=''x'\\''; touch /tmp/pwned8 #' /etc/gdm3/custom.conf`);
+    expect(script).toContain(`AutomaticLogin=''x'\\''; touch /tmp/pwned8 #''\\n' >> /etc/gdm3/custom.conf`);
+  });
+
+  it('kioskSetupCmd : username contenant une apostrophe est neutralisé dans le chemin .bash_profile et le chown', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk',
+      kioskUrl: 'https://example.com',
+      user: {
+        username: `x'; touch /tmp/pwned9 #`, fullName: 'X', shell: '/bin/bash',
+        sudo: true, autologin: false, password: 'test',
+      },
+    }));
+    expect(script).toContain(`cat >> /home/'x'\\''; touch /tmp/pwned9 #'/.bash_profile << 'KIOSK_EOF'`);
+    expect(script).toContain(`chown 'x'\\''; touch /tmp/pwned9 #':'x'\\''; touch /tmp/pwned9 #' /home/'x'\\''; touch /tmp/pwned9 #'/.bash_profile`);
+  });
+
+  it('dotfilesCloneCmd : username contenant une apostrophe est neutralisé dans le chemin de clone et le chown', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
+      user: {
+        username: `x'; touch /tmp/pwned10 #`, fullName: 'X', shell: '/bin/bash',
+        sudo: true, autologin: false, password: 'test',
+      },
+    }));
+    expect(script).toContain(`git clone --depth 1 'https://github.com/example/dotfiles.git' /home/'x'\\''; touch /tmp/pwned10 #'/.dotfiles`);
+    expect(script).toContain(`chown -R 'x'\\''; touch /tmp/pwned10 #':'x'\\''; touch /tmp/pwned10 #' /home/'x'\\''; touch /tmp/pwned10 #'/.dotfiles`);
+  });
+
+  it('un username normal fonctionne toujours sans changement de comportement dans les trois fonctions', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3',
+      dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
+      user: { username: 'tester', fullName: 'Test User', shell: '/bin/bash', sudo: true, autologin: true, password: 'test' },
+    }));
+    expect(script).toContain(`AutomaticLogin=''tester'`);
+    expect(script).toContain(`/home/'tester'/.dotfiles`);
   });
 });
 
