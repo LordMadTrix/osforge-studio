@@ -23,6 +23,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
   const emulatorRef = useRef<any>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [progress, setProgress] = useState(0);
 
   const stopEmulator = () => {
     try {
@@ -36,6 +37,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
   const startEmulator = async () => {
     setStatus('loading');
     setErrorMsg('');
+    setProgress(0);
     stopEmulator();
     if (serialRef.current) serialRef.current.value = '';
 
@@ -59,6 +61,32 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
         cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
       });
+      // Les 4 fichiers (wasm/bios/vgabios/bzimage) n'exposent pas de "total" fiable dans leurs
+      // évènements de progression (lengthComputable=false, vérifié en live) : tailles réelles
+      // codées en dur ici (elles ne bougeront pas, ce sont des assets versionnés dans ce dépôt)
+      // pour calculer une vraie progression globale plutôt qu'un simple spinner indéterminé.
+      const KNOWN_SIZES: Record<string, number> = {
+        'v86.wasm': 2101621,
+        'seabios.bin': 131072,
+        'vgabios.bin': 36352,
+        'buildroot-bzimage.bin': 5166352,
+      };
+      const GRAND_TOTAL = Object.values(KNOWN_SIZES).reduce((a, b) => a + b, 0);
+      const loadedByFile: Record<string, number> = {};
+      emulator.add_listener('download-progress', (e: { file_name: string; loaded: number }) => {
+        const short = e.file_name.split('/').pop() || e.file_name;
+        loadedByFile[short] = e.loaded;
+        const sum = Object.values(loadedByFile).reduce((a, b) => a + b, 0);
+        setProgress(Math.min(100, Math.round((sum / GRAND_TOTAL) * 100)));
+      });
+
+      // "serial_container" écrit directement dans le textarea sans jamais faire défiler la vue :
+      // sans ceci, une fois le tampon assez rempli, le prompt final ("~%") sort du cadre visible
+      // et l'utilisateur croit que ça s'est arrêté. On fait défiler nous-mêmes à chaque octet.
+      emulator.add_listener('serial0-output-byte', () => {
+        if (serialRef.current) serialRef.current.scrollTop = serialRef.current.scrollHeight;
+      });
+
       // v86 charge bios/vga_bios/bzimage de façon asynchrone APRÈS le constructeur : un blocage
       // réseau (bloqueur de pub/extension qui coupe i.copy.sh, un domaine peu connu) ne lève
       // aucune exception JS ici — seul cet évènement le signale. Sans ce hook, l'échec était
@@ -132,6 +160,16 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
             {lang === 'fr' ? "Échec du chargement de l'émulateur : " : 'Emulator failed to load: '}{errorMsg}
           </p>
         )}
+        {status === 'running' && progress < 100 && (
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+              {lang === 'fr' ? `Téléchargement du noyau et de l'émulateur… ${progress}%` : `Downloading kernel and emulator… ${progress}%`}
+            </div>
+            <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress}%`, background: 'var(--emerald, #10b981)', transition: 'width 0.2s ease' }} />
+            </div>
+          </div>
+        )}
       </div>
 
       <div
@@ -143,9 +181,28 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang }) => {
             {lang === 'fr' ? 'Cliquez sur "Démarrer un vrai Linux" pour voir le noyau charger en direct.' : 'Click "Boot a real Linux" to watch the kernel load live.'}
           </p>
         )}
+        {status === 'running' && (
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '6px 12px 0' }}>
+            {lang === 'fr' ? '⌨️ Cliquez dans le terminal ci-dessous puis tapez — le shell répond réellement (essayez "ls", "uname -a").' : '⌨️ Click inside the terminal below and type — the shell really responds (try "ls", "uname -a").'}
+          </p>
+        )}
+        {/* "serial_container" ne gère QUE l'affichage (écrit les octets série reçus dans
+            .value) — vérifié en live : taper dedans insère juste du texte navigateur normal,
+            jamais transmis à la VM. La saisie réelle passe par serial0_send() ci-dessous
+            (méthode confirmée dans l'exemple officiel examples/serial.html), avec
+            preventDefault() pour empêcher toute insertion native en double. */}
         <textarea
           ref={serialRef}
-          readOnly
+          spellCheck={false}
+          onKeyDown={(e) => {
+            if (!emulatorRef.current) return;
+            e.preventDefault();
+            if (e.key === 'Enter') emulatorRef.current.serial0_send('\n');
+            else if (e.key === 'Backspace') emulatorRef.current.serial0_send('\x7f');
+            else if (e.key === 'Tab') emulatorRef.current.serial0_send('\t');
+            else if (e.ctrlKey && e.key.length === 1) emulatorRef.current.serial0_send(String.fromCharCode(e.key.toUpperCase().charCodeAt(0) - 64));
+            else if (e.key.length === 1) emulatorRef.current.serial0_send(e.key);
+          }}
           style={{
             display: status === 'idle' ? 'none' : 'block',
             width: '100%',
