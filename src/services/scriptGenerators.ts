@@ -56,6 +56,11 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('gnome', 'gdm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager', 'mesa', 'vulkan-intel', 'vulkan-radeon');
     } else if (isFedoraLike) {
       pkgs.push('@gnome-desktop', 'gdm', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'alpine') {
+      // Noms de paquets vérifiés en direct (pkgs.alpinelinux.org/package/edge/{main,community}/
+      // x86_64/...) : "gnome", "gdm", "dbus", "xorg-server" tous réels sur Alpine (dépôt
+      // community, déjà activé dans le bootstrap ci-dessous).
+      pkgs.push('gnome', 'gdm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     }
   } else if (recipe.desktop === 'kde') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -73,12 +78,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // Rocky n'a pas de groupe dnf "@kde-desktop" garanti (comps propre à Fedora) ; "plasma-desktop"
       // est en revanche un vrai paquet EPEL9 confirmé (dl.fedoraproject.org/pub/epel/9/.../p/).
       pkgs.push('plasma-desktop', 'plasma-workspace', 'sddm', 'konsole', 'dolphin', 'firefox', 'pipewire');
+    } else if (distroId === 'alpine') {
+      pkgs.push('plasma-desktop', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'konsole', 'dolphin', 'firefox', 'pipewire', 'networkmanager');
     }
   } else if (recipe.desktop === 'hyprland') {
     if (isArchLike) {
       pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'dunst', 'xdg-desktop-portal-hyprland', 'polkit-kde-agent', 'thunar', 'firefox', 'pipewire', 'wireplumber');
     } else if (distroId === 'debian' || distroId === 'ubuntu') {
       pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'xdg-desktop-portal-hyprland', 'thunar', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (distroId === 'alpine') {
+      // "hyprland" et "waybar" confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
+      pkgs.push('hyprland', 'waybar', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire', 'wireplumber');
     }
   } else if (recipe.desktop === 'xfce') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -96,6 +106,8 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // "xfce4-session" confirmé vrai paquet EPEL9 (dl.fedoraproject.org/pub/epel/9/.../x/) ;
       // pas de groupe "@xfce-desktop" garanti sur Rocky, donc paquets individuels.
       pkgs.push('xfce4-session', 'xfce4-panel', 'xfce4-terminal', 'thunar', 'lightdm', 'firefox', 'pipewire');
+    } else if (distroId === 'alpine') {
+      pkgs.push('xfce4', 'xfce4-terminal', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'cosmic') {
     if (distroId === 'debian' || distroId === 'ubuntu') {
@@ -104,7 +116,13 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('cosmic-session', 'cosmic-greeter', 'firefox', 'pipewire');
     }
   } else if (recipe.desktop === 'i3wm') {
-    pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
+    if (distroId === 'alpine') {
+      // Piège réel trouvé en vérifiant : le paquet s'appelle "i3wm" (sans tiret) sur Alpine,
+      // contrairement à "i3-wm" partout ailleurs (pkgs.alpinelinux.org, community, confirmé).
+      pkgs.push('i3wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
+    } else {
+      pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
+    }
   } else if (recipe.desktop === 'sway') {
     // Noms de paquets vérifiés en direct : sources.debian.org/api/src (sway/swaylock/swaybg/
     // swayidle = 200) et archlinux.org/packages/search/json (mêmes noms confirmés sur Arch).
@@ -118,6 +136,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // (vérifié en direct : dl.fedoraproject.org/pub/epel/9/.../s/ ne contient aucun "sway-*") —
       // ne rien installer plutôt que de prétendre à un paquet inexistant sur Rocky.
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'alpine') {
+      // sway/swaylock confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
+      pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
     }
   } else if (recipe.desktop === 'cinnamon') {
     // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et
@@ -147,6 +168,9 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('lxqt-session', 'lxqt-panel', 'lxqt-config', 'pcmanfm-qt', 'openbox', 'sddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     } else if (distroId === 'fedora') {
       pkgs.push('@lxqt-desktop', 'sddm', 'firefox', 'pipewire');
+    } else if (distroId === 'alpine') {
+      // lxqt-session/lxqt-panel confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
+      pkgs.push('lxqt-session', 'lxqt-panel', 'pcmanfm-qt', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
     }
   } else if (recipe.desktop === 'web_kiosk') {
     if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');

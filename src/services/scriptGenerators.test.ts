@@ -520,6 +520,30 @@ describe('generateBuildScript — Rocky Linux : EPEL/CRB activés, bureaux réel
   });
 });
 
+describe('resolvePackageList — Alpine Linux : bureaux réellement câblés (aucun n\'était installé auparavant, quel que soit le choix)', () => {
+  it.each([
+    ['gnome', 'gnome'],
+    ['kde', 'plasma-desktop'],
+    ['xfce', 'xfce4'],
+    ['hyprland', 'hyprland'],
+    ['sway', 'sway'],
+    ['lxqt', 'lxqt-session'],
+  ] as const)('desktop=%s installe un vrai paquet Alpine vérifié (%s)', (desktop, expectedPkg) => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', desktop, selectedPackages: [], customPackages: [] }));
+    expect(pkgs).toContain(expectedPkg);
+  });
+
+  it('desktop=i3wm installe "i3wm" (sans tiret) sur Alpine, contrairement à "i3-wm" partout ailleurs (piège réel trouvé en vérifiant)', () => {
+    const alpinePkgs = resolvePackageList(makeRecipe({ distro: 'alpine', desktop: 'i3wm', selectedPackages: [], customPackages: [] }));
+    expect(alpinePkgs).toContain('i3wm');
+    expect(alpinePkgs).not.toContain('i3-wm');
+
+    const debianPkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'i3wm', selectedPackages: [], customPackages: [] }));
+    expect(debianPkgs).toContain('i3-wm');
+    expect(debianPkgs).not.toContain('i3wm');
+  });
+});
+
 describe('generateBuildScript — familles sans noyau câblé : avertissement honnête plutôt que choix ignoré en silence', () => {
   it('Fedora + kernel non générique affiche un avertissement de repli explicite', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', kernel: 'zen' }));
