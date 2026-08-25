@@ -3019,6 +3019,15 @@ ${sysctlContent}`);
       runcmd.push(cloudInitServiceEnableLine('systemd-zram-setup@zram0.service', family));
     }
   }
+  // Bug réel trouvé en auditant : "enableFlatpak" installe bien le paquet "flatpak" ici (via
+  // resolvePackageList(), partagé par tous les générateurs), mais n'ajoutait jamais le dépôt
+  // distant Flathub dans ce manifeste cloud-init — contrairement à flatpakSetupCmd() (ligne ~552),
+  // déjà câblé dans les 4 générateurs bash. Une image cloud-init avec Flatpak coché installait donc
+  // le paquet sans aucun dépôt configuré : "flatpak install <app>" y échouait avec "no remotes
+  // configured", la fonctionnalité promise par la case à cocher restant silencieusement inopérante.
+  if (recipe.enableFlatpak) {
+    runcmd.push(`  - flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true`);
+  }
   if (recipe.dotfilesGitUrl) {
     // Faille réelle trouvée et vérifiée en direct (fichier de preuve créé localement) : cette
     // ligne "runcmd" est exécutée via shell par cloud-init (chaîne unique -> "/bin/sh -c"), donc

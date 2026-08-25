@@ -2332,5 +2332,18 @@ describe('resolvePackageList — bureau Niri : deux bugs réels distincts trouv�
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé en auditant : "enableFlatpak" installait bien le paquet "flatpak" (via resolvePackageList, partagé par tous les générateurs), mais n\'ajoutait jamais le dépôt distant Flathub dans ce manifeste — contrairement à flatpakSetupCmd(), déjà câblé dans les 4 générateurs bash. Une image cloud-init avec Flatpak coché installait donc le paquet sans aucun dépôt configuré : "flatpak install <app>" y échouait avec "no remotes configured"', () => {
+  it('enableFlatpak=true : installe le paquet ET ajoute le dépôt Flathub officiel', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ enableFlatpak: true } as any));
+    expect(yaml).toContain('- flatpak');
+    expect(yaml).toContain('flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo');
+  });
+
+  it('enableFlatpak=false (ou absent) : aucune trace de Flathub (comportement par défaut inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ enableFlatpak: false } as any));
+    expect(yaml).not.toContain('flathub');
+  });
+});
+
 
 
