@@ -404,6 +404,50 @@ else
 fi`;
 }
 
+// Bug réel MAJEUR trouvé en auditant, le pire de cette classe de faille trouvé cette session : LES 5
+// familles étaient fictives pour "vscodium" ("VS Codium / VS Code"), pas seulement Debian/Ubuntu comme
+// pour K3s/Ollama/OpenTofu/K8s CLI Tools/Zig ci-dessus. "codium" confirmé ABSENT (contenu réel "No
+// such package") de Debian trixie, Ubuntu noble ET Fedora — ce projet ne package jamais VSCodium
+// lui-même, seul un DÉPÔT TIERS signé (repo.vscodium.dev pour APT, gitlab.io pour RPM, documenté par
+// vscodium.com/install.html) le fournit, jamais ajouté nulle part dans ce générateur. "vscodium-bin"
+// confirmé ABSENT des dépôts officiels Arch (API JSON, count:0 — AUR uniquement, même principe que
+// k3s-bin/jstest-gtk/xboxdrv déjà documentés plus haut). "code" confirmé ABSENT d'Alpine (404) ; le
+// vrai paquet Alpine s'appelle "vscodium" mais existe UNIQUEMENT dans le dépôt "testing" (instable,
+// jamais activé par ce générateur qui n'active que main+community — vérifié dans la config apk plus
+// bas). Corrigé en ajoutant les vrais dépôts APT/RPM officiels signés pour Debian/Ubuntu/Fedora (même
+// méthode que le dépôt Liquorix/XanMod déjà établie plus bas dans ce fichier : clé GPG réelle,
+// apt-get update, puis installation), et un avertissement honnête pour Arch/Alpine (aucun canal
+// officiel fiable sans AUR ni dépôt instable).
+function vscodiumSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('vscodium')) return '';
+  if (family === 'arch') {
+    return `echo -e "\${YELLOW:-}[INFO] VSCodium n'est pas encore câblé pour Arch : aucun paquet officiel (AUR uniquement, \\"vscodium-bin\\"), or ce générateur n'installe jamais de paquet AUR.\${NC:-}" 2>/dev/null || true`;
+  }
+  if (family === 'alpine') {
+    return `echo -e "\${YELLOW:-}[INFO] VSCodium n'est pas encore câblé pour Alpine : le seul paquet réel (\\"vscodium\\") est dans le dépôt \\"testing\\" (instable, non activé par ce générateur).\${NC:-}" 2>/dev/null || true`;
+  }
+  if (family === 'fedora') {
+    return `cat > /etc/yum.repos.d/vscodium.repo << 'VSCODIUMREPO_EOF'
+[gitlab.com_paulcarroty_vscodium_repo]
+name=gitlab.com_paulcarroty_vscodium_repo
+baseurl=https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg
+metadata_expire=1h
+VSCODIUMREPO_EOF
+dnf install -y codium 2>/dev/null || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de VSCodium échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+  }
+  if (family !== 'debian') return '';
+  return `apt-get install -y --no-install-recommends curl gnupg 2>/dev/null
+mkdir -p /usr/share/keyrings
+curl -fsSL https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null | gpg --batch --yes --dearmor -o /usr/share/keyrings/vscodium-archive-keyring.gpg 2>/dev/null
+echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg] https://download.vscodium.com/debs vscodium main' > /etc/apt/sources.list.d/vscodium.list
+apt-get update -y 2>/dev/null && apt-get install -y codium 2>/dev/null \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de VSCodium échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2066,6 +2110,7 @@ ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
+${vscodiumSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2268,6 +2313,7 @@ ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
+${vscodiumSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2486,6 +2532,7 @@ ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
+${vscodiumSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -3067,6 +3114,7 @@ ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
+${vscodiumSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

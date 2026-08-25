@@ -3003,3 +3003,43 @@ describe('Zig Toolchain — bug réel MAJEUR trouvé dans le même audit que K8s
   });
 });
 
+describe('VSCodium — bug réel MAJEUR trouvé en auditant, le pire de cette classe de faille trouvé cette session : LES 5 familles étaient fictives (pas seulement Debian/Ubuntu comme pour K3s/Ollama/OpenTofu/K8s CLI Tools/Zig). "codium" absent (contenu réel "No such package") de Debian/Ubuntu/Fedora, "vscodium-bin" absent des dépôts Arch officiels (AUR uniquement), "code" absent d\'Alpine (le vrai paquet "vscodium" n\'existe que dans le dépôt "testing", non activé). Corrigé en ajoutant les vrais dépôts APT/RPM officiels signés pour Debian/Ubuntu/Fedora, vérifié en direct : le dépôt APT réel a été ajouté et interrogé sous WSL Linux (pas seulement bash -n) — "apt-cache policy codium" y confirme un vrai candidat installable (version 1.126.04524) depuis download.vscodium.com', () => {
+  it('Debian ISO : ajoute le vrai dépôt APT officiel VSCodium et installe "codium" pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['vscodium'],
+    }));
+    expect(script).toContain('https://download.vscodium.com/debs');
+    expect(script).toContain('apt-get install -y codium');
+  });
+
+  it('Fedora : ajoute le vrai dépôt RPM officiel VSCodium et installe "codium" via dnf', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora', outputFormat: 'wsl2_tar', selectedPackages: ['vscodium'],
+    }));
+    expect(script).toContain('paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/');
+    expect(script).toContain('dnf install -y codium');
+  });
+
+  it('Arch : avertissement honnête (aucun paquet officiel, AUR uniquement) — PAS de tentative d\'installation cassée', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['vscodium'],
+    }));
+    expect(script).toContain("n'est pas encore câblé pour Arch");
+    expect(script).not.toContain('download.vscodium.com');
+  });
+
+  it('Alpine : avertissement honnête (seul le dépôt "testing" instable fournit ce paquet, non activé) — PAS de tentative d\'installation cassée', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'wsl2_tar', selectedPackages: ['vscodium'],
+    }));
+    expect(script).toContain("n'est pas encore câblé pour Alpine");
+    expect(script).not.toContain('download.vscodium.com');
+  });
+
+  it('vscodium non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('download.vscodium.com');
+    expect(script).not.toContain('vscodium.repo');
+  });
+});
+

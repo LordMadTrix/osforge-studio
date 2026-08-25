@@ -74,13 +74,19 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 290,
     icon: 'Code',
     tags: ['GUI', 'Éditeur', 'Populaire'],
-    pkgNames: {
-      debian: 'codium',
-      ubuntu: 'codium',
-      arch: 'vscodium-bin',
-      alpine: 'code',
-      fedora: 'codium',
-    },
+    // Bug réel MAJEUR trouvé en auditant, même piège HTTP-200 que K3s/Ollama/OpenTofu/K8s CLI
+    // Tools/Zig ci-dessus, mais LES 5 FAMILLES étaient fictives ici (pas seulement Debian/Ubuntu) :
+    // "codium" confirmé ABSENT (contenu réel "No such package") de Debian trixie, Ubuntu noble ET
+    // Fedora — ce projet ne package jamais VSCodium lui-même, seul un dépôt tiers signé le fournit
+    // (repo.vscodium.dev/gitlab.io, documenté par vscodium.com/install.html), jamais ajouté nulle
+    // part avant ce correctif. "vscodium-bin" confirmé ABSENT des dépôts officiels Arch (API JSON,
+    // count:0 — AUR uniquement). "code" confirmé ABSENT d'Alpine (404) ; le vrai paquet Alpine
+    // ("vscodium") existe UNIQUEMENT dans le dépôt "testing" (instable, jamais activé par ce
+    // générateur). Corrigé en ajoutant les vrais dépôts APT/RPM officiels signés pour Debian/Ubuntu/
+    // Fedora pendant la compilation (vscodiumSetupCmd dans scriptGenerators.ts), avec avertissement
+    // honnête pour Arch/Alpine (aucun canal officiel fiable sans AUR ni dépôt instable) — pkgNames
+    // vidé ici car aucune des 5 clés précédentes ne correspondait à un paquet réellement installable.
+    pkgNames: {},
   },
   {
     id: 'python_stack',
