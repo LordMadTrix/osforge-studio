@@ -2405,6 +2405,29 @@ describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, 
     expect(pkgs).toContain('xboxdrv');
   });
 
+  it('bug réel MAJEUR trouvé en auditant : gamepad_drivers sur Arch n\'installe plus "jstest-gtk"/"xboxdrv" (confirmés AUR-only, count:0 sur archlinux.org/packages/search/json) — seul le vrai paquet natif "joyutils" reste', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', selectedPackages: ['gamepad_drivers'] }));
+    expect(pkgs).toContain('joyutils');
+    expect(pkgs).not.toContain('jstest-gtk');
+    expect(pkgs).not.toContain('xboxdrv');
+  });
+
+  it('bug réel MAJEUR trouvé dans le même audit : gamepad_drivers sur Fedora/openSUSE/Alpine utilisait "joystick"/"joyutils" fictifs — remplacés par le vrai paquet "linuxconsoletools" (confirmé réel sur les 3 familles)', () => {
+    const fedora = resolvePackageList(makeRecipe({ distro: 'fedora', selectedPackages: ['gamepad_drivers'] }));
+    expect(fedora).toContain('linuxconsoletools');
+    expect(fedora).toContain('jstest-gtk');
+    expect(fedora).not.toContain('joystick');
+
+    const opensuse = resolvePackageList(makeRecipe({ distro: 'opensuse', selectedPackages: ['gamepad_drivers'] }));
+    expect(opensuse).toContain('linuxconsoletools');
+    expect(opensuse).not.toContain('joystick');
+    expect(opensuse).not.toContain('jstest-gtk');
+
+    const alpine = resolvePackageList(makeRecipe({ distro: 'alpine', selectedPackages: ['gamepad_drivers'] }));
+    expect(alpine).toContain('linuxconsoletools');
+    expect(alpine).not.toContain('joyutils');
+  });
+
   it('Résout sauvegarde, publication et métriques (restic_rclone, typst_pandoc, prometheus_node_exporter) sur Fedora', () => {
     const pkgs = resolvePackageList(makeRecipe({
       distro: 'fedora',

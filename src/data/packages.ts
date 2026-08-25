@@ -919,14 +919,31 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 30,
     icon: 'Gamepad2',
     tags: ['Manette', 'Driver', 'Gaming', 'USB'],
+    // Bug réel MAJEUR trouvé en auditant, même piège HTTP-200 que K3s/Ollama/OpenTofu/K8s CLI Tools
+    // ci-dessus : PLUSIEURS noms de paquets fictifs sur 5 familles sur 7 (seuls Debian/Ubuntu étaient
+    // entièrement corrects). Confirmé via contenu réel des pages/API JSON, pas juste le code HTTP :
+    // "jstest-gtk" et "xboxdrv" sont ABSENTS des dépôts officiels Arch (archlinux.org/packages/
+    // search/json : "count": 0 pour les deux — AUR uniquement, or ce générateur n'installe jamais de
+    // paquet AUR, même principe que k3s-bin documenté plus haut). "joystick" n'existe PAS sous ce nom
+    // sur Fedora NI openSUSE (packages.fedoraproject.org/pkgs/joystick/joystick/ : 404 ; le vrai
+    // paquet fournissant jstest/jscal sur ces deux familles s'appelle "linuxconsoletools", confirmé
+    // réel sur les deux : packages.fedoraproject.org/pkgs/linuxconsoletools + software.opensuse.org/
+    // package/linuxconsoletools). "jstest-gtk" est également ABSENT des dépôts OFFICIELS openSUSE
+    // (disponible seulement via le home-repo personnel d'un tiers "home:wkazubski", jamais dans la
+    // distribution officielle — retiré ici plutôt que promis à tort). "joyutils" est ABSENT d'Alpine
+    // (pkgs.alpinelinux.org : 404 direct + recherche vide ; le vrai paquet Alpine est également
+    // "linuxconsoletools", confirmé réel dans le dépôt community) ET de Void (aucun répertoire
+    // srcpkgs/joyutils réel, aucun équivalent "linuxconsoletools" trouvé non plus sur Void — retiré
+    // sans repli inventé, bascule honnête sur PKG_NAME_FALLBACK void→alpine déjà établi ailleurs dans
+    // ce fichier). Debian/Ubuntu confirmés entièrement corrects (joystick/jstest-gtk/xboxdrv tous
+    // réels), inchangés.
     pkgNames: {
       debian: 'joystick jstest-gtk xboxdrv',
       ubuntu: 'joystick jstest-gtk xboxdrv',
-      arch: 'joyutils jstest-gtk xboxdrv',
-      alpine: 'joyutils',
-      fedora: 'joystick jstest-gtk',
-      opensuse: 'joystick jstest-gtk',
-      void: 'joyutils',
+      arch: 'joyutils',
+      alpine: 'linuxconsoletools',
+      fedora: 'linuxconsoletools jstest-gtk',
+      opensuse: 'linuxconsoletools',
     },
     appType: 'daemon',
     systemImpact: 'low',
