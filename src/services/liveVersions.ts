@@ -227,6 +227,27 @@ export async function fetchLiveDesktopVersions(): Promise<LiveVersionItem[]> {
     // et github.com/xfce-mirror existent et sont à jour), utilisable via la même API GitHub.
     githubLatestTag('gnome', 'GNOME', 'desktop', 'GNOME/gnome-shell'),
     githubLatestTag('xfce', 'Xfce', 'desktop', 'xfce-mirror/xfce4-session'),
+    // Bug réel trouvé en auditant : Niri, MATE, Budgie et Openbox ont tous été ajoutés au
+    // catalogue de bureaux de ce projet (DesktopEnvironmentId) au fil de cette session, mais
+    // aucun n'avait été ajouté ici — le bouton "Vérifier les dernières versions" les ignorait
+    // silencieusement, contrairement aux bureaux plus anciens du même catalogue. Vérifié en
+    // direct via l'API GitHub Releases (releases/latest, même mécanisme que githubLatestTag()
+    // ci-dessus) avant ajout : YaLTeR/niri renvoie "v26.04" (25/04/2026) ; mate-desktop/
+    // mate-desktop renvoie "v1.29.0" (27/05/2026) ; BuddiesOfBudgie/budgie-desktop renvoie
+    // "v10.10.2" (07/03/2026) ; danakj/openbox (dépôt officiel actuel, mainteneur historique
+    // Dana Jansens) renvoie bien une vraie release GitHub, quoique ancienne (Openbox est
+    // considéré fonctionnellement complet depuis longtemps, peu de nouvelles versions).
+    githubLatestTag('niri', 'Niri', 'desktop', 'YaLTeR/niri'),
+    githubLatestTag('mate', 'MATE', 'desktop', 'mate-desktop/mate-desktop'),
+    githubLatestTag('budgie', 'Budgie', 'desktop', 'BuddiesOfBudgie/budgie-desktop'),
+    githubLatestTag('openbox', 'Openbox', 'desktop', 'danakj/openbox'),
+    // LXDE reste honnêtement hors périmètre : contrairement aux autres bureaux ci-dessus,
+    // "github.com/lxde/lxde" n'existe pas (404 vérifié en direct) — LXDE est éclaté en une
+    // dizaine de sous-projets séparés (lxpanel, pcmanfm, lxde-common, lxsession...), sans dépôt
+    // unifié ni release commune à suivre.
+    Promise.resolve(honestGap('lxde', 'LXDE', 'desktop', 'rolling',
+      'Projet éclaté en une dizaine de sous-dépôts séparés (lxpanel, pcmanfm, lxde-common...), sans release unifiée à suivre.',
+      'https://www.lxde.org/')),
   ]);
   return results;
 }
