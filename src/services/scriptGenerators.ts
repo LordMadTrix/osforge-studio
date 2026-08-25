@@ -774,11 +774,6 @@ function parseAllowedPorts(recipe: OSRecipe): number[] {
   return Array.from(ports).sort((a, b) => a - b);
 }
 
-function sanitizeLuksPassword(pwd?: string): string {
-  if (!pwd) return 'osforge-luks-pass';
-  return pwd.replace(/[\0\r\n\\"$`]/g, '');
-}
-
 function sanitizeGithubUser(user?: string): string {
   if (!user) return '';
   return user.replace(/[^a-zA-Z0-9_-]/g, '');
@@ -2574,6 +2569,34 @@ function generateNonDebianDiskImageScript(
   // mais nlplug-findfs (Alpine) ne sait pas résoudre UUID= dans ce pipeline. Compromis assumé.
   const rootKernelArg = config.diskImageRootIsDevicePath ? '/dev/sda1' : 'UUID=${ROOT_UUID}';
 
+  // Bug réel MAJEUR trouvé en auditant l'implémentation LUKS de Gemini (cryptsetup luksFormat/open
+  // ci-dessous) : "sanitizeLuksPassword" TRONQUE SILENCIEUSEMENT les caractères $ ` " \ du mot de
+  // passe avant de l'utiliser — reproduit en direct (node -e) : un mot de passe plausible et fort
+  // "MyP@ssw0rd$2024!" devient "MyP@ssw0rd2024!" au moment du VRAI chiffrement du disque, sans
+  // aucun avertissement. L'utilisateur qui retape ensuite le mot de passe qu'il croit avoir défini
+  // (avec le "$") au démarrage échoue à déverrouiller son disque — LUKS n'a AUCUNE récupération de
+  // mot de passe, donc perte de données définitive. Second bug dans la même fonction : un mot de
+  // passe vide retombait sur la chaîne CODÉE EN DUR "osforge-luks-pass", visible publiquement dans
+  // ce dépôt open-source sur GitHub — n'importe qui peut lire ce code source et déchiffrer N'IMPORTE
+  // QUELLE image OSForge chiffrée sans mot de passe explicite, rendant le chiffrement entièrement
+  // décoratif dans ce cas. Corrigé en réutilisant "shQuote" (déjà établi ailleurs dans ce fichier
+  // pour ce besoin exact) qui préserve le mot de passe caractère pour caractère au lieu de le
+  // tronquer, et en générant un vrai mot de passe aléatoire (jamais une constante publique) quand
+  // l'utilisateur n'en fournit aucun — affiché en clair dans le script avec un avertissement bien
+  // visible pour qu'il puisse au moins le récupérer, au lieu d'un secret partagé par toutes les
+  // images du monde entier n'ayant jamais défini de mot de passe.
+  const luksPasswordWasGenerated = !recipe.security.luksPassword;
+  const luksPasswordResolved = recipe.security.luksPassword || Array.from(
+    { length: 24 },
+    () => Math.floor(Math.random() * 36).toString(36)
+  ).join('');
+  const luksPasswordQuoted = shQuote(luksPasswordResolved);
+  const luksPasswordWarning = luksPasswordWasGenerated
+    ? `echo -e "\${RED:-}[IMPORTANT] Aucun mot de passe LUKS fourni : un mot de passe ALÉATOIRE a été généré pour ce chiffrement -> ${luksPasswordResolved}\${NC:-}"
+echo -e "\${RED:-}[IMPORTANT] Notez-le MAINTENANT : sans lui, ce disque sera ILLISIBLE (aucune récupération possible).\${NC:-}"
+`
+    : '';
+
   const diskConversionStep = needsConversion ? `
 echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"
 qemu-img convert -O ${diskTarget.qemuFormat}${diskTarget.qemuFormat === 'qcow2' ? ' -o compat=1.1' : ''} "\${OUTPUT_DIR}/${rawImageName}" "\${OUTPUT_DIR}/${diskImageName}"
@@ -2731,8 +2754,8 @@ LOOPDEV=$(losetup -f)
 losetup -P "\${LOOPDEV}" "\${RAW_IMG}"
 ${recipe.security.luksEncryption ? `
 # Chiffrement intégral LUKS2 de la partition racine
-echo -n "${sanitizeLuksPassword(recipe.security.luksPassword)}" | cryptsetup luksFormat --type luks2 --batch-mode -d - "\${LOOPDEV}p1"
-echo -n "${sanitizeLuksPassword(recipe.security.luksPassword)}" | cryptsetup open --type luks2 -d - "\${LOOPDEV}p1" cryptroot
+${luksPasswordWarning}echo -n ${luksPasswordQuoted} | cryptsetup luksFormat --type luks2 --batch-mode -d - "\${LOOPDEV}p1"
+echo -n ${luksPasswordQuoted} | cryptsetup open --type luks2 -d - "\${LOOPDEV}p1" cryptroot
 mkfs.ext4 -F "/dev/mapper/cryptroot"
 mount "/dev/mapper/cryptroot" "\${MNT_DIR}"
 ` : `mkfs.ext4 -F "\${LOOPDEV}p1"

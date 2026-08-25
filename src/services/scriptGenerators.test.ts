@@ -3203,6 +3203,53 @@ describe('Chantier 1 : Chiffrement intégral LUKS2 sur images disques (qcow2/raw
     expect(script).toContain('cryptsetup close cryptroot');
   });
 
+  it('bug réel MAJEUR trouvé en auditant l\'implémentation LUKS de Gemini : un mot de passe contenant $ ` " \\ (plausible et fort, ex. "MyP@ssw0rd$2024!\\`") n\'est plus tronqué avant chiffrement — reproduit en direct : la version précédente ("sanitizeLuksPassword") retirait silencieusement ces caractères, verrouillant l\'utilisateur hors de son propre disque (LUKS n\'a aucune récupération). Le mot de passe doit maintenant apparaître IDENTIQUE (via shQuote) aux DEUX appels cryptsetup (format ET open, sinon ils ne matchent plus)', () => {
+    const trickyPassword = 'MyP@ssw0rd$2024!`quote\'d"back\\slash';
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      security: {
+        luksEncryption: true,
+        luksPassword: trickyPassword,
+        firewall: 'none',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    // shQuote() enferme la valeur entre apostrophes en échappant seulement les apostrophes internes
+    // (' -> '\'') : c'est la forme shell exacte à chercher, pas le mot de passe brut tel quel.
+    const expectedQuoted = `'${trickyPassword.replace(/'/g, `'\\''`)}'`;
+    const formatCount = script.split(`echo -n ${expectedQuoted} | cryptsetup luksFormat`).length - 1;
+    const openCount = script.split(`echo -n ${expectedQuoted} | cryptsetup open`).length - 1;
+    expect(formatCount).toBe(1);
+    expect(openCount).toBe(1);
+    // Non-régression explicite : l'ancien bug remplaçait silencieusement "$2024!`" par "2024!" (sans $ ni backtick).
+    expect(script).not.toContain('MyP@ssw0rd2024!quote');
+  });
+
+  it('bug réel trouvé en auditant : un mot de passe LUKS vide ne retombe plus sur la constante publique codée en dur "osforge-luks-pass" (visible sur GitHub, déchiffrerait N\'IMPORTE QUELLE image sans mot de passe explicite) — un vrai mot de passe aléatoire est généré et affiché avec un avertissement dans le script', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      security: {
+        luksEncryption: true,
+        luksPassword: '',
+        firewall: 'none',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(script).not.toContain('osforge-luks-pass');
+    expect(script).toContain('[IMPORTANT]');
+    expect(script).toContain('mot de passe ALÉATOIRE');
+  });
+
   it('Image disque sans LUKS2 utilise un formatage standard ext4 direct', () => {
     const script = generateBuildScript(makeRecipe({
       distro: 'arch',
