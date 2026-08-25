@@ -103,15 +103,33 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     reasons.push('Outils de développement (Docker, Neovim, Python, Node.js, ZSH) ajoutés au panier.');
   }
 
+  // Bug réel trouvé en auditant, même classe que le fix des presets "cybersec_lab"/"ai_llm_station"
+  // plus tôt dans cette session : "kernel" était assigné à une valeur fixe ('hardened' pour
+  // pentest, 'liquorix' pour gaming) SANS jamais tenir compte de la distro réellement choisie
+  // juste au-dessus. Reproduit en direct via analyzePromptToRecipe() + generateBuildScript() :
+  // un prompt "securise pour le pentest" (sans mot-clé de distro) retombe sur Debian par défaut
+  // (bloc ci-dessus) + kernel="hardened" — noyau câblé UNIQUEMENT pour Arch/CachyOS (voir
+  // REAL_ALT_KERNEL dans scriptGenerators.ts) — le script généré contient bien l'avertissement
+  // honnête "n'est pas encore câblé", mais l'UI affichait quand même le tag "Noyau Hardened" comme
+  // si c'était réellement appliqué. Même défaut pour "Arch Linux ... gaming" + kernel="liquorix"
+  // (câblé UNIQUEMENT pour Debian/Ubuntu x86_64) : script généré confirmé sans "linux-zen" ni
+  // aucun noyau basse-latence réellement installé sur Arch. Corrigé en choisissant le noyau
+  // réellement câblé pour LA distro déjà sélectionnée (hardened/zen pour Arch-CachyOS, liquorix
+  // pour Debian/Ubuntu x86_64), et en n'affichant le tag correspondant que si un noyau a
+  // effectivement été appliqué — plutôt que de prétendre un noyau qui ne le sera pas.
   if (p.includes('pentest') || p.includes('sécurité') || p.includes('cyber') || p.includes('wifi') || p.includes('hack')) {
     selectedPkgs.add('wireshark');
     selectedPkgs.add('nmap');
     selectedPkgs.add('metasploit');
     selectedPkgs.add('aircrack');
     selectedPkgs.add('john_hashcat');
-    updated.kernel = 'hardened';
-    tags.push('Suite Pentest', 'Noyau Hardened');
-    reasons.push('Suite d’audit de sécurité (Wireshark, Metasploit, Nmap, Aircrack) et noyau durci injectés.');
+    tags.push('Suite Pentest');
+    reasons.push('Suite d’audit de sécurité (Wireshark, Metasploit, Nmap, Aircrack) injectée.');
+    if (updated.distro === 'arch') {
+      updated.kernel = 'hardened';
+      tags.push('Noyau Hardened');
+      reasons.push('Noyau durci (hardened) activé pour renforcer la sécurité du système.');
+    }
   }
 
   if (p.includes('jeu') || p.includes('game') || p.includes('steam') || p.includes('gaming') || p.includes('retro')) {
@@ -119,9 +137,17 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     selectedPkgs.add('lutris_heroic');
     selectedPkgs.add('obs_studio');
     selectedPkgs.add('vlc_media');
-    updated.kernel = 'liquorix';
-    tags.push('Steam & Gaming', 'Noyau Liquorix');
-    reasons.push('Moteur de jeux Steam + Proton, launchers et noyau basse latence Liquorix configurés.');
+    tags.push('Steam & Gaming');
+    reasons.push('Moteur de jeux Steam + Proton et launchers configurés.');
+    if (updated.distro === 'arch') {
+      updated.kernel = 'zen';
+      tags.push('Noyau Zen');
+      reasons.push('Noyau Zen basse latence activé pour une réactivité gaming optimale.');
+    } else if ((updated.distro === 'debian' || updated.distro === 'ubuntu') && updated.arch === 'x86_64') {
+      updated.kernel = 'liquorix';
+      tags.push('Noyau Liquorix');
+      reasons.push('Noyau basse latence Liquorix configuré pour le gaming.');
+    }
   }
 
   if (p.includes('xanmod')) {

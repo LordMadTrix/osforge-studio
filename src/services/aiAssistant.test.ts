@@ -39,3 +39,45 @@ describe('analyzePromptToRecipe — bug réel trouvé en auditant : le champ "co
     expect(a.suggestedTags).not.toEqual(b.suggestedTags);
   });
 });
+
+describe('analyzePromptToRecipe — bug réel trouvé en auditant, même classe que le fix des presets "cybersec_lab"/"ai_llm_station" (kernel promis dans l\'UI mais jamais réellement câblé pour la distro résultante) : "kernel" était assigné à une valeur fixe ("hardened" pour pentest, "liquorix" pour gaming) SANS jamais tenir compte de la distro réellement choisie par le reste de la fonction. Vérifié en direct via generateBuildScript() : un prompt "securise pour le pentest" sans mot-clé de distro retombait sur Debian (kernel="hardened", câblé UNIQUEMENT pour Arch/CachyOS) — le script généré contenait bien l\'avertissement honnête "n\'est pas encore câblé", mais le tag UI "Noyau Hardened" affirmait le contraire. Corrigé en choisissant le noyau réellement câblé pour LA distro déjà sélectionnée', () => {
+  it('pentest SANS mot-clé de distro (retombe sur Debian) : kernel reste "generic", PAS de tag "Noyau Hardened" mensonger', () => {
+    const result = analyzePromptToRecipe('je veux un OS securise pour le pentest et le hack wifi', makeRecipe());
+    expect(result.recipe.distro).toBe('debian');
+    expect(result.recipe.kernel).toBe('generic');
+    expect(result.suggestedTags).not.toContain('Noyau Hardened');
+  });
+
+  it('pentest + Arch : kernel="hardened" (réellement câblé pour Arch), tag "Noyau Hardened" honnête', () => {
+    const result = analyzePromptToRecipe('Arch Linux pacman securise pour le pentest', makeRecipe());
+    expect(result.recipe.distro).toBe('arch');
+    expect(result.recipe.kernel).toBe('hardened');
+    expect(result.suggestedTags).toContain('Noyau Hardened');
+  });
+
+  it('gaming + Arch : kernel="zen" (réellement câblé pour Arch, PAS "liquorix" qui ne l\'est pas), tag "Noyau Zen"', () => {
+    const result = analyzePromptToRecipe('Arch Linux rolling pacman ideal pour le gaming steam', makeRecipe());
+    expect(result.recipe.distro).toBe('arch');
+    expect(result.recipe.kernel).toBe('zen');
+    expect(result.suggestedTags).toContain('Noyau Zen');
+    expect(result.suggestedTags).not.toContain('Noyau Liquorix');
+  });
+
+  it('gaming + Ubuntu (x86_64) : kernel="liquorix" (réellement câblé pour Ubuntu x86_64), tag "Noyau Liquorix"', () => {
+    const result = analyzePromptToRecipe('Ubuntu canonical pour du gaming steam', makeRecipe());
+    expect(result.recipe.distro).toBe('ubuntu');
+    expect(result.recipe.kernel).toBe('liquorix');
+    expect(result.suggestedTags).toContain('Noyau Liquorix');
+  });
+
+  it('gaming (retro) + Raspberry Pi (aarch64, hors périmètre liquorix/zen) : kernel reste "generic", aucun tag de noyau mensonger', () => {
+    // "gaming"/"steam" font partie des mots-clés qui sélectionnent Ubuntu dans la chaîne de
+    // sélection de distro existante (comportement préexistant, non modifié ici) — "retro" seul
+    // déclenche le bloc paquets gaming (ligne ~117) sans influencer la sélection de distro.
+    const result = analyzePromptToRecipe('Raspberry Pi rpi retro sbc', makeRecipe());
+    expect(result.recipe.distro).toBe('raspbian');
+    expect(result.recipe.kernel).toBe('generic');
+    expect(result.suggestedTags).not.toContain('Noyau Liquorix');
+    expect(result.suggestedTags).not.toContain('Noyau Zen');
+  });
+});
