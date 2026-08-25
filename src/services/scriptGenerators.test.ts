@@ -1174,6 +1174,15 @@ describe('generateBuildScript — "/etc/os-release" réellement personnalisé (b
     const script = generateBuildScript(makeRecipe({ distro, outputFormat: format as any }));
     expect(script).toContain(`ID_LIKE=${expectedIdLike}`);
   });
+
+  it('bug réel MAJEUR trouvé en auditant : un osName avec guillemet double injectait une commande shell dans /etc/os-release, un fichier COURAMMENT sourcé comme du shell par des outils système réels ("source /etc/os-release" — neofetch, screenfetch, scripts de détection de distribution) sur la machine finie livrée à l\'utilisateur, pas seulement pendant la compilation. Reproduit par une VRAIE EXÉCUTION bash ("source" sur un /etc/os-release contenant PRETTY_NAME="Evil"; touch /tmp/preuve; echo "..." exécute réellement la commande injectée). Corrigé avec shDoubleQuoteEscape() (backslash puis guillemet, préserve le texte affiché contrairement à un titre GRUB qui peut se permettre d\'être tronqué)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'Evil"; touch /tmp/preuve; echo "', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' } as any,
+    }));
+    expect(script).toContain('NAME="Evil\\"; touch /tmp/preuve; echo \\""');
+    expect(script).not.toContain('NAME="Evil"; touch /tmp/preuve; echo ""');
+  });
 });
 
 describe('resolvePackageList — le paquet du shell choisi (zsh/fish) est réellement installé (bug MAJEUR trouvé : "useradd -s /bin/zsh" fixait le shell SANS installer le paquet, cassant la connexion au compte dès le premier login puisque bash/sh sont dans le système de base mais pas zsh/fish)', () => {

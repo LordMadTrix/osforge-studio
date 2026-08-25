@@ -404,14 +404,30 @@ ${serviceEnableCmd('nftables', family)}`;
 // l'utilisateur, malgré tout le travail de branding dans l'UI. "ID_LIKE" préserve la vraie famille
 // sous-jacente (convention suivie par Ubuntu/Pop!_OS elles-mêmes) pour ne pas casser les outils qui
 // détectent le gestionnaire de paquets réel via ce champ.
+// Bug réel MAJEUR trouvé en auditant, même famille que les injections "osName" déjà corrigées ce
+// cycle mais avec une portée différente : ce heredoc est protégé ("<< 'OSREL_EOF'", pas
+// d'injection shell pendant la COMPILATION), mais /etc/os-release est un fichier standard que de
+// nombreux outils système sourcent DIRECTEMENT comme du shell sur la machine FINIE ("source
+// /etc/os-release", pratique documentée et courante — neofetch, screenfetch, plusieurs scripts de
+// détection de distribution). Reproduit en direct : "source" sur un /etc/os-release contenant
+// PRETTY_NAME="Evil"; touch /tmp/preuve; echo "..." exécute réellement la commande injectée —
+// contrairement aux autres correctifs de ce cycle, celui-ci concerne le système LIVRÉ à
+// l'utilisateur, pas seulement le script de build. Corrigé par un échappement double-guillemet
+// standard (backslash puis guillemet), qui préserve le texte affiché plutôt que de le tronquer
+// (PRETTY_NAME/NAME sont montrés tels quels par hostnamectl/neofetch, contrairement à un
+// kernelCmdline ou un titre de menu de boot).
+function shDoubleQuoteEscape(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 function osReleaseCmd(recipe: OSRecipe, baseId: string): string {
   const safeId = recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'osforge';
   const prettyName = `${recipe.branding.osName} ${recipe.branding.editionName}`.trim();
   return `cat > /etc/os-release << 'OSREL_EOF'
-PRETTY_NAME="${prettyName}"
-NAME="${recipe.branding.osName}"
-VERSION="${recipe.branding.version} (${recipe.branding.editionName})"
-VERSION_ID="${recipe.branding.version}"
+PRETTY_NAME="${shDoubleQuoteEscape(prettyName)}"
+NAME="${shDoubleQuoteEscape(recipe.branding.osName)}"
+VERSION="${shDoubleQuoteEscape(recipe.branding.version)} (${shDoubleQuoteEscape(recipe.branding.editionName)})"
+VERSION_ID="${shDoubleQuoteEscape(recipe.branding.version)}"
 ID=${safeId}
 ID_LIKE=${baseId}
 BUILD_ID=osforge-studio
