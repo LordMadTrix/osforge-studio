@@ -2435,6 +2435,11 @@ describe('resolvePackageList — bureau Niri : deux bugs réels distincts trouv�
       expect(pkgs).toContain('niri');
     }
   });
+
+  it('openSUSE : extension "1 à 1", installe désormais "niri" et ses 4 paquets compagnons (waybar/alacritty/fuzzel/mako), tous confirmés réels dans le dépôt OSS officiel de Tumbleweed (contrairement à Deepin, jamais câblé pour openSUSE car officiellement retiré des dépôts pour raisons de sécurité en mai 2025)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'niri', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['niri', 'waybar', 'alacritty', 'fuzzel', 'mako']));
+  });
 });
 
 describe('generateCloudInitYaml — bug réel trouvé en auditant : "enableFlatpak" installait bien le paquet "flatpak" (via resolvePackageList, partagé par tous les générateurs), mais n\'ajoutait jamais le dépôt distant Flathub dans ce manifeste — contrairement à flatpakSetupCmd(), déjà câblé dans les 4 générateurs bash. Une image cloud-init avec Flatpak coché installait donc le paquet sans aucun dépôt configuré : "flatpak install <app>" y échouait avec "no remotes configured"', () => {

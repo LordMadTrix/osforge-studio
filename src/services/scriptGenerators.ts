@@ -1015,6 +1015,16 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // une absence légitime mais un oubli : les autres familles qui ont "niri" (Arch/Fedora/
       // Alpine) l'incluent toutes en premier dans leur liste, seul Void avait perdu la ligne.
       pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      // Extension "1 à 1" : Niri était câblé pour Arch/Fedora/Alpine/Void mais pas openSUSE.
+      // Vérifié en direct via le dépôt OSS OFFICIEL de Tumbleweed (download.opensuse.org/
+      // tumbleweed/repo/oss/x86_64/, listing HTTP réel, pas le service de build communautaire
+      // utilisé par erreur pour Deepin plus haut dans ce fichier — Deepin a d'ailleurs été
+      // officiellement RETIRÉ d'openSUSE en mai 2025 pour raisons de sécurité, contrairement à
+      // Niri qui y est réellement empaqueté) : "niri-26.04-1.4.x86_64.rpm" présent, ainsi que ses
+      // 4 paquets compagnons "waybar"/"alacritty"/"fuzzel"/"mako" (tous confirmés réels dans ce
+      // même dépôt officiel).
+      pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
     }
   }
 
