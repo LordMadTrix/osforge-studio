@@ -1290,6 +1290,16 @@ describe('generateBuildScript — familles sans noyau câblé : avertissement ho
     expect(script).toContain("n'a pas de paquet officiel dnf");
     expect(script).not.toContain('kernel-longterm');
   });
+
+  it('CachyOS : affiche un avertissement honnête indiquant que le vrai dépôt CachyOS n\'est pas configuré (bug réel trouvé en auditant : choisir "CachyOS" comme distribution de base produisait un système strictement identique à "Arch Linux", sans aucun indice pour l\'utilisateur — le paramètre "distroId" du bootstrapBlock Arch était explicitement ignoré, préfixé "_distroId")', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'cachyos', outputFormat: 'raw_img', kernel: 'generic' }));
+    expect(script).toContain("Le dépôt officiel CachyOS n'est pas encore configuré");
+  });
+
+  it('Arch Linux (plain) : aucun avertissement CachyOS (non-régression, comportement inchangé)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'generic' }));
+    expect(script).not.toContain('CachyOS');
+  });
 });
 
 describe('generateBuildScript — noyau "lts" réellement câblé pour Fedora via un vrai dépôt COPR (kwizart/kernel-longterm-6.18, vérifié en direct : projet actif, chroot fedora-44-x86_64, clé GPG et repodata/primary.xml accessibles, paquet "kernel-longterm" confirmé présent)', () => {

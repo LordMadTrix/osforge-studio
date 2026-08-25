@@ -933,10 +933,26 @@ const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyConfig> =
   arch: {
     hostDeps: 'arch-install-scripts pacman-package-manager',
     hostCheckCmd: 'pacstrap',
-    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => {
+    bootstrapBlock: (distroId, _arch, isDiskImage, kernelType) => {
       const kernelPkg = ARCH_KERNEL_PACKAGE[kernelType] || 'linux';
       const fallbackNotice = ARCH_KERNEL_FALLBACK_NOTICE[kernelType];
-      return `mkdir -p "\${WORK_DIR}/pacman.d"
+      // Bug réel trouvé en auditant : choisir "CachyOS" comme distribution de base (pas seulement
+      // comme type de noyau) produisait un système strictement IDENTIQUE à "Arch Linux" — ce bloc
+      // n'utilise QUE le dépôt officiel Arch (geo.mirror.pkgbuild.com), jamais le vrai dépôt
+      // CachyOS. Sans avertissement, un utilisateur choisissant "CachyOS" avec le noyau par défaut
+      // ("generic") n'avait AUCUN indice que rien de spécifique à CachyOS (paquets compilés
+      // x86-64-v3/v4, ordonnanceur BORE, etc. — promis par la fiche de la distro dans l'UI)
+      // n'était réellement présent. Câblage du vrai dépôt CachyOS volontairement hors périmètre
+      // pour cette itération : le script officiel d'installation (github.com/CachyOS/
+      // cachyos-repo-add-script) dépend d'URLs de paquets bootstrap à version figée (donc
+      // périmables), d'une clé récupérée via un keyserver (déjà identifié comme point de
+      // fragilité réseau ailleurs dans ce fichier, pour XanMod) et d'une détection du niveau ISA
+      // du processeur (x86-64-v3/v4/znver4/znver5) — plus large qu'un correctif ponctuel.
+      const cachyosNotice = distroId === 'cachyos'
+        ? `echo -e "\${YELLOW}[INFO] Le dépôt officiel CachyOS n'est pas encore configuré par ce générateur : paquets Arch Linux standards utilisés à la place (aucun paquet compilé x86-64-v3/v4, pas d'ordonnanceur BORE spécifique).\${NC}"
+`
+        : '';
+      return `${cachyosNotice}mkdir -p "\${WORK_DIR}/pacman.d"
 cat > "\${WORK_DIR}/pacman.d/mirrorlist" << 'ARCH_MIRROR_EOF'
 Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 ARCH_MIRROR_EOF
