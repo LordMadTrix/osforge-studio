@@ -64,11 +64,21 @@ export const DISTRO_PRESETS: DistroPreset[] = [
   {
     id: 'cybersec_lab',
     title: 'CyberSec & RedTeam Lab',
-    subtitle: 'Debian 12 + XFCE + Pentest Suite + Hardened Kernel',
+    // Bug réel trouvé en auditant, même classe que les 2 presets Arch corrigés juste avant : ce
+    // preset annonçait "Hardened Kernel" (sous-titre ET highlight) alors que "hardened" n'est
+    // câblé QUE pour Arch/CachyOS dans ce générateur (vérifié en direct en générant le script réel
+    // de ce preset : message de repli honnête "[INFO] Le noyau \"hardened\" n'est pas encore câblé
+    // pour debian (APT) : linux-image-amd64 [...] utilisé à la place"). Le preset est un LABORATOIRE
+    // DE SÉCURITÉ — promettre un noyau durci qu'il n'installe pas réellement est particulièrement
+    // trompeur ici. Remplacé par "generic" et par les protections RÉELLEMENT câblées et déjà
+    // présentes dans ce même preset (cisBenchmarkLevel: 2, appArmorOrSELinux, fail2ban,
+    // luksEncryption — voir security ci-dessous, tous vérifiés ailleurs dans ce projet), qui
+    // offrent un durcissement de sécurité authentique sans rien inventer.
+    subtitle: 'Debian 12 + XFCE + Pentest Suite + Durcissement CIS Niveau 2',
     description: 'Système d’audit de sécurité complet avec suite de sniffing, scan réseau, frameworks d’exploitation et audit sans fil préconfigurés.',
     icon: 'ShieldAlert',
     category: 'Security',
-    highlights: ['Wireshark + Tshark', 'Metasploit Framework', 'Aircrack-ng + Nmap', 'Noyau Hardened'],
+    highlights: ['Wireshark + Tshark', 'Metasploit Framework', 'Aircrack-ng + Nmap', 'CIS Niveau 2 + AppArmor + LUKS'],
     estimatedSize: '1.8 Go',
     estimatedRam: '510 Mo',
     recipe: {
@@ -80,7 +90,7 @@ export const DISTRO_PRESETS: DistroPreset[] = [
       outputFormat: 'iso_hybrid',
       desktop: 'xfce',
       displayManager: 'lightdm',
-      kernel: 'hardened',
+      kernel: 'generic',
       selectedPackages: ['wireshark', 'nmap', 'metasploit', 'aircrack', 'john_hashcat', 'git', 'htop_btop', 'fastfetch'],
       customPackages: ['sqlmap', 'nikto', 'hydra', 'netcat-openbsd'],
       hostname: 'cyber-lab',
@@ -389,7 +399,12 @@ export const DISTRO_PRESETS: DistroPreset[] = [
     description: 'Nœud serveur durci prêt pour la production Kubernetes ou Docker. Durcissement CIS Benchmark Niveau 2, pare-feu nftables et swap zRAM actif.',
     icon: 'ShieldCheck',
     category: 'Server',
-    highlights: ['Durcissement CIS Benchmark L2', 'zRAM Swap compressé ZSTD', 'Pare-feu strict nftables', 'K3s & Podman intégrés'],
+    // Bug réel trouvé en auditant : le highlight annonçait "Podman" alors que selectedPackages
+    // ci-dessous n'installe que "docker" (pas "podman") — cohérent avec la propre "description"
+    // de ce preset juste au-dessus ("prêt pour la production Kubernetes ou Docker"), qui elle
+    // mentionne bien Docker. Corrigé pour que le highlight corresponde à ce qui est réellement
+    // installé plutôt que d'ajouter un second moteur de conteneurs non demandé.
+    highlights: ['Durcissement CIS Benchmark L2', 'zRAM Swap compressé ZSTD', 'Pare-feu strict nftables', 'K3s & Docker intégrés'],
     estimatedSize: '820 Mo',
     estimatedRam: '240 Mo',
     recipe: {
@@ -401,7 +416,14 @@ export const DISTRO_PRESETS: DistroPreset[] = [
       outputFormat: 'qcow2',
       desktop: 'none',
       displayManager: 'none',
-      kernel: 'hardened',
+      // Bug réel trouvé en auditant, même classe que "cybersec_lab" : "hardened" n'est câblé QUE
+      // pour Arch/CachyOS dans ce générateur (déjà vérifié en direct) — sur Debian, ce choix
+      // retombe silencieusement sur le noyau générique avec un simple message dans la console de
+      // build, jamais visible dans l'UI. Aucun highlight de CE preset ne promet explicitement un
+      // "noyau durci" (ils parlent de CIS/zRAM/nftables, tous réellement câblés) : corrigé pour
+      // que le champ recipe corresponde à ce qui est honnêtement délivré, plutôt que de laisser un
+      // réglage qui ne fait rien.
+      kernel: 'generic',
       enableFlatpak: false,
       enableZram: true,
       selectedPackages: ['k3s', 'wireguard', 'docker', 'htop_btop', 'fastfetch'],

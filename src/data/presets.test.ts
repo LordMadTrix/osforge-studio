@@ -52,3 +52,33 @@ describe('DISTRO_PRESETS — bug réel MAJEUR trouvé en auditant : 2 presets ("
     expect(script).not.toContain('xanmod');
   });
 });
+
+describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe que "devops_hyprland"/"ai_llm_station" : "cybersec_lab" et "cloud_native_homelab" utilisaient kernel="hardened" — câblé UNIQUEMENT pour Arch/CachyOS dans ce générateur, jamais pour Debian. Sur Debian, ce choix retombe silencieusement sur le noyau générique avec un simple message dans la console de build (jamais visible dans l\'UI). "cybersec_lab" est un laboratoire de sécurité qui annonçait explicitement "Hardened Kernel" en sous-titre et en highlight — particulièrement trompeur pour un preset à vocation sécuritaire. "cloud_native_homelab" avait un second bug distinct : son highlight promettait "Podman" alors que seul "docker" est dans selectedPackages (cohérent avec sa propre description qui mentionne bien Docker)', () => {
+  it('cybersec_lab : utilise kernel="generic" (pas "hardened", non câblé pour Debian) et n\'annonce plus de noyau durci inexistant', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'cybersec_lab')!;
+    expect(preset.recipe.kernel).toBe('generic');
+    expect(preset.subtitle).not.toMatch(/hardened kernel/i);
+    expect(preset.highlights.join(' ')).not.toMatch(/noyau hardened/i);
+    const script = generateBuildScript(recipeFromPreset(preset.recipe));
+    expect(script).not.toContain("n'est pas encore câblé");
+  });
+
+  it('cloud_native_homelab : utilise kernel="generic" et son highlight annonce "Docker" (ce qui est réellement dans selectedPackages), pas "Podman"', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'cloud_native_homelab')!;
+    expect(preset.recipe.kernel).toBe('generic');
+    expect(preset.recipe.selectedPackages).toContain('docker');
+    expect(preset.recipe.selectedPackages).not.toContain('podman');
+    expect(preset.highlights.join(' ')).toContain('Docker');
+    expect(preset.highlights.join(' ')).not.toContain('Podman');
+    const script = generateBuildScript(recipeFromPreset(preset.recipe));
+    expect(script).not.toContain("n'est pas encore câblé");
+  });
+
+  it('retro_gaming_box et pro_audio_studio : non-régression, leurs noyaux liquorix/realtime restent réellement câblés pour Ubuntu (déjà vérifié ailleurs), pas de faux avertissement', () => {
+    for (const id of ['retro_gaming_box', 'pro_audio_studio']) {
+      const preset = DISTRO_PRESETS.find(p => p.id === id)!;
+      const script = generateBuildScript(recipeFromPreset(preset.recipe));
+      expect(script, id).not.toContain("n'est pas encore câblé");
+    }
+  });
+});
