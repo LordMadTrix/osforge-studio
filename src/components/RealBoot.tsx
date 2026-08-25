@@ -476,7 +476,22 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   const injectFileIntoVm = (filename: string, content: string) => {
     const cleanFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const safeContent = content.replace(/\r\n/g, '\n');
-    sendStringToEmulator(`cat << 'INJECT_EOF' > /tmp/${cleanFilename}\n${safeContent}\nINJECT_EOF\nchmod +x /tmp/${cleanFilename} 2>/dev/null || true\n`);
+    // Bug réel (mineur) trouvé en auditant : le nom de terminateur "INJECT_EOF" était fixe — un
+    // fichier injecté qui contient lui-même une ligne strictement égale à "INJECT_EOF" (plausible
+    // pour un script utilisant lui-même des heredocs, ou généré par un outil similaire) referme le
+    // heredoc prématurément, et le reste du "contenu du fichier" est exécuté comme de vraies
+    // commandes shell dans la VM invitée au lieu d'être écrit tel quel dans le fichier cible.
+    // Sévérité faible (VM sandbox jetable propre à l'utilisateur, pas une frontière de sécurité
+    // réelle), mais casse la promesse de la fonctionnalité ("Injecter Fichier" doit écrire le
+    // contenu fidèlement). Corrigé en tirant un terminateur aléatoire par appel et en le
+    // re-tirant tant qu'il apparaît comme ligne du contenu (collision pratiquement impossible en
+    // un seul tirage, mais vérifiée plutôt que supposée).
+    let terminator = `INJECT_EOF_${Math.random().toString(36).slice(2, 10)}`;
+    const contentLines = new Set(safeContent.split('\n'));
+    while (contentLines.has(terminator)) {
+      terminator = `INJECT_EOF_${Math.random().toString(36).slice(2, 10)}`;
+    }
+    sendStringToEmulator(`cat << '${terminator}' > /tmp/${cleanFilename}\n${safeContent}\n${terminator}\nchmod +x /tmp/${cleanFilename} 2>/dev/null || true\n`);
     setFileNotice(lang === 'fr' ? `✅ Fichier /tmp/${cleanFilename} créé et prêt !` : `✅ File /tmp/${cleanFilename} created!`);
     setTimeout(() => setFileNotice(null), 3500);
     serialRef.current?.focus();
