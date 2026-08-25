@@ -80,4 +80,26 @@ describe('analyzePromptToRecipe — bug réel trouvé en auditant, même classe 
     expect(result.suggestedTags).not.toContain('Noyau Liquorix');
     expect(result.suggestedTags).not.toContain('Noyau Zen');
   });
+
+  it('bug réel trouvé dans le même audit : "xanmod" (câblé UNIQUEMENT pour Debian/Ubuntu x86_64) sur Fedora ne produit plus de kernel="xanmod" ni de tag mensonger', () => {
+    const result = analyzePromptToRecipe('Fedora redhat avec noyau xanmod', makeRecipe());
+    expect(result.recipe.distro).toBe('fedora');
+    expect(result.recipe.kernel).toBe('generic');
+    expect(result.suggestedTags).not.toContain('Noyau XanMod');
+  });
+
+  it('bug réel trouvé dans le même audit : "xanmod" combiné à "gaming" sur Arch n\'écrase plus "zen" (le vrai choix câblé) — un seul tag de noyau cohérent, pas deux contradictoires', () => {
+    const result = analyzePromptToRecipe('Arch pacman gaming steam xanmod', makeRecipe());
+    expect(result.recipe.distro).toBe('arch');
+    expect(result.recipe.kernel).toBe('zen');
+    expect(result.suggestedTags).toContain('Noyau Zen');
+    expect(result.suggestedTags).not.toContain('Noyau XanMod');
+  });
+
+  it('"xanmod" seul sur Debian (compatible) : fonctionne normalement, non-régression', () => {
+    const result = analyzePromptToRecipe('Debian avec noyau xanmod', makeRecipe());
+    expect(result.recipe.distro).toBe('debian');
+    expect(result.recipe.kernel).toBe('xanmod');
+    expect(result.suggestedTags).toContain('Noyau XanMod');
+  });
 });

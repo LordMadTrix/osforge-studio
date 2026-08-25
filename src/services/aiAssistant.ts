@@ -150,7 +150,15 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     }
   }
 
-  if (p.includes('xanmod')) {
+  // Bug réel trouvé dans le même audit que le fix hardened/liquorix ci-dessus : "xanmod" était
+  // appliqué SANS tenir compte ni de la distro (câblé UNIQUEMENT pour Debian/Ubuntu x86_64, voir
+  // isXanmodEligible dans scriptGenerators.ts — "Fedora ... xanmod" produisait kernel="xanmod" non
+  // câblé) ni d'un kernel déjà choisi par les blocs précédents : "Arch ... gaming ... xanmod"
+  // écrasait silencieusement "zen" (le vrai choix câblé pour Arch) par "xanmod", tout en laissant
+  // les DEUX tags "Noyau Zen" ET "Noyau XanMod" affichés ensemble dans l'UI — contradictoire et
+  // trompeur. Corrigé en ne l'appliquant que sur une cible compatible ET si aucun kernel plus
+  // spécifique n'a déjà été retenu.
+  if (p.includes('xanmod') && (updated.distro === 'debian' || updated.distro === 'ubuntu') && updated.arch === 'x86_64' && (!updated.kernel || updated.kernel === 'generic')) {
     updated.kernel = 'xanmod';
     tags.push('Noyau XanMod');
     reasons.push('Noyau ultra-performance XanMod configuré.');
