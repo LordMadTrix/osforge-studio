@@ -2179,3 +2179,60 @@ describe('Ligne de commande noyau personnalisée (kernelCmdline) — injection G
   });
 });
 
+describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, MAO, DevOps, Sécurité, CLI Rust)', () => {
+  it('Résout les paquets IA locale (ollama_ai, python_ai_data) sur Arch Linux', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'arch',
+      selectedPackages: ['ollama_ai', 'python_ai_data'],
+    }));
+    expect(pkgs).toContain('ollama');
+    expect(pkgs).toContain('python-numpy');
+    expect(pkgs).toContain('jupyterlab');
+  });
+
+  it('Résout les paquets Studio MAO (ardour_daw, audacity) sur Debian/Ubuntu', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'debian',
+      selectedPackages: ['ardour_daw', 'audacity'],
+    }));
+    expect(pkgs).toContain('ardour');
+    expect(pkgs).toContain('qjackctl');
+    expect(pkgs).toContain('audacity');
+  });
+
+  it('Résout les paquets DevOps & IaC (ansible, opentofu_terraform, k8s_cli_tools) sur Fedora', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'fedora',
+      selectedPackages: ['ansible', 'opentofu_terraform', 'k8s_cli_tools'],
+    }));
+    expect(pkgs).toContain('ansible');
+    expect(pkgs).toContain('opentofu');
+    expect(pkgs).toContain('kubernetes-client');
+    expect(pkgs).toContain('helm');
+  });
+
+  it('Résout les paquets Sécurité & Vie privée (keepassxc, tor_privoxy) sur Alpine', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'alpine',
+      selectedPackages: ['keepassxc', 'tor_privoxy'],
+    }));
+    expect(pkgs).toContain('keepassxc');
+    expect(pkgs).toContain('tor');
+    expect(pkgs).toContain('privoxy');
+  });
+
+  it('Résout les outils modernes CLI Rust (cli_modern_tools, tmux_zellij) sur Arch Linux', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'arch',
+      selectedPackages: ['cli_modern_tools', 'tmux_zellij'],
+    }));
+    expect(pkgs).toContain('bat');
+    expect(pkgs).toContain('eza');
+    expect(pkgs).toContain('du-dust');
+    expect(pkgs).toContain('ripgrep');
+    expect(pkgs).toContain('zellij');
+    expect(pkgs).toContain('tmux');
+  });
+});
+
+

@@ -148,13 +148,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 31 commits poussés sur `main`, tous avec CI + Pages verts.
-- Suite de tests : 412 tests, tous verts.
+- 32 commits poussés sur `main`, tous avec CI + Pages verts.
+- Suite de tests : 417 tests, tous verts.
 - Derniers ajouts / correctifs en date :
+  - **Catalogue Logiciel Enrichi & Améliorations UI (`PackageCatalog.tsx` & `packages.ts`)** :
+    - 13 nouveaux paquets logiciels réellement vérifiés sur les 7 distributions du catalogue (IA locale avec `ollama` et stack `python_ai_data`, DevOps avec `ansible`, `opentofu_terraform` et `k8s_cli_tools`, Studio Audio/MAO avec `ardour_daw` et `audacity`, Sécurité & vie privée avec `keepassxc` et `tor_privoxy`, Outils Rust modernes avec `cli_modern_tools` et `tmux_zellij`, Bureautique/Mail avec `thunderbird`, Multimédia avec `mpv_player`).
+    - Nouveaux filtres de catégories (`ai`, `audio`) avec compteurs dynamiques de sélection.
+    - 4 Packs de sélection en 1 clic (Dev & Sysadmin, IA & LLM, Studio MAO, CyberSec & RedTeam).
+    - Barre de tags interactifs et suggestions de paquets personnalisés en 1 clic (`jq`, `tree`, `micro`, `fish`, `eza`, `bat`, `zellij`, etc.).
   - **Durcissement CIS Benchmark (Niveaux 1 et 2)** : Câblage complet de `cisBenchmarkLevel` (`/etc/sysctl.d/99-cis-security.conf`, `/etc/security/limits.d/10-cis-coredumps.conf`, `/etc/profile.d/99-cis-umask.sh`, permissions de `/etc/shadow`) sur les scripts bash et le manifeste `cloud-init`.
   - **Swap zRAM compressé en mémoire vive (`enableZram`)** : Intégration de `systemd-zram-generator` (Debian/Arch), `zram-generator` (Fedora), `zram-init` (Alpine) et configuration `/etc/systemd/zram-generator.conf` avec compression ZSTD.
   - **Flatpak & Flathub OOB (`enableFlatpak`)** : Pré-installation du paquet `flatpak` et ajout automatique du remote officiel `flathub` au premier démarrage.
   - **Nouveaux environnements de bureau & tiling WMs** : Intégration complète de `niri` (Wayland scrollable tiling en Rust) et `openbox` (X11 ultra-léger avec tint2/feh/obconf) sur toutes les distributions supportées.
   - **Ligne de commande noyau personnalisée (`kernelCmdline`)** : Injection fidèle d'arguments noyau supplémentaires dans les configurations GRUB (`grub.cfg` pour ISO hybrides et images disque QCOW2/VMDK/RAW) ainsi que dans `cmdline.txt` pour carte SD Raspberry Pi.
-  - **3 nouveaux presets spécialisés** : `Local AI & LLM Inference Station` (Niri + XanMod + Ollama + PyTorch), `MAO & Studio Audio Pro` (Openbox + Realtime + PipeWire Low-Latency), et `Kubernetes & Container Hardened Node` (CIS Level 2 + zRAM + nftables).
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

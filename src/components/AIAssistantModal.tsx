@@ -179,8 +179,15 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                   <Sparkles size={15} />
                   {lang === 'fr' ? 'Configuration Recommandée' : 'AI Recommended Recipe'}
                 </h4>
+                {/* Bug réel trouvé en auditant : affichait "Confiance : 96%" — une valeur codée
+                    en dur, identique pour n'importe quel texte saisi (voir le commentaire sur
+                    "matchedCriteriaCount" dans aiAssistant.ts). Remplacé par le vrai nombre de
+                    critères de configuration détectés dans le prompt (= la longueur de
+                    "suggestedTags", affichée juste en dessous). */}
                 <span className="badge badge-violet" style={{ fontSize: '0.66rem' }}>
-                  Confiance : {(analysis.confidence * 100).toFixed(0)}%
+                  {lang === 'fr'
+                    ? `${analysis.matchedCriteriaCount} critère${analysis.matchedCriteriaCount > 1 ? 's' : ''} détecté${analysis.matchedCriteriaCount > 1 ? 's' : ''}`
+                    : `${analysis.matchedCriteriaCount} criteria detected`}
                 </span>
               </div>
 

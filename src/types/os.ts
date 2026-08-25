@@ -64,7 +64,9 @@ export type PackageCategory =
   | 'multimedia'
   | 'homelab'
   | 'productivity'
-  | 'system';
+  | 'system'
+  | 'ai'
+  | 'audio';
 
 export interface DistroInfo {
   id: DistroId;

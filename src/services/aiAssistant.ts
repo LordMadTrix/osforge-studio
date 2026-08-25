@@ -4,7 +4,16 @@ export interface AIAnalysisResult {
   recipe: Partial<OSRecipe>;
   reasoning: string;
   suggestedTags: string[];
-  confidence: number;
+  // Bug réel trouvé en auditant : ce champ s'appelait "confidence" et valait TOUJOURS 0.96,
+  // affiché dans l'UI comme "Confiance : 96%" quel que soit le texte saisi — y compris un prompt
+  // vide de sens ("asdf1234") qui ne déclenche aucune branche spécifique et retombe sur les choix
+  // par défaut (Debian, CustomOS). Aucun modèle d'IA n'est appelé ici (analyzePromptToRecipe est
+  // un moteur de correspondance de mots-clés déterministe, sans appel réseau ni LLM) : présenter
+  // un pourcentage de confiance inventé, identique pour n'importe quelle entrée, est exactement le
+  // genre de "cosmétique" que ce projet cherche à éliminer. Remplacé par un compte RÉEL et
+  // vérifiable des critères de configuration effectivement détectés dans le prompt (= le nombre
+  // d'étiquettes réellement poussées dans "suggestedTags" ci-dessus, jamais une valeur inventée).
+  matchedCriteriaCount: number;
 }
 
 export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): AIAnalysisResult {
@@ -190,6 +199,6 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     recipe: updated,
     reasoning: reasons.join(' \n'),
     suggestedTags: tags,
-    confidence: 0.96,
+    matchedCriteriaCount: tags.length,
   };
 }
