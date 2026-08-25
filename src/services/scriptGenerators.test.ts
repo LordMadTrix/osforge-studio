@@ -2409,5 +2409,29 @@ describe('generateCloudInitYaml — bug réel trouvé dans le même audit que l\
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé en auditant, même classe que le fix "kernelCmdline" (échappement incomplet avant insertion dans un scalaire YAML entre guillemets) : le "firstBootScript" (champ libre multi-lignes de l\'utilisateur) n\'était protégé QUE contre les guillemets doubles ("recipe.firstBootScript.replace(/\"/g, ...)") avant d\'être inséré dans "- [ bash, -c, \"...\" ]". Reproduit par un vrai round-trip PyYAML avant correctif : un script multi-lignes typique (shebang "#!/bin/bash" + commentaires "#" + commandes) se retrouvait totalement aplati sur une seule ligne YAML — la ligne entière devenant un commentaire bash inerte, le script ne s\'exécutait plus DU TOUT, silencieusement, sans erreur visible. Un backslash présent dans le script (ex. "C:\\temp") était en plus réinterprété comme une séquence d\'échappement YAML ("\\t" devenait une tabulation). Corrigé en réutilisant toRuncmdBashBlock(), le helper déjà écrit et vérifié cette session pour ce même problème (activation DM/autologin/kiosque, commit 468a467)', () => {
+  it('firstBootScript multi-lignes avec guillemets et backslashes : round-trip exact via les mêmes règles d\'échappement (\\\\, \\", \\n) que YAML pour un scalaire entre guillemets — décodé ici par JSON.parse, dont les règles pour ces 3 séquences sont identiques à celles de YAML', () => {
+    const script = '#!/bin/bash\n# Test avec des "guillemets" et un backslash C:\\temp\nmkdir -p /opt/app\necho done\n';
+    const yaml = generateCloudInitYaml(makeRecipe({ firstBootScript: script }));
+    const match = yaml.match(/- \[ bash, -c, "((?:[^"\\]|\\.)*)" \]/);
+    expect(match, 'entrée runcmd "- [ bash, -c, ... ]" introuvable ou mal formée dans le YAML généré').not.toBeNull();
+    const decoded = JSON.parse('"' + match![1] + '"');
+    expect(decoded).toBe(script);
+  });
+
+  it('firstBootScript multi-lignes : le runcmd tient sur UNE seule ligne physique du fichier YAML (avant le fix, les vrais retours à la ligne du script cassaient/aplatissaient le scalaire YAML une fois parsé)', () => {
+    const script = 'ligne1\nligne2\nligne3';
+    const yaml = generateCloudInitYaml(makeRecipe({ firstBootScript: script }));
+    const runcmdLine = yaml.split('\n').find(l => l.includes('- [ bash, -c, "'));
+    expect(runcmdLine, 'ligne runcmd introuvable').toBeDefined();
+    expect(runcmdLine).toContain('" ]');
+    expect(runcmdLine).toContain('ligne1\\nligne2\\nligne3');
+  });
+
+  it('firstBootScript vide/absent : conserve le comportement honnête existant ("echo Ready"), non-régression', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ firstBootScript: '' }));
+    expect(yaml).toContain('- [ bash, -c, "echo Ready" ]');
+  });
+});
 
 

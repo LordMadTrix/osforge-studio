@@ -3187,7 +3187,7 @@ runcmd:
 ${sshEnableLine}
 ${dmEnableLine ? dmEnableLine + '\n' : ''}${dmAutologinLine ? dmAutologinLine + '\n' : ''}${kioskLine ? kioskLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
-${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
+${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}${recipe.firstBootScript ? toRuncmdBashBlock(recipe.firstBootScript) : '  - [ bash, -c, "echo Ready" ]'}
 `;
 }
 
