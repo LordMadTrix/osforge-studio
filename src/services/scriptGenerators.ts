@@ -59,6 +59,25 @@ function sanitizeKernelCmdline(cmdline: string): string {
   return sanitizeForUnquotedHeredoc(cmdline);
 }
 
+// Bug réel MAJEUR trouvé en auditant, plus grave encore que les deux injections shell "osName"
+// déjà corrigées ce cycle (-volid, heredoc GRUBCFG_EOF disque) : les titres "menuentry "...""
+// des grub.cfg ISO — écrits dans un heredoc bash PROTÉGÉ ("<< 'GRUB_CONFIG_EOF'", donc immunisé
+// contre l'injection shell côté build) — restent vulnérables à une INJECTION DE SYNTAXE GRUB, un
+// problème totalement différent qui se déclenche au DÉMARRAGE de l'ISO générée, pas pendant sa
+// compilation. Vérifié avec le vrai analyseur "grub-script-check" (paquet grub2-common, présent
+// dans le WSL Ubuntu de cette machine) : un osName contenant "Evil"; set injected_var=1;
+// menuentry "Second [...]" valide sans la moindre erreur de syntaxe — le point-virgule termine
+// prématurément le menuentry légitime, exécute une commande GRUB arbitraire ("set ..." mais
+// aussi bien "chainloader"/"insmod"/redéfinir "default="), puis démarre son propre second
+// menuentry qui récupère le bloc "{ ... }" suivant. Un attaquant contrôlant ce champ pourrait
+// donc altérer le comportement du chargeur de démarrage avant même que le noyau ne charge.
+// Corrigé en supprimant les caractères structurellement significatifs pour le langage de script
+// GRUB (guillemet, point-virgule, accolades, $, backtick, backslash) — un titre de menu de boot
+// n'en a jamais légitimement besoin, même raisonnement que pour kernelCmdline ci-dessus.
+function sanitizeGrubTitle(value: string): string {
+  return value.replace(/[";{}$`\\]/g, '').trim();
+}
+
 // Bug réel MAJEUR trouvé en auditant, plus grave encore que le manque d'émulation Debian corrigé
 // juste avant dans ce même cycle : les 5 bootstrapBlock() non-Debian (Arch, Fedora, Alpine,
 // openSUSE, Void) ignoraient TOUTES leur paramètre d'architecture cible (préfixé "_arch" dans
@@ -1985,7 +2004,7 @@ mkdir -p "\${MNT_DIR}/boot/${grubSubdir}"
 cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
-menuentry "${sanitizeForUnquotedHeredoc(recipe.branding.osName)}" {
+menuentry "${sanitizeGrubTitle(recipe.branding.osName)}" {
 ${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}
 }
@@ -2399,12 +2418,12 @@ insmod search
 
 search --no-floppy --set=root --file /live/vmlinuz
 
-menuentry "${recipe.branding.osName} (${recipe.branding.editionName}) [Live Desktop]" {
+menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (${sanitizeGrubTitle(recipe.branding.editionName)}) [Live Desktop]" {
     linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd /live/initrd
 }
 
-menuentry "${recipe.branding.osName} (Mode Secours / Failsafe)" {
+menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (Mode Secours / Failsafe)" {
     linux /live/vmlinuz boot=live components nomodeset
     initrd /live/initrd
 }

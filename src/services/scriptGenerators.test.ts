@@ -2205,6 +2205,37 @@ describe('Image disque non-Debian (Arch/Fedora/Alpine/openSUSE/Void) — bug ré
   });
 });
 
+describe('Titres "menuentry" GRUB (ISO + image disque) — bug réel CRITIQUE trouvé en auditant, plus grave encore que les deux injections shell "osName" déjà corrigées ce cycle (-volid, heredoc GRUBCFG_EOF disque) : même après ces deux fixes, les titres "menuentry "..."" restaient vulnérables à une INJECTION DE SYNTAXE GRUB (déclenchée au DÉMARRAGE de l\'ISO, pas pendant sa compilation), un problème totalement différent puisque le heredoc ISO ("<< \'GRUB_CONFIG_EOF\'") est déjà protégé contre l\'injection shell côté build. Vérifié avec le VRAI analyseur "grub-script-check" (paquet grub2-common, WSL Ubuntu de cette machine, pas une supposition) : un osName contenant littéralement \'Evil"; set injected_var=1; menuentry "Second\' valide SANS LA MOINDRE ERREUR — le point-virgule termine prématurément le menuentry légitime et permet d\'exécuter une commande GRUB arbitraire puis de démarrer un second menuentry qui récupère le bloc suivant. Corrigé avec sanitizeGrubTitle() (guillemet, point-virgule, accolades, $, backtick, backslash supprimés), appliqué aux 3 sites "menuentry" (1 image disque, bascule de sanitizeForUnquotedHeredoc() — insuffisant, ne protégeait pas contre "; ni "\\" — vers sanitizeGrubTitle() ; 2 ISO, non protégés auparavant)', () => {
+  it('ISO Debian : un osName contenant guillemet + point-virgule (tentative d\'injection de commande GRUB) produit un titre inerte, syntaxiquement sûr', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'Evil"; set injected_var=1; menuentry "Second', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(script).toContain('menuentry "Evil set injected_var=1 menuentry Second (D) [Live Desktop]" {');
+    expect(script).not.toMatch(/menuentry "Evil"/);
+  });
+
+  it('Image disque QCOW2 Arch : même protection appliquée (bascule de sanitizeForUnquotedHeredoc, insuffisant seul, vers sanitizeGrubTitle)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'qcow2',
+      branding: { osName: 'Evil"; set injected_var=1; menuentry "Second', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(script).toContain('menuentry "Evil set injected_var=1 menuentry Second" {');
+    expect(script).not.toMatch(/menuentry "Evil"/);
+  });
+
+  it('osName/editionName "normaux" (sans caractère spécial) sur les 3 sites : non-régression, contenu identique', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'ForgeOS', editionName: 'Pro', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    });
+    const isoScript = generateBuildScript({ ...recipe, distro: 'debian', outputFormat: 'iso_hybrid' });
+    expect(isoScript).toContain('menuentry "ForgeOS (Pro) [Live Desktop]" {');
+    expect(isoScript).toContain('menuentry "ForgeOS (Mode Secours / Failsafe)" {');
+    const diskScript = generateBuildScript({ ...recipe, distro: 'arch', outputFormat: 'qcow2' });
+    expect(diskScript).toContain('menuentry "ForgeOS" {');
+  });
+});
+
 describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, MAO, DevOps, Sécurité, CLI Rust)', () => {
   it('Résout les paquets IA locale (ollama_ai, python_ai_data) sur Arch Linux', () => {
     const pkgs = resolvePackageList(makeRecipe({
