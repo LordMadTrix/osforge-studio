@@ -1016,7 +1016,15 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'opensuse') {
       pkgs.push('openbox', 'tint2', 'feh', 'alacritty', 'lightdm', 'pipewire', 'NetworkManager');
     } else if (distroId === 'alpine') {
-      pkgs.push('openbox', 'tint2', 'feh', 'xorg-server', 'mesa');
+      // Bug réel trouvé en auditant : contrairement aux 4 autres familles câblées ci-dessus (toutes
+      // avec lightdm + gestionnaire réseau + terminal), la branche Alpine se limitait à
+      // "openbox, tint2, feh, xorg-server, mesa" — sans AUCUN gestionnaire de connexion, la session
+      // Openbox n'était atteignable par aucun moyen graphique standard. "lightdm"/
+      // "lightdm-gtk-greeter"/"dbus"/"eudev"/"xterm"/"networkmanager" tous confirmés réels en
+      // direct sur Alpine (pkgs.alpinelinux.org/package/edge/{main,community}/x86_64/...), la même
+      // convention "mesa-dri-gallium" (pas "mesa" seul) que les autres blocs Alpine de ce fichier
+      // a aussi été appliquée par cohérence.
+      pkgs.push('openbox', 'tint2', 'feh', 'xterm', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'networkmanager');
     } else if (distroId === 'void') {
       pkgs.push('openbox', 'tint2', 'feh', 'obconf', 'alacritty', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'pipewire', 'NetworkManager');
     }

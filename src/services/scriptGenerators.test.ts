@@ -2221,6 +2221,13 @@ describe('Nouveaux bureaux et gestionnaires de fenêtres : Openbox et Niri', () 
     expect(pkgs).toEqual(expect.arrayContaining(['openbox', 'tint2', 'feh', 'obconf', 'alacritty']));
   });
 
+  it('bug réel trouvé en auditant : Openbox sur Alpine se limitait à "openbox, tint2, feh, xorg-server, mesa" — sans AUCUN gestionnaire de connexion, contrairement aux 4 autres familles câblées, la session n\'était atteignable par aucun moyen graphique standard. "lightdm"/"lightdm-gtk-greeter"/"dbus"/"eudev"/"xterm"/"networkmanager" tous confirmés réels en direct sur pkgs.alpinelinux.org, désormais installés comme pour les autres familles', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', desktop: 'openbox', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['openbox', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'networkmanager', 'xterm']));
+    expect(pkgs).not.toContain('mesa');
+    expect(pkgs).toContain('mesa-dri-gallium');
+  });
+
   it('Niri (Wayland Rust scrollable tiling) installe niri, xwayland-satellite et waybar sur Arch Linux', () => {
     const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'niri', selectedPackages: [] }));
     expect(pkgs).toEqual(expect.arrayContaining(['niri', 'xwayland-satellite', 'waybar', 'alacritty', 'fuzzel']));
