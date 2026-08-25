@@ -798,9 +798,16 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 40,
     icon: 'Zap',
     tags: ['Rust', 'CLI', 'Productivité', 'Terminal', 'Outils'],
+    // Bug réel trouvé en auditant : le nom ("Bat, Eza, Dust, Duf") et la description promettent
+    // explicitement "eza" et "dust", mais Debian/Ubuntu n'installaient ni l'un ni l'autre — vérifié
+    // RÉELS sur les deux suites exactes ciblées par ce générateur : "eza" (Debian trixie 0.21.0-1,
+    // Ubuntu resolute 0.23.4-1ubuntu1) et "du-dust" (Debian trixie 1.2.0-2, Ubuntu resolute
+    // 1.2.4-1ubuntu1) — ajoutés ici. "duf" reste absent d'Alpine (confirmé réel UNIQUEMENT dans le
+    // dépôt "testing", jamais activé par ce générateur — même principe déjà établi pour VSCodium),
+    // omission correcte et inchangée.
     pkgNames: {
-      debian: 'bat ripgrep fd-find duf tldr',
-      ubuntu: 'bat ripgrep fd-find duf tldr',
+      debian: 'bat eza du-dust ripgrep fd-find duf tldr',
+      ubuntu: 'bat eza du-dust ripgrep fd-find duf tldr',
       arch: 'bat eza du-dust ripgrep fd tealdeer duf',
       alpine: 'bat ripgrep fd dust',
       fedora: 'bat eza dust ripgrep fd-find tealdeer duf',

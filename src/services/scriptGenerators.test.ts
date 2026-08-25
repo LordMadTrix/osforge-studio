@@ -2354,6 +2354,15 @@ describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, 
     expect(ubuntuPkgs).toContain('starship');
   });
 
+  it('bug réel trouvé en auditant : "cli_modern_tools" ("Modern CLI Tools (Bat, Eza, Dust, Duf)") sur Debian/Ubuntu installe bien "eza" et "du-dust" (confirmés réels sur les suites exactes ciblées par ce générateur : Debian "trixie" et Ubuntu "resolute") — le nom promettait ces deux outils mais ils manquaient de pkgNames pour ces deux familles', () => {
+    const debianPkgs = resolvePackageList(makeRecipe({ distro: 'debian', selectedPackages: ['cli_modern_tools'] }));
+    expect(debianPkgs).toContain('eza');
+    expect(debianPkgs).toContain('du-dust');
+    const ubuntuPkgs = resolvePackageList(makeRecipe({ distro: 'ubuntu', selectedPackages: ['cli_modern_tools'] }));
+    expect(ubuntuPkgs).toContain('eza');
+    expect(ubuntuPkgs).toContain('du-dust');
+  });
+
   it('Résout les paquets DevOps & IaC (ansible, opentofu_terraform, k8s_cli_tools) sur Fedora', () => {
     const pkgs = resolvePackageList(makeRecipe({
       distro: 'fedora',
