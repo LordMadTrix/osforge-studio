@@ -3088,6 +3088,21 @@ export function generateCloudInitYaml(recipe: OSRecipe): string {
         ? '  - systemctl enable --now sshd || true'
         : '  - systemctl enable --now ssh || true';
 
+  // Bug réel MAJEUR trouvé en auditant : les 4 générateurs bash (ISO/RootFS Debian, non-Debian,
+  // image disque non-Debian, carte SD Raspberry Pi) activent tous explicitement le gestionnaire de
+  // connexion via dmEnableCmd()/dmCmd (voir lignes ~1728/1923/2126/2700) — le paquet du bureau
+  // choisi (gdm3/sddm/lightdm/ly/cosmic-greeter...) est déjà présent dans "packages:" ci-dessus
+  // via resolvePackageList(), mais son SERVICE n'était jamais activé dans ce seul manifeste
+  // cloud-init. DesktopSelector.tsx ne filtre pas les bureaux par format de sortie (voir GEMINI.md)
+  // : rien n'empêche de choisir GNOME + image disque QCOW2/VMDK/RAW, un cas parfaitement légitime.
+  // Une telle image démarrait donc TOUJOURS sur une console texte, quel que soit le bureau choisi
+  // — même bug déjà corrigé trois fois dans ce même manifeste (SSH, Flatpak, durcissement) pour
+  // d'autres réglages, ici pour l'activation du bureau graphique lui-même. Repris à l'identique de
+  // resolveDmServiceName()/cloudInitServiceEnableLine() (déjà vérifiés en direct pour ces familles,
+  // pas une nouvelle vérification).
+  const dmService = resolveDmServiceName(recipe.displayManager, cloudInitFamily || 'debian');
+  const dmEnableLine = dmService ? cloudInitServiceEnableLine(dmService, cloudInitFamily) : '';
+
   return `#cloud-config
 # ==============================================================================
 # OSForge Studio — Manifeste Cloud-Init
@@ -3140,7 +3155,7 @@ ${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
 ` : ''}${hardeningWriteFiles ? hardeningWriteFiles + '\n' : ''}
 runcmd:
 ${sshEnableLine}
-  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
+${dmEnableLine ? dmEnableLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
 ${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
 `;

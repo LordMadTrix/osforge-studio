@@ -2345,5 +2345,36 @@ describe('generateCloudInitYaml — bug réel trouvé en auditant : "enableFlatp
   });
 });
 
+describe('generateCloudInitYaml — bug réel MAJEUR trouvé en auditant : les 4 générateurs bash activent tous explicitement le gestionnaire de connexion (dmEnableCmd/dmCmd), mais ce manifeste ne le faisait JAMAIS — le paquet du bureau choisi (gdm3/sddm/lightdm/ly...) est bien dans "packages:" via resolvePackageList(), mais son service n\'était jamais activé. DesktopSelector.tsx ne filtre pas les bureaux par format de sortie : choisir GNOME + image disque QCOW2 est un cas parfaitement légitime. Une telle image démarrait donc TOUJOURS sur une console texte, quel que soit le bureau choisi — même bug déjà corrigé 3 fois dans ce même manifeste (SSH, Flatpak, durcissement) pour d\'autres réglages, ici pour l\'activation du bureau graphique lui-même', () => {
+  it('Debian + GNOME + gdm3 : active gdm3 via systemctl', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'debian', desktop: 'gnome', displayManager: 'gdm3' } as any));
+    expect(yaml).toContain('systemctl enable --now gdm3 || true');
+  });
+
+  it('Arch + KDE + sddm, Fedora + XFCE + lightdm : activent le vrai DM via systemctl', () => {
+    const arch = generateCloudInitYaml(makeRecipe({ distro: 'arch', desktop: 'kde', displayManager: 'sddm' } as any));
+    expect(arch).toContain('systemctl enable --now sddm || true');
+    const fedora = generateCloudInitYaml(makeRecipe({ distro: 'fedora', desktop: 'xfce', displayManager: 'lightdm' } as any));
+    expect(fedora).toContain('systemctl enable --now lightdm || true');
+  });
+
+  it('Alpine : active le DM via "rc-update add" (OpenRC, pas systemctl)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'alpine', desktop: 'xfce', displayManager: 'lightdm' } as any));
+    expect(yaml).toContain('rc-update add lightdm default');
+    expect(yaml).not.toContain('systemctl enable --now lightdm');
+  });
+
+  it('openSUSE + Hyprland + ly : active le vrai service à gabarit "ly@tty2.service" (pas "ly.service")', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'opensuse', desktop: 'hyprland', displayManager: 'ly' } as any));
+    expect(yaml).toContain('systemctl enable --now ly@tty2.service || true');
+  });
+
+  it('displayManager="none" (mode serveur/headless) : aucune ligne d\'activation de DM ajoutée (comportement par défaut inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'debian', desktop: 'none', displayManager: 'none' } as any));
+    expect(yaml).not.toMatch(/enable --now (gdm3|sddm|lightdm|ly)/);
+    expect(yaml).not.toContain('rc-update add');
+  });
+});
+
 
 
