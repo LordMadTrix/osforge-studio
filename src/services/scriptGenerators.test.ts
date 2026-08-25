@@ -2376,5 +2376,38 @@ describe('generateCloudInitYaml — bug réel MAJEUR trouvé en auditant : les 4
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé dans le même audit que l\'activation du DM : "dmAutologinCmd" (connexion automatique GDM/SDDM/LightDM) et "kioskSetupCmd" (mode borne kiosque — getty autologin, seatd, lancement de cage/chromium au login) sont câblés dans les 4 générateurs bash mais totalement absents de ce manifeste. "kioskSetupCmd" est le cas le plus grave : le bureau "web_kiosk" utilise displayManager="none" (l\'activation du DM ne s\'applique donc jamais ici), toute la fonctionnalité dépendait UNIQUEMENT de ce mécanisme absent — chromium/cage/seatd s\'installaient sans jamais être lancés. Vérifié par un aller-retour YAML réel via PyYAML (échappement backslash/guillemet/retour-à-la-ligne) puis "bash -n" sur le script bash extrait et décodé', () => {
+  it('user.autologin=true + GDM3 : ajoute une entrée runcmd [bash, -c, ...] qui configure AutomaticLoginEnable', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'debian', desktop: 'gnome', displayManager: 'gdm3',
+      user: { username: 'testuser', fullName: 'Test User', sudo: true, autologin: true, shell: '/bin/bash' },
+    } as any));
+    expect(yaml).toContain('AutomaticLoginEnable=true');
+    expect(yaml).toContain('- [ bash, -c, "');
+  });
+
+  it('user.autologin=false : aucune ligne d\'autologin ajoutée (comportement par défaut inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'debian', desktop: 'gnome', displayManager: 'gdm3',
+      user: { username: 'testuser', fullName: 'Test User', sudo: true, autologin: false, shell: '/bin/bash' },
+    } as any));
+    expect(yaml).not.toContain('AutomaticLoginEnable');
+  });
+
+  it('desktop="web_kiosk" : ajoute une entrée runcmd qui active seatd et lance cage/le navigateur au login', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', desktop: 'web_kiosk', displayManager: 'none', kioskUrl: 'https://example.com',
+    } as any));
+    expect(yaml).toContain('exec cage --');
+    expect(yaml).toContain('seatd');
+    expect(yaml).toContain('example.com');
+  });
+
+  it('desktop autre que web_kiosk : aucune ligne de mode kiosque ajoutée (comportement par défaut inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'debian', desktop: 'gnome', displayManager: 'gdm3' } as any));
+    expect(yaml).not.toContain('exec cage --');
+  });
+});
+
 
 

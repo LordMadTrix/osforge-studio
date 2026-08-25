@@ -2912,6 +2912,22 @@ function cloudInitServiceEnableLine(service: string, family: NonDebianFamily | u
   return `  - systemctl enable --now ${service} || true`;
 }
 
+// Encapsule un extrait bash multi-lignes déjà existant (produit par un helper comme
+// dmAutologinCmd/kioskSetupCmd, déjà vérifié en direct dans les 4 générateurs bash) en une seule
+// entrée "runcmd" cloud-init de la forme [ bash, -c, "..." ] — même syntaxe déjà utilisée plus bas
+// dans ce fichier pour "firstBootScript". Échappement dans le bon ordre (backslash AVANT guillemet
+// AVANT retour à la ligne) : "kioskSetupCmd" contient par exemple un "\$TERM" littéral (backslash
+// réel dans le bash généré) qui serait corrompu si les retours à la ligne étaient convertis avant
+// les backslashes déjà présents.
+function toRuncmdBashBlock(bashSnippet: string): string {
+  if (!bashSnippet.trim()) return '';
+  const escaped = bashSnippet
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n');
+  return `  - [ bash, -c, "${escaped}" ]`;
+}
+
 function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd: string } {
   const writeFiles: string[] = [];
   const runcmd: string[] = [];
@@ -3103,6 +3119,20 @@ export function generateCloudInitYaml(recipe: OSRecipe): string {
   const dmService = resolveDmServiceName(recipe.displayManager, cloudInitFamily || 'debian');
   const dmEnableLine = dmService ? cloudInitServiceEnableLine(dmService, cloudInitFamily) : '';
 
+  // Bug réel trouvé dans le même audit que dmEnableLine ci-dessus, même cause : "dmAutologinCmd"
+  // (connexion automatique GDM/SDDM/LightDM) et "kioskSetupCmd" (mode borne kiosque — getty
+  // autologin, activation de seatd, lancement de cage/chromium au login) sont câblés dans les 4
+  // générateurs bash mais totalement absents de ce manifeste. "kioskSetupCmd" est le cas le plus
+  // grave : le bureau "web_kiosk" utilise displayManager="none" (donc dmEnableLine ci-dessus ne
+  // s'applique jamais ici), toute la fonctionnalité dépend UNIQUEMENT de ce mécanisme — chromium/
+  // cage/seatd s'installaient (via resolvePackageList) sans jamais être lancés, une image cloud-init
+  // "Kiosk Web" restait bloquée sur un prompt de connexion tty1 vide indéfiniment. Repris à
+  // l'identique des deux fonctions déjà vérifiées (mêmes noms de fichiers de config GDM/SDDM/
+  // LightDM, même mécanisme getty+.bash_profile), encapsulé en une entrée runcmd [bash, -c, "..."]
+  // via toRuncmdBashBlock() ci-dessus plutôt que ré-écrit en syntaxe YAML native.
+  const dmAutologinLine = toRuncmdBashBlock(dmAutologinCmd(recipe, cloudInitFamily || 'debian'));
+  const kioskLine = toRuncmdBashBlock(kioskSetupCmd(recipe, cloudInitFamily || 'debian'));
+
   return `#cloud-config
 # ==============================================================================
 # OSForge Studio — Manifeste Cloud-Init
@@ -3155,7 +3185,7 @@ ${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
 ` : ''}${hardeningWriteFiles ? hardeningWriteFiles + '\n' : ''}
 runcmd:
 ${sshEnableLine}
-${dmEnableLine ? dmEnableLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
+${dmEnableLine ? dmEnableLine + '\n' : ''}${dmAutologinLine ? dmAutologinLine + '\n' : ''}${kioskLine ? kioskLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
 ${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
 `;
