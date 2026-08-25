@@ -538,6 +538,37 @@ fi
 rm -f /tmp/heroic-appimage-url.txt`;
 }
 
+// Bug réel MAJEUR trouvé en auditant, le pire de cette classe de faille trouvé cette session en
+// nombre de familles cassées : "metasploit-framework" (Debian/Ubuntu) et "metasploit" (Alpine,
+// Fedora) sont TOUS FICTIFS — confirmé par contenu réel de page : "No such package" sur Debian
+// trixie ET Ubuntu noble ; 404/aucune preuve de paquet officiel sur Fedora (seul le dépôt TIERS
+// Rapid7 le fournit, jamais ajouté nulle part dans ce générateur) ; aucun paquet apk officiel sur
+// Alpine (confirmé : seuls des scripts communautaires/Docker existent). Seul Arch a un vrai paquet
+// natif (API JSON, count:1, inchangé). Metasploit — un des outils PHARES promis par le catalogue
+// pentest ("Plateforme de test d'intrusion la plus réputée") — ne s'installait donc réellement que
+// sur 1 famille sur 5. Corrigé en utilisant le vrai installeur officiel Rapid7 (msfinstall, inspecté
+// EN DIRECT : contenu réel téléchargé et lu, pas seulement son existence) qui détecte lui-même la
+// famille et ajoute le dépôt signé approprié — apt pour Debian/Ubuntu, yum/dnf pour Fedora (détection
+// via /etc/redhat-release), zypper pour openSUSE (détection via /usr/bin/zypper) — les 3 chemins
+// gérés nativement par le script upstream, confirmés en lisant son code source réel. Installé pendant
+// la compilation (comme OpenTofu/kubectl/VSCodium) plutôt qu'au premier démarrage : contrairement à
+// K3s/Ollama, Metasploit n'a besoin d'aucun service persistant, et sa taille (sizeMB:620 déjà promis
+// dans le catalogue) suppose une image prête à l'emploi hors-ligne, cohérent avec l'usage attendu
+// d'une distro de pentest. Alpine/Void restent honnêtement hors périmètre (aucun paquet natif réel,
+// installeur officiel sans support apk documenté).
+function metasploitSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('metasploit')) return '';
+  if (family === 'arch') return '';
+  if (family === 'alpine' || family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] Metasploit Framework n'est pas encore câblé pour ${family === 'alpine' ? 'Alpine' : 'Void'} : aucun paquet natif réel et l'installeur officiel Rapid7 ne documente pas de support apk.\${NC:-}" 2>/dev/null || true`;
+  }
+  return `curl -fsSL https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb -o /tmp/msfinstall 2>/dev/null \\
+  && chmod 755 /tmp/msfinstall \\
+  && /tmp/msfinstall 2>/dev/null \\
+  && rm -f /tmp/msfinstall \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Metasploit Framework échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2203,6 +2234,7 @@ ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
 ${heroicSetupCmd(recipe, family)}
+${metasploitSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2408,6 +2440,7 @@ ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
 ${heroicSetupCmd(recipe, family)}
+${metasploitSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2629,6 +2662,7 @@ ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
 ${heroicSetupCmd(recipe, 'debian')}
+${metasploitSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -3213,6 +3247,7 @@ ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
 ${heroicSetupCmd(recipe, 'debian')}
+${metasploitSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

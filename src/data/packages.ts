@@ -183,12 +183,17 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 620,
     icon: 'ShieldAlert',
     tags: ['Exploitation', 'Pentest', 'Audit'],
+    // Bug réel MAJEUR trouvé en auditant : "metasploit-framework" (Debian/Ubuntu) et "metasploit"
+    // (Alpine, Fedora) sont TOUS FICTIFS (contenu réel "No such package" sur Debian/Ubuntu ; aucun
+    // paquet apk officiel sur Alpine ; aucune preuve de paquet officiel sur Fedora, seul le dépôt
+    // tiers Rapid7 le fournit). Seul Arch a un vrai paquet natif (API JSON, count:1, inchangé).
+    // Corrigé en installant Metasploit via le vrai installeur officiel Rapid7 (msfinstall, inspecté
+    // en direct — gère apt/yum/zypper nativement) pendant la compilation (metasploitSetupCmd dans
+    // scriptGenerators.ts). pkgNames vidé pour Debian/Ubuntu/Alpine/Fedora (aucune des 4 clés
+    // précédentes n'était installable) ; Alpine reste honnêtement hors périmètre (aucun canal
+    // officiel fiable).
     pkgNames: {
-      debian: 'metasploit-framework',
-      ubuntu: 'metasploit-framework',
       arch: 'metasploit',
-      alpine: 'metasploit',
-      fedora: 'metasploit',
     },
   },
   {

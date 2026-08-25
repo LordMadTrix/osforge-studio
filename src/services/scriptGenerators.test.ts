@@ -3103,3 +3103,47 @@ describe('Heroic Games Launcher — bug réel trouvé en auditant : "heroic-game
   });
 });
 
+describe('Metasploit Framework — bug réel MAJEUR trouvé en auditant, le pire de cette classe de faille trouvé cette session en nombre de familles cassées : "metasploit-framework" (Debian/Ubuntu) et "metasploit" (Alpine, Fedora) sont TOUS fictifs (contenu réel "No such package" sur Debian/Ubuntu ; aucun paquet apk officiel sur Alpine ; aucune preuve de paquet officiel sur Fedora, seul le dépôt tiers Rapid7 le fournit) — un outil PHARE du catalogue pentest ne s\'installait donc réellement que sur 1 famille sur 5 (Arch). Corrigé en utilisant le vrai installeur officiel Rapid7 (msfinstall), dont le contenu réel a été téléchargé et lu en direct : gère nativement apt (Debian/Ubuntu), yum/dnf (Fedora, détection /etc/redhat-release) et zypper (openSUSE, détection /usr/bin/zypper)', () => {
+  it('Debian ISO : déclenche le vrai installeur officiel Rapid7 (msfinstall) pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['metasploit'],
+    }));
+    expect(script).toContain('metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb');
+    expect(script).toContain('/tmp/msfinstall');
+  });
+
+  it('Fedora : déclenche le même installeur officiel (gère yum/dnf via détection /etc/redhat-release)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora', outputFormat: 'wsl2_tar', selectedPackages: ['metasploit'],
+    }));
+    expect(script).toContain('msfinstall');
+  });
+
+  it('openSUSE : déclenche le même installeur officiel (gère zypper via détection /usr/bin/zypper)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse', outputFormat: 'wsl2_tar', selectedPackages: ['metasploit'],
+    }));
+    expect(script).toContain('msfinstall');
+  });
+
+  it('Arch : AUCUN installeur déclenché (vrai paquet natif "metasploit" déjà fonctionnel)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['metasploit'],
+    }));
+    expect(script).not.toContain('msfinstall');
+  });
+
+  it('Alpine : avertissement honnête (aucun paquet natif ni support apk documenté par l\'installeur officiel) — PAS de tentative cassée', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'wsl2_tar', selectedPackages: ['metasploit'],
+    }));
+    expect(script).toContain("n'est pas encore câblé pour Alpine");
+    expect(script).not.toContain('msfinstall');
+  });
+
+  it('metasploit non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('msfinstall');
+  });
+});
+
