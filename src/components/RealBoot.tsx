@@ -149,6 +149,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isoFileInputRef = useRef<HTMLInputElement>(null);
   const emulatorRef = useRef<any>(null);
+  const loadWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // État VM & Système sélectionné
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'paused' | 'error'>('idle');
@@ -259,6 +260,27 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     stopEmulator();
     if (serialRef.current) serialRef.current.value = '';
 
+    // Bug réel trouvé en auditant : le filet de sécurité "chargement bloqué en silence" (un
+    // watchdog qui bascule vers l'état "error" si rien ne s'affiche après un délai) a été retiré
+    // par un commit récent, sans rien pour le remplacer. Or Alpine/Debian/TinyCore pointent
+    // maintenant vers des CDN tiers hotlinkés dont deux (dl-cdn.alpinelinux.org, deb.debian.org)
+    // ne renvoient AUCUN header Access-Control-Allow-Origin (vérifié en direct, curl -sI) — un
+    // fetch cross-origin y échoue silencieusement côté navigateur — et le troisième
+    // (tinycorelinux.net) sert en HTTP pur, bloqué par mixed-content sur une page HTTPS avant même
+    // que la requête ne parte. Si v86 n'émet pas fidèlement "download-error" dans ces cas (requête
+    // qui ne se termine jamais plutôt que rejetée), l'utilisateur reste bloqué indéfiniment sur
+    // "Chargement..." sans aucune explication. Restauré ici comme filet de secours, en plus (pas à
+    // la place) du gestionnaire "download-error" existant qui reste la voie rapide normale.
+    if (loadWatchdogRef.current) clearTimeout(loadWatchdogRef.current);
+    loadWatchdogRef.current = setTimeout(() => {
+      setErrorMsg(
+        lang === 'fr'
+          ? "Le chargement n'a montré aucun signe d'activité après 20s. Le CDN distant bloque probablement les requêtes cross-origin (CORS) ou HTTP mixte — réessayez avec Buildroot (auto-hébergé) ou une ISO locale."
+          : 'No loading activity after 20s. The remote CDN likely blocks cross-origin (CORS) or mixed-content requests — try Buildroot (self-hosted) or a local ISO instead.'
+      );
+      setStatus('error');
+    }, 20000);
+
     try {
       const base = import.meta.env.BASE_URL;
       const { V86 } = await import(/* @vite-ignore */ `${base}v86/libv86.mjs`);
@@ -307,6 +329,20 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
 
       // Écoute du flux série octet par octet pour l'affichage fidèle
       emulator.add_listener('serial0-output-byte', (byte: number) => {
+        // Bug réel trouvé en auditant : le watchdog était (à tort) désarmé juste après
+        // "setStatus('running')" ci-dessous — or ce setStatus a lieu immédiatement après la
+        // CONSTRUCTION de l'objet V86, PAS après un boot confirmé (aucun événement "démarrage
+        // réussi" n'existe avant le premier octet série). Reproduit en direct dans le navigateur :
+        // avec Alpine (CORS bloqué, confirmé par la console : "blocked by CORS policy", RX/TX
+        // restant à 0 B), l'UI affichait quand même "Système Actif" en permanence — la pire régression
+        // possible, pire qu'un simple blocage silencieux, puisqu'elle affirme activement un succès
+        // qui n'a jamais eu lieu. Le premier octet série reçu est la seule preuve fiable qu'un
+        // noyau a réellement démarré : c'est ICI, pas à la construction de V86, que le watchdog doit
+        // être désarmé.
+        if (loadWatchdogRef.current) {
+          clearTimeout(loadWatchdogRef.current);
+          loadWatchdogRef.current = null;
+        }
         setRxBytes((prev) => prev + 1);
         const char = String.fromCharCode(byte);
         if (char === '\r') return;
@@ -317,6 +353,17 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       });
 
       emulator.add_listener('download-progress', (e: { file_name: string; loaded: number; total?: number }) => {
+        // Une progression réelle prouve que la requête n'est pas bloquée : on repousse le
+        // watchdog au lieu de le laisser expirer sous un simple téléchargement lent.
+        if (loadWatchdogRef.current) clearTimeout(loadWatchdogRef.current);
+        loadWatchdogRef.current = setTimeout(() => {
+          setErrorMsg(
+            lang === 'fr'
+              ? "Le téléchargement s'est arrêté sans terminer. Le CDN distant bloque probablement les requêtes cross-origin (CORS) ou HTTP mixte — réessayez avec Buildroot (auto-hébergé) ou une ISO locale."
+              : 'Download stalled before completing. The remote CDN likely blocks cross-origin (CORS) or mixed-content requests — try Buildroot (self-hosted) or a local ISO instead.'
+          );
+          setStatus('error');
+        }, 20000);
         if (e.total && e.total > 0) {
           setProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
         } else {
@@ -325,6 +372,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       });
 
       emulator.add_listener('download-error', (e: { file_name: string }) => {
+        if (loadWatchdogRef.current) {
+          clearTimeout(loadWatchdogRef.current);
+          loadWatchdogRef.current = null;
+        }
         setErrorMsg(
           lang === 'fr'
             ? `Impossible de télécharger "${e.file_name}". Vérifiez votre connexion ou un bloqueur de requêtes cross-origin.`
@@ -334,6 +385,9 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       });
 
       emulatorRef.current = emulator;
+      // "running" ici ne prouve PAS qu'un noyau a réellement démarré (V86 vient juste d'être
+      // construit) — voir le commentaire sur "serial0-output-byte" ci-dessus : le watchdog reste
+      // volontairement armé jusqu'au premier octet série réel, seule preuve fiable de succès.
       setStatus('running');
 
       setTimeout(() => {
@@ -342,12 +396,19 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         }
       }, 600);
     } catch (err) {
+      if (loadWatchdogRef.current) {
+        clearTimeout(loadWatchdogRef.current);
+        loadWatchdogRef.current = null;
+      }
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
   };
 
-  useEffect(() => () => stopEmulator(), []);
+  useEffect(() => () => {
+    if (loadWatchdogRef.current) clearTimeout(loadWatchdogRef.current);
+    stopEmulator();
+  }, []);
 
   // Envoi d'une chaîne ou d'une commande complète au port série
   const sendStringToEmulator = (str: string) => {
@@ -659,8 +720,14 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
           </div>
         </div>
 
-        {/* 1.1 OS Selection Grid (Buildroot, Alpine, Debian, TinyCore, Custom ISO) */}
-        {status === 'idle' && (
+        {/* Bug réel trouvé en auditant : cette grille (le SEUL moyen de changer d'OS) n'était
+            affichée qu'à l'état "idle" — or aucun bouton ne ramène jamais "error" vers "idle" (le
+            bouton "Éteindre" qui fait setStatus('idle') n'est rendu que pour running/paused). Un
+            utilisateur dont le boot échouait (CORS/mixed-content, voir watchdog ci-dessus) restait
+            bloqué à répéter indéfiniment le MÊME OS cassé via le bouton "Démarrer" (qui reste
+            visible en erreur), sans aucun moyen de choisir Buildroot (le seul OS auto-hébergé, donc
+            fiable) à la place. Corrigé en affichant aussi la grille depuis l'état "error". */}
+        {(status === 'idle' || status === 'error') && (
           <div style={{ marginTop: '14px' }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Server size={13} color="var(--cyan)" />
