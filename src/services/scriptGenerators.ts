@@ -1969,8 +1969,19 @@ exit 1
   // config.txt/bootcode.bin/start*.elf et le hook qui peuple /boot/firmware à chaque installation
   // de noyau. Les deux viennent du dépôt d'ajout archive.raspberrypi.com (pas debootstrap
   // --include, car absents du miroir Debian utilisé pour le bootstrap — voir DEBOOTSTRAP_TARGETS).
-  const kernelPkg = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' ? 'linux-image-generic'
-    : recipe.distro === 'raspbian' ? 'raspberrypi-kernel'
+  // Bug réel MAJEUR trouvé en auditant : "raspberrypi-kernel" était utilisé pour TOUT build
+  // raspbian, quelle que soit l'architecture — alors que distros.ts annonce officiellement
+  // supportedArch: ['aarch64', 'x86_64'] pour Raspberry Pi OS (choix x86_64 réellement
+  // sélectionnable dans l'UI). Vérifié en direct sur
+  // archive.raspberrypi.com/debian/dists/bookworm/main/binary-amd64/Packages (via navigateur, le
+  // serveur renvoie 403 aux clients non-navigateur) : "raspberrypi-kernel" n'existe QUE pour
+  // arm64/armhf, ABSENT de l'index amd64 (seul "raspberrypi-kernel-headers" y figure, sans
+  // l'image noyau elle-même) — un build Raspberry Pi OS + x86_64 échouait donc systématiquement
+  // à l'installation du noyau ("apt-get install raspberrypi-kernel" introuvable), quel que soit
+  // le bureau/noyau alternatif choisi. "raspi-firmware" confirmé "Architecture: all" sur le même
+  // index (fonctionne sur toutes les architectures) : conservé pour x86_64 également.
+  const kernelPkg = recipe.distro === 'raspbian' && recipe.arch === 'aarch64' ? 'raspberrypi-kernel'
+    : recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' ? 'linux-image-generic'
     : `linux-image-${debArch}`;
 
   // Choix de noyau réellement câblés pour les familles APT (vérifiés en live) :
@@ -2242,8 +2253,13 @@ curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key -o /etc/ap
 # Mise à jour des index de paquets
 apt-get update -y
 
-${recipe.distro === 'raspbian' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
+${recipe.distro === 'raspbian' && recipe.arch === 'aarch64' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
 apt-get install -y --no-install-recommends raspberrypi-kernel raspi-firmware
+
+` : recipe.distro === 'raspbian' ? `# Raspberry Pi OS en ${recipe.arch} : "raspberrypi-kernel" n'existe que pour arm64/armhf (voir le
+# commentaire sur kernelPkg plus haut) — noyau Debian standard "${kernelPkg}" installé à la place.
+# "raspi-firmware" (Architecture: all) reste installé pour la cohérence de configuration.
+apt-get install -y --no-install-recommends ${kernelPkg} raspi-firmware
 
 ` : ''}${REAL_ALT_KERNEL === 'mainline_beta' ? `# Noyau mainline le plus récent — vérifié en direct sur kernel.ubuntu.com/mainline (vrais .deb
 # officiels Canonical, publiés pour chaque version taguée y compris fraîchement sortie).

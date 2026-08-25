@@ -1716,3 +1716,18 @@ describe('resolvePackageList — bug réel MAJEUR trouvé en auditant : Kali, Ra
     expect(ubuntuPkgs).toEqual(expect.arrayContaining(['plasma-desktop', 'sddm', 'sudo']));
   });
 });
+
+describe('generateBuildScript — bug réel MAJEUR trouvé en auditant : "raspberrypi-kernel" était installé pour TOUT build Raspberry Pi OS quelle que soit l\'architecture, alors que distros.ts annonce officiellement supportedArch: [\'aarch64\', \'x86_64\'] (x86_64 réellement sélectionnable dans l\'UI). Vérifié en direct via le navigateur (archive.raspberrypi.com renvoie 403 aux clients non-navigateur) sur archive.raspberrypi.com/debian/dists/bookworm/main/binary-amd64/Packages : "raspberrypi-kernel" est ABSENT de l\'index amd64 (seul "raspberrypi-kernel-headers" y figure, sans l\'image noyau elle-même) — un build Raspberry Pi OS + x86_64 échouait donc systématiquement à l\'installation du noyau. "raspi-firmware" confirmé "Architecture: all" sur le même index, fonctionne sur toutes les architectures', () => {
+  it('Raspberry Pi OS + x86_64 : installe le vrai noyau Debian standard "linux-image-amd64", PAS "raspberrypi-kernel" (absent sur amd64)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'iso_hybrid', arch: 'x86_64' }));
+    const kernelLine = script.split('\n').find(l => l.includes('apt-get install') && l.includes('raspi-firmware'));
+    expect(kernelLine).toContain('linux-image-amd64');
+    expect(kernelLine).not.toContain('raspberrypi-kernel');
+  });
+
+  it('Raspberry Pi OS + aarch64 (format wsl2_tar, hors chemin rpi_sd) : non-régression, "raspberrypi-kernel" toujours installé', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'wsl2_tar', arch: 'aarch64' }));
+    const kernelLine = script.split('\n').find(l => l.includes('apt-get install') && l.includes('raspi-firmware'));
+    expect(kernelLine).toContain('raspberrypi-kernel');
+  });
+});
