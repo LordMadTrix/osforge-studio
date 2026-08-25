@@ -448,7 +448,28 @@ describe('generateBuildScript — sélection de noyau réellement câblée pour 
   });
 });
 
-describe('generateBuildScript — noyau LTS/Realtime réellement câblé via XanMod (vérifié en direct sur xanmod.org)', () => {
+describe('generateBuildScript — noyau XanMod / LTS / Realtime réellement câblé via XanMod (vérifié en direct sur xanmod.org)', () => {
+  it("Debian + kernel=xanmod (x86_64) ajoute le vrai dépôt XanMod et installe linux-xanmod-x64v3", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'xanmod' }));
+    expect(script).toContain('https://dl.xanmod.org/archive.key');
+    expect(script).toContain('deb.xanmod.org trixie main');
+    expect(script).toContain('linux-xanmod-x64v3');
+    expect(script).not.toMatch(/--include="linux-image-amd64,/);
+  });
+
+  it("Ubuntu + kernel=xanmod (x86_64) ajoute le vrai dépôt XanMod et installe linux-xanmod-x64v3", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'xanmod' }));
+    expect(script).toContain('deb.xanmod.org resolute main');
+    expect(script).toContain('linux-xanmod-x64v3');
+    expect(script).not.toMatch(/--include="linux-image-generic,/);
+  });
+
+  it("Linux Mint + kernel=xanmod (x86_64) installe linux-xanmod-x64v3", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'linuxmint', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'xanmod' }));
+    expect(script).toContain('deb.xanmod.org resolute main');
+    expect(script).toContain('linux-xanmod-x64v3');
+  });
+
   it("Debian + kernel=lts ajoute le vrai dépôt XanMod et installe linux-xanmod-lts-x64v1", () => {
     const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'x86_64', outputFormat: 'iso_hybrid', kernel: 'lts' }));
     expect(script).toContain('https://dl.xanmod.org/archive.key');
@@ -464,9 +485,15 @@ describe('generateBuildScript — noyau LTS/Realtime réellement câblé via Xan
   });
 
   it("XanMod n'est pas proposé hors x86_64 (aucun paquet officiel pour cette architecture)", () => {
-    const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'aarch64', outputFormat: 'iso_hybrid', kernel: 'lts' }));
-    expect(script).not.toContain('xanmod');
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', arch: 'aarch64', outputFormat: 'iso_hybrid', kernel: 'xanmod' }));
+    expect(script).not.toContain('deb.xanmod.org');
     expect(script).toContain("n'est pas encore câblé pour debian");
+  });
+
+  it("Arch Linux + kernel=xanmod : notice de repli honnête", () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'xanmod' }));
+    expect(script).toContain('XanMod est officiellement fourni pour la famille Debian/Ubuntu (APT)');
+    expect(script).toContain('installation de \'linux\' à la place');
   });
 });
 

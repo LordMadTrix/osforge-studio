@@ -147,9 +147,10 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 29 commits poussés sur `main`, tous avec CI + Pages verts.
-- Suite de tests : 389 tests, tous verts.
+- 30 commits poussés sur `main`, tous avec CI + Pages verts.
+- Suite de tests : 393 tests, tous verts.
 - Derniers ajouts / correctifs en date :
+  - Ajout du noyau **`xanmod`** (`Linux-XanMod 6.13`) comme option de premier ordre dans l'UI et le type `KernelType`, avec installation du paquet officiel `linux-xanmod-x64v3` depuis `deb.xanmod.org` pour Debian/Ubuntu/Mint/Kali (x86_64), et avertissements clairs de repli pour Arch Linux et ARM64.
   - Câblage complet de **`autoSecurityUpdates`** (`unattended-upgrades` sur Debian-like, `dnf-automatic` sur Fedora/Rocky, avertissements clairs rolling release / non-systemd) sur tous les générateurs bash et cloud-init.
   - Câblage complet et robuste de la locale système (**`localeSetupCmd`**) sur les 13 distros (`/etc/locale.gen` avec syntaxe correcte `<loc>.UTF-8 UTF-8`, `/etc/locale.conf`, `/etc/default/locale`, `/etc/sysconfig/language`, `libc-locales`, `/etc/profile.d/locale.sh`).
   - Prise en charge universelle des artéfacts non-ISO dans le workflow GitHub Actions (sommes SHA256 et publication des releases fiabilisées pour `qcow2`, `vmdk`, `raw_img`, `wsl2_tar`, `docker_rootfs`, `rpi_sd`).

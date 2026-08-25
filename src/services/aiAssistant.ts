@@ -115,6 +115,12 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     reasons.push('Moteur de jeux Steam + Proton, launchers et noyau basse latence Liquorix configurés.');
   }
 
+  if (p.includes('xanmod')) {
+    updated.kernel = 'xanmod';
+    tags.push('Noyau XanMod');
+    reasons.push('Noyau ultra-performance XanMod configuré.');
+  }
+
   if (p.includes('homelab') || p.includes('docker') || p.includes('k8s') || p.includes('kubernetes') || p.includes('serveur')) {
     selectedPkgs.add('docker');
     selectedPkgs.add('k3s');

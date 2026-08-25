@@ -75,6 +75,18 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     isBeta: false,
   },
   {
+    id: 'xanmod',
+    name: 'Linux-XanMod 6.13 (Faible Latence & E-Sport)',
+    version: 'v6.13-xanmod (x64v3/v2)',
+    badge: 'Ultra-Performance & Gaming',
+    description: 'Noyau Linux haute performance conçu pour maximiser le débit, réduire la latence système et optimiser le multitâche (patchs TT / BORE, préemption complète, tickrate 500Hz/1000Hz, TCP BBRv3).',
+    recommendation: 'Recommandé pour les stations de travail audio/vidéo, le gaming haute performance et les serveurs nécessitant une latence minimale.',
+    bootSpeed: 'Très rapide',
+    latency: 'Ultra-Basse',
+    stability: 'Haute',
+    isBeta: false,
+  },
+  {
     id: 'hardened',
     name: 'Linux-Hardened 6.12/7.1 (Sécurité Maximale & KSPP)',
     version: 'v6.12.14-hardened',

@@ -49,6 +49,7 @@ export type KernelType =
   | 'zen'
   | 'cachyos'
   | 'liquorix'
+  | 'xanmod'
   | 'hardened'
   | 'realtime'
   | 'lts'

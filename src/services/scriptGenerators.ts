@@ -1070,6 +1070,7 @@ const ARCH_KERNEL_PACKAGE: Record<string, string> = {
   cachyos: 'linux',
   zen: 'linux-zen',
   liquorix: 'linux',
+  xanmod: 'linux',
   hardened: 'linux-hardened',
   realtime: 'linux-rt',
   cloud_micro: 'linux',
@@ -1079,6 +1080,7 @@ const ARCH_KERNEL_FALLBACK_NOTICE: Record<string, string> = {
   mainline_beta: "mainline_beta n'a pas de paquet officiel Arch dédié",
   cachyos: 'linux-cachyos nécessite le dépôt CachyOS (non configuré ici)',
   liquorix: 'Liquorix est un noyau spécifique Debian/Ubuntu, sans équivalent officiel Arch',
+  xanmod: 'XanMod est officiellement fourni pour la famille Debian/Ubuntu (APT), sans paquet officiel Arch',
   cloud_micro: "cloud_micro n'a pas d'équivalent officiel Arch",
 };
 
@@ -2130,7 +2132,7 @@ exit 1
   const isDebianLiquorixEligible = recipe.distro === 'debian' && recipe.arch === 'x86_64';
   const REAL_ALT_KERNEL =
     (isUbuntuFamily && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)) ||
-    (isXanmodEligible && (['lts', 'realtime'] as string[]).includes(recipe.kernel)) ||
+    (isXanmodEligible && (['xanmod', 'lts', 'realtime'] as string[]).includes(recipe.kernel)) ||
     (isDebianLiquorixEligible && recipe.kernel === 'liquorix')
       ? recipe.kernel
       : null;
@@ -2315,7 +2317,7 @@ which debootstrap xorriso mtools grub-mkrescue squashfs-tools${needsCrossArchEmu
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
-${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Cloud-Micro pour Ubuntu/Mint ; Liquorix pour Debian et Ubuntu/Mint en x86_64 ; LTS/Realtime (via XanMod) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
+${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Cloud-Micro pour Ubuntu/Mint ; Liquorix pour Debian et Ubuntu/Mint en x86_64 ; XanMod (Standard/LTS/RT) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
 ` : ''}${REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
 ` : ''}${needsCrossArchEmulation ? `echo -e "\${CYAN}[INFO] Architecture \\"${recipe.arch}\\" différente de l'hôte : bootstrap en deux étapes avec émulation ${qemuStaticBinary} (comme pour la carte SD Raspberry Pi).\${NC}"
 ` : ''}${needsCrossArchEmulation && !isTarFormat ? `echo -e "\${RED}[AVERTISSEMENT] Le RootFS \\"${recipe.arch}\\" sera correctement construit, MAIS la chaîne d'amorçage de ce générateur (GRUB BIOS i386-pc + UEFI x86_64-efi, El Torito) est câblée exclusivement pour x86_64 : l'ISO produite ne démarrera PAS sur du matériel ${recipe.arch}. Choisissez le format \\"Distribution Windows WSL2\\" ou \\"Conteneur Docker RootFS\\" pour obtenir un RootFS ${recipe.arch} réellement utilisable dès maintenant.\${NC}"
@@ -2428,9 +2430,9 @@ apt-get install -y --no-install-recommends linux-image-liquorix-amd64 linux-head
 echo -e "\${YELLOW}[INFO] Installation du noyau officiel Ubuntu invité cloud/KVM (linux-image-kvm)...\${NC}"
 apt-get install -y --no-install-recommends linux-image-kvm
 
-` : ''}${(REAL_ALT_KERNEL === 'lts' || REAL_ALT_KERNEL === 'realtime') ? `# Noyau XanMod — vrai dépôt APT officiel (deb.xanmod.org), vérifié en direct sur xanmod.org.
-# Branches LTS et RT distinctes et réellement maintenues par le projet, codenames Debian/Ubuntu
-# de ce pipeline (${target.suite}) confirmés pris en charge.
+` : ''}${(REAL_ALT_KERNEL === 'xanmod' || REAL_ALT_KERNEL === 'lts' || REAL_ALT_KERNEL === 'realtime') ? `# Noyau XanMod — vrai dépôt APT officiel (deb.xanmod.org), vérifié en direct sur xanmod.org.
+# Branches Standard (x64v3), LTS (x64v1) et RT (x64v2) distinctes et réellement maintenues par le projet,
+# codenames Debian/Ubuntu de ce pipeline (${target.suite}) confirmés pris en charge.
 echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel XanMod (deb.xanmod.org)...\${NC}"
 apt-get install -y --no-install-recommends curl gnupg
 mkdir -p /etc/apt/keyrings
@@ -2442,7 +2444,7 @@ mkdir -p /etc/apt/keyrings
 if curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg; then
     echo "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org ${target.suite} main" > /etc/apt/sources.list.d/xanmod-release.list
     apt-get update -y
-    if ! apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}; then
+    if ! apt-get install -y --no-install-recommends ${REAL_ALT_KERNEL === 'xanmod' ? 'linux-xanmod-x64v3' : REAL_ALT_KERNEL === 'lts' ? 'linux-xanmod-lts-x64v1' : 'linux-xanmod-rt-x64v2'}; then
         echo -e "\${RED}[AVERTISSEMENT] Le paquet noyau XanMod n'a pas pu être installé : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
         apt-get install -y --no-install-recommends ${kernelPkg}
     fi
@@ -3498,12 +3500,22 @@ if [ ! -f "\${ISO_FILE}" ]; then
     ISO_FILE=$(ls dist/*.iso 2>/dev/null | head -n1 || true)
 fi
 
+# Bug réel trouvé en auditant, par contraste avec le equivalent Windows auto-build.bat (déjà
+# correct sur ce point) : quand le format de sortie choisi n'est pas "ISO hybride" (RootFS
+# WSL2/Docker, image disque, carte SD...), aucun .iso n'existe JAMAIS dans dist/ — ce script
+# affichait quand même "[SUCCÈS] ... ISO : " avec un chemin vide, puis accusait à tort QEMU
+# d'être absent alors que la vraie raison est qu'il n'y a simplement rien à tester via un boot
+# "-cdrom" ISO (le VRAI fichier produit, ex. un .tar.gz, existe bien et a bien réussi).
+ARTIFACT_FILE=$(find dist -maxdepth 1 -type f ! -name '*.log' 2>/dev/null | head -n1 || true)
+
 echo -e "\${GREEN}===============================================================================\${NC}"
 echo -e "\${GREEN}  [SUCCÈS] Pipeline 100% automatique terminé !\${NC}"
-echo -e "\${GREEN}  ISO : \${ISO_FILE}\${NC}"
+echo -e "\${GREEN}  Fichier généré : \${ARTIFACT_FILE:-voir le dossier dist/}\${NC}"
 echo -e "\${GREEN}===============================================================================\${NC}"
 
-if [ -n "\${ISO_FILE}" ] && command -v qemu-system-x86_64 &>/dev/null; then
+if [ -z "\${ISO_FILE}" ]; then
+    echo "Format de sortie \"${recipe.outputFormat}\" : pas d'image ISO à tester via QEMU (le test Live RAM automatique n'est disponible que pour le format \\"ISO hybride\\")."
+elif command -v qemu-system-x86_64 &>/dev/null; then
     echo "Lancement du test Live RAM (fermez la fenêtre QEMU quand vous avez fini)..."
     qemu-system-x86_64 -cdrom "\${ISO_FILE}" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 else
