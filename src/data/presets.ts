@@ -17,7 +17,17 @@ export const DISTRO_PRESETS: DistroPreset[] = [
       distro: 'arch',
       distroVersion: 'Rolling Release (2026)',
       arch: 'x86_64',
-      outputFormat: 'iso_hybrid',
+      // Bug réel MAJEUR trouvé en auditant : ce preset utilisait "iso_hybrid" — un format que
+      // generateNonDebianBuildScript() refuse explicitement pour Arch/CachyOS/Fedora/Rocky/
+      // Alpine/openSUSE/Void (l'ISO live bootable nécessite une intégration bootloader/initramfs
+      // propre à chaque famille, non implémentée). Choisir ce preset et cliquer "Générer"
+      // produisait donc un script de 727 caractères refusant de continuer, PAS la station de
+      // développement annoncée par ses "highlights". Vérifié en direct : générer le VRAI script
+      // avec ce preset renvoyait bien le message d'erreur, confirmé en générant la version
+      // corrigée en "qcow2" (image disque, réellement bootable — GRUB + noyau réels, déjà vérifié
+      // par boot QEMU pour cette même famille Arch cette session) : script complet de 8202
+      // caractères produit sans refus.
+      outputFormat: 'qcow2',
       desktop: 'hyprland',
       displayManager: 'ly',
       kernel: 'zen',
@@ -255,11 +265,18 @@ export const DISTRO_PRESETS: DistroPreset[] = [
   {
     id: 'ai_llm_station',
     title: 'Local AI & LLM Inference Station',
-    subtitle: 'Arch Linux + Niri + XanMod + Ollama + PyTorch & CUDA',
+    // Bug réel trouvé en auditant : "XanMod" était annoncé ici (titre ET highlight) alors que
+    // XanMod n'a AUCUN paquet officiel pour Arch (vérifié en direct, confirmé par le propre
+    // avertissement de repli honnête de ce générateur : "XanMod est officiellement fourni pour la
+    // famille Debian/Ubuntu (APT), sans paquet officiel Arch : installation de 'linux' à la
+    // place"). La recette réelle installait donc un noyau générique tout en prétendant avoir
+    // XanMod. Remplacé par "Zen" (linux-zen, réellement câblé et vérifié pour Arch cette session),
+    // qui tient la même promesse de "haute réactivité" sans rien inventer.
+    subtitle: 'Arch Linux + Niri + Zen + Ollama + PyTorch & CUDA',
     description: 'Une station de travail optimisée pour l’exécution locale de LLM, vision par ordinateur et inférence IA. Compositeur scrollable Niri ultra-fluide et zRAM activée.',
     icon: 'Sparkles',
     category: 'AI',
-    highlights: ['Niri Rust Scrollable Tiling', 'Noyau XanMod haute réactivité', 'zRAM swap ZSTD compressé', 'Ollama & Outils IA locaux', 'Dépôt Flathub activé'],
+    highlights: ['Niri Rust Scrollable Tiling', 'Noyau Zen haute réactivité', 'zRAM swap ZSTD compressé', 'Ollama & Outils IA locaux', 'Dépôt Flathub activé'],
     estimatedSize: '2.4 Go',
     estimatedRam: '650 Mo',
     recipe: {
@@ -268,10 +285,15 @@ export const DISTRO_PRESETS: DistroPreset[] = [
       distro: 'arch',
       distroVersion: 'Rolling Release (2026)',
       arch: 'x86_64',
-      outputFormat: 'iso_hybrid',
+      // Bug réel MAJEUR trouvé en auditant, même cause racine que le preset "devops_hyprland"
+      // ci-dessus : "iso_hybrid" est refusé par generateNonDebianBuildScript() pour Arch (ISO live
+      // bootable non implémentée pour cette famille). Vérifié en direct : ce preset produisait un
+      // script de 727 caractères refusant de continuer. Corrigé en "qcow2" (vérifié : script
+      // complet de 8332 caractères, réellement bootable).
+      outputFormat: 'qcow2',
       desktop: 'niri',
       displayManager: 'ly',
-      kernel: 'xanmod',
+      kernel: 'zen',
       kernelCmdline: 'transparent_hugepage=madvise split_lock_mitigate=0',
       enableFlatpak: true,
       enableZram: true,
