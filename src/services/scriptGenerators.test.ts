@@ -749,6 +749,70 @@ describe('generateCloudInitYaml — durcissement sécurité réellement câblé 
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé en auditant : "fail2ban"/"appArmorOrSELinux"/"customServices" supposaient TOUS systemd sans condition, alors que ce même fichier établit déjà (serviceEnableCmd, macHardeningCmd) qu\'Alpine (OpenRC) et Void (runit) n\'ont pas systemctl, et qu\'appArmorOrSELinux doit écrire /etc/selinux/config sur Fedora/Rocky (SELinux), pas activer un service "apparmor" inexistant là-bas. Le commentaire précédent ("cloud-init quasi exclusivement Debian/Ubuntu en pratique") est devenu obsolète dès le correctif du nom d\'unité SSH (commit c996e2b) : RecipeInspector.tsx affiche ce manifeste pour les 13 distros sans filtrage', () => {
+  it('fail2ban sur Alpine : utilise "rc-update add fail2ban default" (OpenRC, pas systemctl)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'alpine', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('rc-update add fail2ban default');
+    expect(yaml).not.toContain('systemctl enable --now fail2ban');
+  });
+
+  it('fail2ban sur Void : active via le symlink runit, pas systemctl', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'void', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('/etc/sv/fail2ban /etc/runit/runsvdir/default/fail2ban');
+    expect(yaml).not.toContain('systemctl enable --now fail2ban');
+  });
+
+  it('appArmorOrSELinux sur Fedora/Rocky : écrit /etc/selinux/config (SELINUX=enforcing), PAS "systemctl enable apparmor" (service inexistant là-bas)', () => {
+    for (const distro of ['fedora', 'rocky'] as const) {
+      const yaml = generateCloudInitYaml(makeRecipe({
+        distro, outputFormat: 'qcow2',
+        security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+      }));
+      expect(yaml).toContain('path: /etc/selinux/config');
+      expect(yaml).toContain('SELINUX=enforcing');
+      expect(yaml).not.toContain('enable --now apparmor');
+    }
+  });
+
+  it('appArmorOrSELinux sur Arch/openSUSE/Alpine/Void : aucune action (cohérent avec resolvePackageList qui n\'installe rien pour ces familles)', () => {
+    for (const distro of ['arch', 'opensuse', 'alpine', 'void'] as const) {
+      const yaml = generateCloudInitYaml(makeRecipe({
+        distro, outputFormat: 'qcow2',
+        security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+      }));
+      expect(yaml).not.toContain('apparmor');
+      expect(yaml).not.toContain('selinux');
+    }
+  });
+
+  it('customServices sur Alpine/Void : avertissement honnête dans /etc/motd, PAS de fichier .service systemd inerte', () => {
+    for (const distro of ['alpine', 'void'] as const) {
+      const yaml = generateCloudInitYaml(makeRecipe({
+        distro, outputFormat: 'qcow2',
+        customServices: [{ name: 'my-app', description: 'My App', execStart: '/usr/local/bin/my-app', enabled: true }],
+      } as any));
+      expect(yaml).not.toContain('/etc/systemd/system/my-app.service');
+      expect(yaml).toContain('non cable sur cette distribution');
+    }
+  });
+
+  it('Debian/Ubuntu/Arch/openSUSE : customServices écrit toujours le vrai fichier .service systemd (non-régression)', () => {
+    for (const distro of ['debian', 'ubuntu', 'arch', 'opensuse'] as const) {
+      const yaml = generateCloudInitYaml(makeRecipe({
+        distro, outputFormat: 'qcow2',
+        customServices: [{ name: 'my-app', description: 'My App', execStart: '/usr/local/bin/my-app', enabled: true }],
+      } as any));
+      expect(yaml).toContain('/etc/systemd/system/my-app.service');
+    }
+  });
+});
+
 describe('generateBuildScript — pare-feu réellement câblé au-delà de Debian/Ubuntu (bug réel MAJEUR trouvé en auditant : "firewall" n\'était référencé QUE dans generateBuildScript(), jamais dans generateNonDebianBuildScript()/generateNonDebianDiskImageScript() — un système Arch, Fedora, Rocky, Alpine, Void ou openSUSE ne recevait ZÉRO pare-feu quel que soit le choix explicite de l\'utilisateur. Paquets "ufw"/"nftables" vérifiés réels en direct par famille, service activé explicitement via serviceEnableCmd() pour les 3 systèmes d\'init)', () => {
   it('Arch + firewall="ufw" : paquet installé et service systemd activé', () => {
     const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));

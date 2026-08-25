@@ -2621,13 +2621,34 @@ jobs:
 // PAQUET déjà ajouté par resolvePackageList() (aucun filtrage par format de sortie dans cette
 // fonction, donc "packages:" les liste déjà tous), mais aucune de leurs actions d'ACTIVATION
 // n'était présente dans "runcmd"/"write_files" — les paquets s'installaient sans jamais être
-// configurés ni démarrés sur une image cloud-init (qcow2/vmdk). Ce fichier assume déjà
-// implicitement systemd/Debian-Ubuntu (voir "systemctl enable --now ssh" plus bas, non filtré par
-// famille) : les ajouts ci-dessous suivent la même simplification déjà en place, cohérente avec
-// l'usage réel de cloud-init (mécanisme quasi exclusivement Debian/Ubuntu en pratique).
+// configurés ni démarrés sur une image cloud-init (qcow2/vmdk).
+// MISE À JOUR (cycle suivant) : la simplification "systemd/Debian-Ubuntu partout" mentionnée ici
+// à l'origine a été retirée — RecipeInspector.tsx affiche ce manifeste pour LES 13 distros sans
+// filtrage (déjà corrigé pour le nom d'unité SSH, commit c996e2b) ; fail2ban/appArmorOrSELinux/
+// customServices suivent maintenant la même logique par famille que les générateurs bash
+// (serviceEnableCmd/macHardeningCmd), voir cloudInitServiceEnableLine() juste en dessous.
+// Ligne "runcmd" d'activation d'un service par nom, pendant du helper bash serviceEnableCmd()
+// (ligne ~122) pour le manifeste cloud-init : même mécanisme par famille (systemd/OpenRC/runit),
+// vérifié en direct pour serviceEnableCmd et repris ici à l'identique.
+function cloudInitServiceEnableLine(service: string, family: NonDebianFamily | undefined): string {
+  if (family === 'alpine') return `  - rc-update add ${service} default 2>/dev/null || true`;
+  if (family === 'void') return `  - mkdir -p /etc/runit/runsvdir/default\n  - ln -sf /etc/sv/${service} /etc/runit/runsvdir/default/${service} 2>/dev/null || true`;
+  return `  - systemctl enable --now ${service} || true`;
+}
+
 function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd: string } {
   const writeFiles: string[] = [];
   const runcmd: string[] = [];
+  // Bug réel trouvé en auditant (même famille que le correctif SSH du cycle précédent, commit
+  // c996e2b) : "fail2ban", "appArmorOrSELinux" et les services personnalisés supposaient TOUS
+  // systemd sans condition — alors que ce fichier lui-même établit déjà (serviceEnableCmd,
+  // macHardeningCmd) qu'Alpine (OpenRC) et Void (runit) n'ont pas systemctl, et que
+  // "appArmorOrSELinux" doit écrire /etc/selinux/config sur Fedora/Rocky (SELinux), pas essayer
+  // d'activer un service "apparmor" qui n'existe pas là-bas. Le commentaire précédent de cette
+  // fonction ("cloud-init quasi exclusivement Debian/Ubuntu en pratique") est devenu obsolète dès
+  // le correctif SSH du cycle précédent : RecipeInspector.tsx affiche ce manifeste pour LES 13
+  // distros sans filtrage, la même rigueur doit donc s'appliquer ici.
+  const family = NON_DEBIAN_DISTROS[recipe.distro];
   if (recipe.security.disableRootSSH) {
     runcmd.push(`  - echo 'PermitRootLogin no' >> /etc/ssh/sshd_config`);
   }
@@ -2636,10 +2657,20 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
     content: |
       [sshd]
       enabled = true`);
-    runcmd.push(`  - systemctl enable --now fail2ban || true`);
+    runcmd.push(cloudInitServiceEnableLine('fail2ban', family));
   }
   if (recipe.security.appArmorOrSELinux) {
-    runcmd.push(`  - systemctl enable --now apparmor || true`);
+    if (!family) {
+      runcmd.push(`  - systemctl enable --now apparmor || true`);
+    } else if (family === 'fedora') {
+      writeFiles.push(`  - path: /etc/selinux/config
+    content: |
+      SELINUX=enforcing
+      SELINUXTYPE=targeted`);
+    }
+    // arch/alpine/suse/void : aucune action, cohérent avec resolvePackageList() qui n'installe
+    // ni apparmor ni selinux-policy-targeted pour ces familles (case sans effet, comme dans les
+    // 4 générateurs bash déjà audités).
   }
   if (recipe.dotfilesGitUrl) {
     // Faille réelle trouvée et vérifiée en direct (fichier de preuve créé localement) : cette
@@ -2651,6 +2682,15 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
   }
   recipe.customServices.forEach(svc => {
     const unitName = svc.name.replace(/\.service$/i, '').replace(/[^a-zA-Z0-9_.-]/g, '-') || 'osforge-custom';
+    // Alpine/Void n'ont pas systemd : écrire un fichier .service qui ne sera jamais lu par
+    // OpenRC/runit serait cosmétique — même limite déjà honnêtement documentée pour
+    // customServicesCmd() dans les générateurs bash (ligne ~224). "unitName" est déjà assaini
+    // (regex ci-dessus, alphanumérique + "_.-" uniquement) donc sûr à interpoler tel quel dans
+    // cette commande shell.
+    if (family === 'alpine' || family === 'void') {
+      runcmd.push(`  - echo "[INFO] Service personnalise ${unitName} non cable sur cette distribution (OpenRC/runit, pas systemd)." >> /etc/motd`);
+      return;
+    }
     writeFiles.push(`  - path: /etc/systemd/system/${unitName}.service
     content: |
       [Unit]
