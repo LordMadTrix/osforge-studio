@@ -51,8 +51,12 @@ function shellQuotePkgList(names: string[]): string {
 // backtick, \) : une ligne de commande noyau légitime (ex. "mitigations=off nosplash quiet") n'en a
 // jamais besoin, contrairement à un nom d'utilisateur ou une URL qu'on ne peut pas se permettre de
 // tronquer de la même façon.
+function sanitizeForUnquotedHeredoc(value: string): string {
+  return value.replace(/[$`\\]/g, '').trim();
+}
+
 function sanitizeKernelCmdline(cmdline: string): string {
-  return cmdline.replace(/[$`\\]/g, '').trim();
+  return sanitizeForUnquotedHeredoc(cmdline);
 }
 
 // Bug réel MAJEUR trouvé en auditant, plus grave encore que le manque d'émulation Debian corrigé
@@ -1970,10 +1974,18 @@ FSTAB_EOF
 ${typeof config.diskImageKernelDetectCmd === 'function' ? config.diskImageKernelDetectCmd(recipe.kernel) : config.diskImageKernelDetectCmd}
 
 mkdir -p "\${MNT_DIR}/boot/${grubSubdir}"
+# Bug réel MAJEUR trouvé en auditant, même mécanisme et même sévérité que le fix "kernelCmdline"
+# ci-dessus (commentaire ligne ~42), sur un champ différent : "branding.osName" était interpolé
+# BRUT dans ce même heredoc "<< GRUBCFG_EOF" non protégé (nécessaire pour laisser \${KERNEL_PATH}/
+# \${INITRD_PATH} s'étendre plus bas). Reproduit en direct : un osName contenant littéralement
+# "$(touch /tmp/preuve)" exécute réellement cette commande substituée pendant la compilation de
+# l'image disque (fichier de preuve confirmé créé, résultat vide substitué à la place de la
+# commande dans le grub.cfg généré). Corrigé avec sanitizeForUnquotedHeredoc() (même fonction que
+# kernelCmdline, renommée pour refléter son usage désormais partagé).
 cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
-menuentry "${recipe.branding.osName}" {
+menuentry "${sanitizeForUnquotedHeredoc(recipe.branding.osName)}" {
 ${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}
 }

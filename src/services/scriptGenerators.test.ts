@@ -2179,6 +2179,32 @@ describe('Ligne de commande noyau personnalisée (kernelCmdline) — injection G
   });
 });
 
+describe('Image disque non-Debian (Arch/Fedora/Alpine/openSUSE/Void) — bug réel MAJEUR trouvé en auditant, même mécanisme et même sévérité que le describe "kernelCmdline" ci-dessus : "branding.osName" était interpolé BRUT dans le même heredoc bash "<< GRUBCFG_EOF" non protégé (nécessaire pour laisser ${KERNEL_PATH}/${INITRD_PATH}/${ROOT_UUID} s\'étendre au moment de la compilation). Reproduit par une VRAIE EXÉCUTION bash (pas juste une lecture de code) : un osName contenant littéralement "$(touch /tmp/preuve)" exécute réellement cette commande substituée pendant la compilation de l\'image disque — fichier de preuve confirmé créé sur le disque, résultat (vide) substitué à la place de la commande dans le grub.cfg généré. Corrigé avec sanitizeForUnquotedHeredoc() (même fonction que kernelCmdline, renommée pour refléter son usage désormais partagé entre les deux champs)', () => {
+  it('Image disque QCOW2 Arch : un osName contenant "$(...)" voit son "$" supprimé dans le menuentry de grub.cfg, neutralisant toute substitution de commande', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      branding: { osName: 'Evil $(touch /tmp/preuve)', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(script).toContain('menuentry "Evil (touch /tmp/preuve)" {');
+    expect(script).not.toContain('menuentry "Evil $(touch /tmp/preuve)" {');
+  });
+
+  it('Image disque QCOW2 Arch : les variables bash légitimes ${KERNEL_PATH}/${INITRD_PATH}/${ROOT_UUID} du même heredoc restent bien présentes et non altérées (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'qcow2' }));
+    expect(script).toContain('linux ${KERNEL_PATH} root=UUID=${ROOT_UUID}');
+    expect(script).toContain('initrd ${INITRD_PATH}');
+  });
+
+  it('osName "normal" (sans caractère spécial) : non-régression, contenu identique', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'qcow2',
+      branding: { osName: 'ForgeOS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(script).toContain('menuentry "ForgeOS" {');
+  });
+});
+
 describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, MAO, DevOps, Sécurité, CLI Rust)', () => {
   it('Résout les paquets IA locale (ollama_ai, python_ai_data) sur Arch Linux', () => {
     const pkgs = resolvePackageList(makeRecipe({
