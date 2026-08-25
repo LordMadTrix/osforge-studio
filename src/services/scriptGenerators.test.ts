@@ -1043,6 +1043,20 @@ describe('generateBuildScript — mode kiosque ("kioskUrl") réellement câblé 
     expect(script).toContain('systemctl enable seatd');
   });
 
+  it('bug réel trouvé en auditant, même classe que le bug i3wm Arch/CachyOS déjà corrigé : Arch/Fedora/openSUSE tombaient dans le "else" générique qui installe "network-manager" (nom Debian) — confirmé ABSENT d\'Arch en direct (archlinux.org/packages/search/json, "count": 0). Arch a besoin de "networkmanager" (sans tiret), Fedora/openSUSE de "NetworkManager" (capitalisé) — tous deux confirmés réels et déjà utilisés partout ailleurs dans ce fichier', () => {
+    const archPkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'web_kiosk', selectedPackages: [], customPackages: [] }));
+    expect(archPkgs).toContain('networkmanager');
+    expect(archPkgs).not.toContain('network-manager');
+
+    const fedoraPkgs = resolvePackageList(makeRecipe({ distro: 'fedora', desktop: 'web_kiosk', selectedPackages: [], customPackages: [] }));
+    expect(fedoraPkgs).toContain('NetworkManager');
+    expect(fedoraPkgs).not.toContain('network-manager');
+
+    const opensusePkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', desktop: 'web_kiosk', selectedPackages: [], customPackages: [] }));
+    expect(opensusePkgs).toContain('NetworkManager');
+    expect(opensusePkgs).not.toContain('network-manager');
+  });
+
   it('active un vrai auto-login getty (systemd) pour atteindre la session kiosque sans intervention', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'web_kiosk', displayManager: 'none', user: { username: 'kiosk', fullName: 'Kiosk', shell: '/bin/bash', sudo: true, password: 'x', sshPublicKey: '' } as any }));
     expect(script).toContain('--autologin kiosk');

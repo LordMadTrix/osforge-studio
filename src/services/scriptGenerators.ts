@@ -992,8 +992,18 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // spécifiquement, aucun chromium non-snap n'existe dans les dépôts officiels : Firefox (déjà
     // câblé avec le vrai dépôt Mozilla plus bas dans ce fichier) sert de navigateur kiosque réel
     // de repli à la place.
+    // Bug réel trouvé en auditant, même classe que le bug i3wm Arch/CachyOS ci-dessus : le "else"
+    // final ci-dessous couvrait aussi Arch/CachyOS/Fedora/Rocky/openSUSE avec "network-manager"
+    // (nom Debian) — confirmé en direct ABSENT d'Arch (archlinux.org/packages/search/json/
+    // ?name=network-manager : "count": 0) et incorrect sur openSUSE (vrai nom "NetworkManager",
+    // confirmé via le dépôt OSS officiel Tumbleweed, "NetworkManager-1.56.1-3.1.x86_64.rpm").
+    // "chromium"/"cage"/"seatd" restent corrects pour ces familles (confirmés réels en direct sur
+    // Arch, Fedora ET openSUSE — src.fedoraproject.org/api/0/rpms + download.opensuse.org/
+    // tumbleweed/repo/oss), seul le nom du gestionnaire réseau était faux.
     if (distroId === 'ubuntu' || distroId === 'linuxmint') pkgs.push('firefox', 'cage', 'seatd', 'network-manager');
     else if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
+    else if (isArchLike) pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'networkmanager');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'NetworkManager');
     else pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'network-manager');
   } else if (recipe.desktop === 'openbox') {
     // Openbox (X11 minimaliste) — paquets réels vérifiés sur toutes les familles
