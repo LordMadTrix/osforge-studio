@@ -122,6 +122,8 @@ export interface SoftwarePackage {
   icon: string;
   tags: string[];
   pkgNames: Partial<Record<DistroId, string>>;
+  appType?: 'gui' | 'cli' | 'daemon';
+  systemImpact?: 'low' | 'medium' | 'heavy';
 }
 
 export interface CustomService {

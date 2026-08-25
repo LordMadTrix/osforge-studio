@@ -6,7 +6,8 @@ import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import { 
   Search, Package, Plus, Trash2, CheckCircle2, Shield, Gamepad2, Code, Server, 
-  Video, FileText, Cpu, Sparkles, Radio, Zap, RotateCcw, CheckCheck, Tag
+  Video, FileText, Cpu, Sparkles, Radio, Zap, RotateCcw, Tag, Download, Upload,
+  Monitor, Terminal, Activity, Copy, Check
 } from 'lucide-react';
 
 interface PackageCatalogProps {
@@ -18,9 +19,13 @@ interface PackageCatalogProps {
 
 export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange, lang, onOpenTips }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<'all' | 'gui' | 'cli' | 'daemon'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [customInput, setCustomInput] = useState<string>('');
+  const [showImportExport, setShowImportExport] = useState<boolean>(false);
+  const [importText, setImportText] = useState<string>('');
+  const [copiedExport, setCopiedExport] = useState<boolean>(false);
 
   const distro = DISTROS.find(d => d.id === recipe.distro) || DISTROS[0];
 
@@ -38,18 +43,19 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
   ];
 
   // Extraction de tous les tags uniques pour filtrage rapide
-  const allTags = Array.from(new Set(SOFTWARE_PACKAGES.flatMap(p => p.tags))).slice(0, 14);
+  const allTags = Array.from(new Set(SOFTWARE_PACKAGES.flatMap(p => p.tags))).slice(0, 16);
 
   // Suggestions de paquets personnalisés populaires
-  const popularCustomPackages = ['jq', 'tree', 'ncdu', 'micro', 'fish', 'zellij', 'tmux', 'lazygit', 'eza', 'bat', 'strace', 'gdb'];
+  const popularCustomPackages = ['jq', 'tree', 'ncdu', 'micro', 'fish', 'zellij', 'tmux', 'lazygit', 'eza', 'bat', 'strace', 'gdb', 'duf', 'tealdeer'];
 
   const filteredPackages = SOFTWARE_PACKAGES.filter(pkg => {
     const matchesCategory = selectedCategory === 'all' || pkg.category === selectedCategory;
+    const matchesType = selectedType === 'all' || pkg.appType === selectedType;
     const matchesTag = !selectedTag || pkg.tags.includes(selectedTag);
     const matchesQuery = pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          pkg.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          pkg.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesTag && matchesQuery;
+    return matchesCategory && matchesType && matchesTag && matchesQuery;
   });
 
   const togglePackage = (pkgId: string) => {
@@ -96,12 +102,53 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
     return acc + (p?.sizeMB || 0);
   }, 0);
 
+  // Génération de la liste exportable
+  const exportPackageListString = () => {
+    const lines: string[] = [];
+    lines.push(`# OSForge Studio - Export de la sélection logicielle (${distro.name})`);
+    lines.push(`# Gestionnaire de paquets : ${distro.packageManager}`);
+    lines.push('');
+    lines.push('# --- Paquets du Catalogue ---');
+    recipe.selectedPackages.forEach(id => {
+      const p = SOFTWARE_PACKAGES.find(x => x.id === id);
+      if (p) {
+        const pkgForDistro = p.pkgNames[distro.id] || p.id;
+        lines.push(`${pkgForDistro} # ${p.name}`);
+      }
+    });
+    if (recipe.customPackages.length > 0) {
+      lines.push('');
+      lines.push('# --- Paquets Personnalisés ---');
+      recipe.customPackages.forEach(p => lines.push(p));
+    }
+    return lines.join('\n');
+  };
+
+  const handleImportText = () => {
+    if (!importText.trim()) return;
+    const items = importText
+      .split(/[\r\n,]+/)
+      .map(l => l.replace(/#.*$/, '').trim())
+      .filter(l => l.length > 0)
+      .flatMap(l => l.split(/\s+/));
+    const unique = Array.from(new Set([...recipe.customPackages, ...items]));
+    onChange({ customPackages: unique });
+    setImportText('');
+    setShowImportExport(false);
+  };
+
+  const copyExportToClipboard = () => {
+    navigator.clipboard.writeText(exportPackageListString());
+    setCopiedExport(true);
+    setTimeout(() => setCopiedExport(false), 2000);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Contextual Pro Tip */}
       <ContextTip category="packages" lang={lang} onOpenAllTips={onOpenTips} />
 
-      {/* 1. Header with Search, Pack Actions & Quick Filters */}
+      {/* 1. Header with Search, Pack Actions, Types & Quick Filters */}
       <div className="glass-panel" style={{ padding: '16px 18px' }}>
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '12px' }}>
           {/* Search bar */}
@@ -110,7 +157,7 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             <input
               type="text"
               className="input-text"
-              placeholder={lang === 'fr' ? 'Rechercher un logiciel (Docker, Ollama, Ardour, Wireshark, Rust)...' : 'Search software (Docker, Ollama, Ardour, Wireshark, Rust)...'}
+              placeholder={lang === 'fr' ? 'Rechercher un logiciel (Docker, Ollama, Go, Blender, RetroArch)...' : 'Search software (Docker, Ollama, Go, Blender, RetroArch)...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ paddingLeft: '36px', fontSize: '0.84rem' }}
@@ -152,7 +199,80 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
               ~{totalSelectedSizeMB >= 1000 ? `${(totalSelectedSizeMB / 1000).toFixed(1)} Go` : `${totalSelectedSizeMB} Mo`}
             </div>
           )}
+
+          {/* Import / Export Button */}
+          <button
+            onClick={() => setShowImportExport(!showImportExport)}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.76rem', padding: '6px 11px', display: 'flex', alignItems: 'center', gap: '5px' }}
+          >
+            <Download size={13} />
+            {lang === 'fr' ? 'Import / Export' : 'Import / Export'}
+          </button>
         </div>
+
+        {/* Import / Export Drawer */}
+        {showImportExport && (
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.35)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '8px',
+            padding: '14px',
+            marginBottom: '14px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '14px',
+          }}>
+            {/* Export Section */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Download size={13} color="var(--cyan)" />
+                  {lang === 'fr' ? 'Exporter la liste actuelle' : 'Export current package list'}
+                </span>
+                <button
+                  onClick={copyExportToClipboard}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.7rem', padding: '3px 8px' }}
+                >
+                  {copiedExport ? <Check size={12} color="var(--emerald)" /> : <Copy size={12} />}
+                  {copiedExport ? (lang === 'fr' ? 'Copié !' : 'Copied!') : (lang === 'fr' ? 'Copier' : 'Copy')}
+                </button>
+              </div>
+              <textarea
+                readOnly
+                value={exportPackageListString()}
+                className="input-text font-mono"
+                style={{ height: '90px', fontSize: '0.72rem', resize: 'vertical' }}
+              />
+            </div>
+
+            {/* Import Section */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Upload size={13} color="var(--purple)" />
+                  {lang === 'fr' ? 'Importer une liste externe' : 'Import external list'}
+                </span>
+                <button
+                  onClick={handleImportText}
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.7rem', padding: '3px 8px' }}
+                >
+                  <Plus size={12} />
+                  {lang === 'fr' ? 'Importer' : 'Import'}
+                </button>
+              </div>
+              <textarea
+                placeholder={lang === 'fr' ? 'Collez des noms de paquets séparés par des espaces ou des sauts de ligne...' : 'Paste package names separated by spaces or line breaks...'}
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                className="input-text font-mono"
+                style={{ height: '90px', fontSize: '0.72rem', resize: 'vertical' }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Quick Pack Curated Buttons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
@@ -165,28 +285,49 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             className="btn btn-secondary"
             style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
           >
-            💻 {lang === 'fr' ? 'Pack Dev & Sysadmin' : 'Dev & Sysadmin Pack'}
+            💻 {lang === 'fr' ? 'Dev & Sysadmin' : 'Dev & Sysadmin'}
+          </button>
+          <button
+            onClick={() => selectPack(['rust_toolchain', 'golang_toolchain', 'cpp_modern_stack', 'zig_compiler', 'cli_modern_tools'])}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
+          >
+            ⚙️ {lang === 'fr' ? 'Compilateurs & C/Go/Rust' : 'Compilers & C/Go/Rust'}
           </button>
           <button
             onClick={() => selectPack(['ollama_ai', 'python_ai_data', 'cli_modern_tools', 'htop_btop'])}
             className="btn btn-secondary"
             style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
           >
-            🧠 {lang === 'fr' ? 'Pack IA & LLM' : 'AI & LLM Pack'}
+            🧠 {lang === 'fr' ? 'IA & LLM' : 'AI & LLM'}
           </button>
           <button
             onClick={() => selectPack(['ardour_daw', 'audacity', 'vlc_media', 'mpv_player'])}
             className="btn btn-secondary"
             style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
           >
-            🎛️ {lang === 'fr' ? 'Pack Studio MAO' : 'Audio Studio Pack'}
+            🎛️ {lang === 'fr' ? 'Studio MAO' : 'Audio Studio'}
+          </button>
+          <button
+            onClick={() => selectPack(['steam', 'lutris_heroic', 'retroarch_gaming', 'gamepad_drivers'])}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
+          >
+            🎮 {lang === 'fr' ? 'Gaming & Émulation' : 'Gaming & Emulation'}
+          </button>
+          <button
+            onClick={() => selectPack(['k3s', 'k8s_cli_tools', 'restic_rclone', 'prometheus_node_exporter', 'cockpit'])}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
+          >
+            ☁️ {lang === 'fr' ? 'Cloud & Homelab' : 'Cloud & Homelab'}
           </button>
           <button
             onClick={() => selectPack(['wireshark', 'nmap', 'metasploit', 'aircrack', 'john_hashcat', 'tor_privoxy', 'keepassxc'])}
             className="btn btn-secondary"
             style={{ fontSize: '0.72rem', padding: '4px 9px', borderRadius: '5px' }}
           >
-            🛡️ {lang === 'fr' ? 'Pack CyberSec & RedTeam' : 'CyberSec Pack'}
+            🛡️ {lang === 'fr' ? 'CyberSec & RedTeam' : 'CyberSec'}
           </button>
           {(recipe.selectedPackages.length > 0 || recipe.customPackages.length > 0) && (
             <button
@@ -208,6 +349,44 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
               {lang === 'fr' ? 'Tout désélectionner' : 'Clear All'}
             </button>
           )}
+        </div>
+
+        {/* Application Type Filters (GUI vs CLI vs Daemons) */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginRight: '4px' }}>
+            {lang === 'fr' ? 'Type :' : 'Type:'}
+          </span>
+          {[
+            { id: 'all', label: lang === 'fr' ? 'Tous les types' : 'All Types', icon: Package },
+            { id: 'gui', label: lang === 'fr' ? 'Applications GUI' : 'GUI Apps', icon: Monitor },
+            { id: 'cli', label: lang === 'fr' ? 'Outils Terminal (CLI/TUI)' : 'Terminal Tools (CLI/TUI)', icon: Terminal },
+            { id: 'daemon', label: lang === 'fr' ? 'Services & Démons' : 'Services & Daemons', icon: Activity },
+          ].map(t => {
+            const isTypeActive = selectedType === t.id;
+            const TypeIcon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelectedType(t.id as any)}
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '3px 8px',
+                  borderRadius: '5px',
+                  background: isTypeActive ? 'rgba(59, 130, 246, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                  border: isTypeActive ? '1px solid #3b82f6' : '1px solid var(--border-subtle)',
+                  color: isTypeActive ? '#60a5fa' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <TypeIcon size={12} />
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Category Pills with Count Badges */}
@@ -374,9 +553,24 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : 'var(--text-main)' }}>
                     {pkg.name}
                   </h3>
-                  <span className="badge badge-emerald" style={{ fontSize: '0.64rem' }}>
-                    +{pkg.sizeMB} Mo
-                  </span>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {pkg.appType && (
+                      <span style={{
+                        fontSize: '0.58rem',
+                        textTransform: 'uppercase',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        background: pkg.appType === 'gui' ? 'rgba(59, 130, 246, 0.15)' : pkg.appType === 'daemon' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                        color: pkg.appType === 'gui' ? '#60a5fa' : pkg.appType === 'daemon' ? '#c084fc' : 'var(--text-dim)',
+                        border: '1px solid var(--border-subtle)',
+                      }}>
+                        {pkg.appType}
+                      </span>
+                    )}
+                    <span className="badge badge-emerald" style={{ fontSize: '0.64rem' }}>
+                      +{pkg.sizeMB} Mo
+                    </span>
+                  </div>
                 </div>
 
                 <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', lineHeight: '1.35', marginBottom: '8px' }}>

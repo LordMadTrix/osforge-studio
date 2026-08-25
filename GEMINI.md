@@ -148,14 +148,14 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 32 commits poussés sur `main`, tous avec CI + Pages verts.
-- Suite de tests : 417 tests, tous verts.
+- 33 commits poussés sur `main`, tous avec CI + Pages verts.
+- Suite de tests : 423 tests, tous verts.
 - Derniers ajouts / correctifs en date :
-  - **Catalogue Logiciel Enrichi & Améliorations UI (`PackageCatalog.tsx` & `packages.ts`)** :
-    - 13 nouveaux paquets logiciels réellement vérifiés sur les 7 distributions du catalogue (IA locale avec `ollama` et stack `python_ai_data`, DevOps avec `ansible`, `opentofu_terraform` et `k8s_cli_tools`, Studio Audio/MAO avec `ardour_daw` et `audacity`, Sécurité & vie privée avec `keepassxc` et `tor_privoxy`, Outils Rust modernes avec `cli_modern_tools` et `tmux_zellij`, Bureautique/Mail avec `thunderbird`, Multimédia avec `mpv_player`).
-    - Nouveaux filtres de catégories (`ai`, `audio`) avec compteurs dynamiques de sélection.
-    - 4 Packs de sélection en 1 clic (Dev & Sysadmin, IA & LLM, Studio MAO, CyberSec & RedTeam).
-    - Barre de tags interactifs et suggestions de paquets personnalisés en 1 clic (`jq`, `tree`, `micro`, `fish`, `eza`, `bat`, `zellij`, etc.).
+  - **Catalogue Logiciel Avancé — Phase 2 (`PackageCatalog.tsx`, `packages.ts`, `os.ts`)** :
+    - 51 logiciels au total (+9 nouveaux paquets vérifiés : Compilateurs Go `golang_toolchain`, C/C++ `cpp_modern_stack`, Zig `zig_compiler`, 3D `blender_3d`, Sauvegarde chiffrée `restic_rclone`, Émulation `retroarch_gaming`, Drivers `gamepad_drivers`, Rédaction `typst_pandoc`, Métriques `prometheus_node_exporter`).
+    - Nouveaux filtres par Type d'application (Tous, Applications GUI, Outils Terminal CLI/TUI, Services & Démons).
+    - Outil interactif d'Import / Export de listes de paquets au format texte / copier-coller.
+    - Badges d'impact système (`low`, `medium`, `heavy`) et de type applicatif sur les 51 fiches logicielles.
   - **Durcissement CIS Benchmark (Niveaux 1 et 2)** : Câblage complet de `cisBenchmarkLevel` (`/etc/sysctl.d/99-cis-security.conf`, `/etc/security/limits.d/10-cis-coredumps.conf`, `/etc/profile.d/99-cis-umask.sh`, permissions de `/etc/shadow`) sur les scripts bash et le manifeste `cloud-init`.
   - **Swap zRAM compressé en mémoire vive (`enableZram`)** : Intégration de `systemd-zram-generator` (Debian/Arch), `zram-generator` (Fedora), `zram-init` (Alpine) et configuration `/etc/systemd/zram-generator.conf` avec compression ZSTD.
   - **Flatpak & Flathub OOB (`enableFlatpak`)** : Pré-installation du paquet `flatpak` et ajout automatique du remote officiel `flathub` au premier démarrage.

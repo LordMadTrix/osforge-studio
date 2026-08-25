@@ -2233,6 +2233,43 @@ describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, 
     expect(pkgs).toContain('zellij');
     expect(pkgs).toContain('tmux');
   });
+
+  it('Résout les chaînes de compilation (golang_toolchain, cpp_modern_stack, zig_compiler) sur Arch Linux', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'arch',
+      selectedPackages: ['golang_toolchain', 'cpp_modern_stack', 'zig_compiler'],
+    }));
+    expect(pkgs).toContain('go');
+    expect(pkgs).toContain('base-devel');
+    expect(pkgs).toContain('cmake');
+    expect(pkgs).toContain('ninja');
+    expect(pkgs).toContain('clang');
+    expect(pkgs).toContain('zig');
+  });
+
+  it('Résout la 3D, l’émulation et les manettes (blender_3d, retroarch_gaming, gamepad_drivers) sur Debian', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'debian',
+      selectedPackages: ['blender_3d', 'retroarch_gaming', 'gamepad_drivers'],
+    }));
+    expect(pkgs).toContain('blender');
+    expect(pkgs).toContain('retroarch');
+    expect(pkgs).toContain('joystick');
+    expect(pkgs).toContain('xboxdrv');
+  });
+
+  it('Résout sauvegarde, publication et métriques (restic_rclone, typst_pandoc, prometheus_node_exporter) sur Fedora', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'fedora',
+      selectedPackages: ['restic_rclone', 'typst_pandoc', 'prometheus_node_exporter'],
+    }));
+    expect(pkgs).toContain('restic');
+    expect(pkgs).toContain('rclone');
+    expect(pkgs).toContain('pandoc');
+    expect(pkgs).toContain('typst');
+    expect(pkgs).toContain('golang-github-prometheus-node_exporter');
+  });
 });
+
 
 
