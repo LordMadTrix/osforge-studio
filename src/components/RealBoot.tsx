@@ -299,20 +299,31 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         v86Config.screen_container = screenContainerRef.current;
       }
 
+      // Bug réel MAJEUR trouvé en auditant, confirmé en direct dans le navigateur : Alpine/Debian/
+      // TinyCore hotlinkaient des CDN tiers que le navigateur bloque systématiquement — vérifié via
+      // curl -sI qu'aucun des deux (dl-cdn.alpinelinux.org, deb.debian.org) ne renvoie de header
+      // Access-Control-Allow-Origin (CORS bloqué pour tout fetch cross-origin), et que
+      // tinycorelinux.net sert en HTTP pur (bloqué par mixed-content sur une page HTTPS). Reproduit
+      // en live : la console affichait "blocked by CORS policy" en boucle pour Alpine, et
+      // l'application affichait quand même "Système Actif" en permanence (bug distinct, corrigé
+      // séparément). Corrigé en auto-hébergeant les 3 systèmes dans public/v86/, exactement comme
+      // Buildroot l'était déjà — mêmes fichiers officiels réels (vérifiés via `file`, pas des pages
+      // d'erreur : vrais bzImage Linux + initramfs gzip), juste servis depuis la même origine que
+      // l'application pour éviter CORS/mixed-content.
       if (selectedOS === 'buildroot') {
         v86Config.bzimage = { url: `${base}v86/buildroot-bzimage.bin` };
         v86Config.cmdline = 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0';
       } else if (selectedOS === 'alpine') {
-        v86Config.bzimage = { url: 'https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86/netboot/vmlinuz-lts' };
-        v86Config.initrd = { url: 'https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86/netboot/initramfs-lts' };
+        v86Config.bzimage = { url: `${base}v86/alpine-vmlinuz-lts` };
+        v86Config.initrd = { url: `${base}v86/alpine-initramfs-lts` };
         v86Config.cmdline = 'console=ttyS0 modules=loop,squashfs quiet';
       } else if (selectedOS === 'debian') {
-        v86Config.bzimage = { url: 'https://deb.debian.org/debian/dists/bookworm/main/installer-i386/current/images/netboot/debian-installer/i386/linux' };
-        v86Config.initrd = { url: 'https://deb.debian.org/debian/dists/bookworm/main/installer-i386/current/images/netboot/debian-installer/i386/initrd.gz' };
+        v86Config.bzimage = { url: `${base}v86/debian-linux` };
+        v86Config.initrd = { url: `${base}v86/debian-initrd.gz` };
         v86Config.cmdline = 'console=ttyS0 priority=low';
       } else if (selectedOS === 'tinycore') {
-        v86Config.bzimage = { url: 'http://tinycorelinux.net/14.x/x86/release/distribution_files/vmlinuz' };
-        v86Config.initrd = { url: 'http://tinycorelinux.net/14.x/x86/release/distribution_files/core.gz' };
+        v86Config.bzimage = { url: `${base}v86/tinycore-vmlinuz` };
+        v86Config.initrd = { url: `${base}v86/tinycore-core.gz` };
         v86Config.cmdline = 'console=ttyS0 quiet';
       } else if (selectedOS === 'custom_iso') {
         if (!customIsoFile) {
