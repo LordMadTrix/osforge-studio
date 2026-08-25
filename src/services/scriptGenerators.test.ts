@@ -2040,3 +2040,142 @@ describe('generateAutoBuildSh — bug réel trouvé en auditant, par contraste a
     expect(sh).toContain('qemu-system-x86_64 -cdrom "${ISO_FILE}"');
   });
 });
+
+describe('Sécurité CIS Benchmark — conformité sysctl, limits.d et umask 027 (Niveaux 1 et 2)', () => {
+  it('cisBenchmarkLevel=1 : écrit /etc/sysctl.d/99-cis-security.conf et limits coredumps sans umask 027', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      security: { ...makeRecipe().security, cisBenchmarkLevel: 1 },
+    }));
+    expect(script).toContain('/etc/sysctl.d/99-cis-security.conf');
+    expect(script).toContain('fs.suid_dumpable = 0');
+    expect(script).toContain('kernel.randomize_va_space = 2');
+    expect(script).toContain('cat > /etc/security/limits.d/10-cis-coredumps.conf');
+    expect(script).not.toContain('99-cis-umask.sh');
+  });
+
+  it('cisBenchmarkLevel=2 : ajoute umask 027 strict et protections noyau supplémentaires', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      security: { ...makeRecipe().security, cisBenchmarkLevel: 2 },
+    }));
+    expect(script).toContain('99-cis-umask.sh');
+    expect(script).toContain('umask 027');
+    expect(script).toContain('kernel.yama.ptrace_scope = 2');
+    expect(script).toContain('kernel.dmesg_restrict = 1');
+    expect(script).toContain('net.ipv4.tcp_syncookies = 1');
+  });
+
+  it('Cloud-init intègre les fichiers de durcissement CIS Benchmark 1 et 2', () => {
+    const cloudInit = generateCloudInitYaml(makeRecipe({
+      security: { ...makeRecipe().security, cisBenchmarkLevel: 2 },
+    }));
+    expect(cloudInit).toContain('/etc/sysctl.d/99-cis-security.conf');
+    expect(cloudInit).toContain('/etc/security/limits.d/10-cis-coredumps.conf');
+    expect(cloudInit).toContain('/etc/profile.d/99-cis-umask.sh');
+    expect(cloudInit).toContain('chmod 600 /etc/shadow /etc/gshadow');
+  });
+});
+
+describe('zRAM Swap compressé en RAM (ZSTD) — configuration système et cloud-init', () => {
+  it('enableZram=true installe systemd-zram-generator sur Debian et configure zram-generator.conf', () => {
+    const recipe = makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', enableZram: true });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('systemd-zram-generator');
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('/etc/systemd/zram-generator.conf');
+    expect(script).toContain('compression-algorithm = zstd');
+    expect(script).toContain('systemctl enable systemd-zram-setup@zram0.service');
+  });
+
+  it('enableZram=true installe zram-generator sur Fedora', () => {
+    const recipe = makeRecipe({ distro: 'fedora', outputFormat: 'qcow2', enableZram: true });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('zram-generator');
+  });
+
+  it('enableZram=true configure zram-init sur Alpine Linux', () => {
+    const recipe = makeRecipe({ distro: 'alpine', outputFormat: 'wsl2_tar', enableZram: true });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('zram-init');
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('rc-update add zram-init default');
+  });
+
+  it('Cloud-init active zram-generator.conf et le service zram-setup', () => {
+    const cloudInit = generateCloudInitYaml(makeRecipe({ enableZram: true }));
+    expect(cloudInit).toContain('/etc/systemd/zram-generator.conf');
+    expect(cloudInit).toContain('systemd-zram-setup@zram0.service');
+  });
+});
+
+describe('Flatpak & Flathub — pré-installation et injection de dépôt OOB', () => {
+  it('enableFlatpak=true installe le paquet flatpak et configure le remote officiel flathub', () => {
+    const recipe = makeRecipe({ distro: 'arch', outputFormat: 'qcow2', enableFlatpak: true });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('flatpak');
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo');
+  });
+
+  it('enableFlatpak=false (défaut) n\'ajoute pas le paquet flatpak par défaut', () => {
+    const recipe = makeRecipe({ distro: 'debian', enableFlatpak: false, selectedPackages: [] });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).not.toContain('flatpak');
+  });
+});
+
+describe('Nouveaux bureaux et gestionnaires de fenêtres : Openbox et Niri', () => {
+  it('Openbox installe tint2, feh et obconf sur Debian/Ubuntu', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'openbox', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['openbox', 'tint2', 'feh', 'obconf', 'lightdm']));
+  });
+
+  it('Openbox installe openbox, tint2 et alacritty sur Arch Linux', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'openbox', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['openbox', 'tint2', 'feh', 'obconf', 'alacritty']));
+  });
+
+  it('Niri (Wayland Rust scrollable tiling) installe niri, xwayland-satellite et waybar sur Arch Linux', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'niri', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['niri', 'xwayland-satellite', 'waybar', 'alacritty', 'fuzzel']));
+  });
+
+  it('Niri installe niri et waybar sur Fedora', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', desktop: 'niri', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['niri', 'waybar', 'alacritty', 'fuzzel']));
+  });
+});
+
+describe('Ligne de commande noyau personnalisée (kernelCmdline) — injection GRUB et RPi cmdline.txt', () => {
+  it('ISO Debian : injecte kernelCmdline dans le menuentry de grub.cfg', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      kernelCmdline: 'transparent_hugepage=madvise split_lock_mitigate=0',
+    }));
+    expect(script).toContain('linux /live/vmlinuz boot=live components quiet splash hostname=test-box transparent_hugepage=madvise split_lock_mitigate=0');
+  });
+
+  it('Image disque QCOW2 Arch : injecte kernelCmdline dans grub.cfg', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      kernelCmdline: 'nomodeset pci=noaer',
+    }));
+    expect(script).toContain('rw console=tty0 console=ttyS0,115200 nomodeset pci=noaer');
+  });
+
+  it('Carte SD Raspberry Pi : injecte kernelCmdline dans cmdline.txt', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'raspbian',
+      arch: 'aarch64',
+      outputFormat: 'rpi_sd',
+      kernelCmdline: 'cgroup_enable=cpuset cgroup_memory=1',
+    }));
+    expect(script).toContain('rootfstype=ext4 fsck.repair=yes rootwait cgroup_enable=cpuset cgroup_memory=1');
+  });
+});
+

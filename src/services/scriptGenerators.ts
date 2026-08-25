@@ -458,6 +458,86 @@ echo "export LANG=${loc}.UTF-8" > /etc/profile.d/locale.sh`;
   return '';
 }
 
+// Durcissement de sécurité conforme aux recommandations CIS Benchmark (Center for Internet Security)
+// Niveau 1 : ASLR complet, masquage pointeurs kernel, interdiction core dumps, protection spoofing/redirects
+// Niveau 2 : umask 027 strict, ptrace restreint, dmesg restreint, syncookies, log martians
+function cisHardeningCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const level = recipe.security.cisBenchmarkLevel ?? 0;
+  if (!level) return '';
+
+  const sysctlL1 = `fs.suid_dumpable = 0
+kernel.randomize_va_space = 2
+kernel.kptr_restrict = 2
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0`;
+
+  const sysctlL2 = `kernel.yama.ptrace_scope = 2
+kernel.dmesg_restrict = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1`;
+
+  const fullSysctl = level >= 2 ? `${sysctlL1}\n${sysctlL2}` : sysctlL1;
+
+  const umaskCmd = level >= 2 ? `
+mkdir -p /etc/profile.d
+cat > /etc/profile.d/99-cis-umask.sh << 'UMASK_EOF'
+umask 027
+UMASK_EOF
+chmod 644 /etc/profile.d/99-cis-umask.sh 2>/dev/null || true` : '';
+
+  return `# Durcissement CIS Benchmark (Niveau ${level})
+mkdir -p /etc/sysctl.d /etc/security/limits.d
+cat > /etc/sysctl.d/99-cis-security.conf << 'SYSCTL_EOF'
+${fullSysctl}
+SYSCTL_EOF
+cat > /etc/security/limits.d/10-cis-coredumps.conf << 'LIMITS_EOF'
+* hard core 0
+LIMITS_EOF
+chmod 600 /etc/shadow /etc/gshadow 2>/dev/null || true${umaskCmd}
+sysctl -p /etc/sysctl.d/99-cis-security.conf 2>/dev/null || true`;
+}
+
+// zRAM — swap compressé en mémoire vive (ZSTD) évitant les blocages OOM sur VM et Live USB
+function zramSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const isZram = recipe.enableZram || recipe.security.enableZram;
+  if (!isZram) return '';
+
+  if (family === 'alpine') {
+    return `if command -v zram-init &>/dev/null; then
+    rc-update add zram-init default 2>/dev/null || true
+fi`;
+  }
+  if (family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] zRAM swap compressé activé pour Void Linux (paquet zramen ou configuration /dev/zram).\${NC:-}" 2>/dev/null || true`;
+  }
+  return `# Configuration de la zRAM (Swap compressé en mémoire vive ZSTD)
+mkdir -p /etc/systemd
+cat > /etc/systemd/zram-generator.conf << 'ZRAM_EOF'
+[zram0]
+zram-size = min(ram / 2, 4096)
+compression-algorithm = zstd
+ZRAM_EOF
+systemctl enable systemd-zram-setup@zram0.service 2>/dev/null || true`;
+}
+
+// Flatpak — configuration native du dépôt Flathub
+function flatpakSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableFlatpak) return '';
+  return `# Configuration Flatpak & Dépôt distant officiel Flathub
+if command -v flatpak &>/dev/null; then
+    flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+fi`;
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -831,6 +911,34 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     if (distroId === 'ubuntu' || distroId === 'linuxmint') pkgs.push('firefox', 'cage', 'seatd', 'network-manager');
     else if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
     else pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'network-manager');
+  } else if (recipe.desktop === 'openbox') {
+    // Openbox (X11 minimaliste) — paquets réels vérifiés sur toutes les familles
+    if (isDebianLike) {
+      pkgs.push('openbox', 'tint2', 'feh', 'obconf', 'xterm', 'lightdm', 'lightdm-gtk-greeter', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('openbox', 'tint2', 'feh', 'obconf', 'alacritty', 'lightdm', 'lightdm-gtk-greeter', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (distroId === 'fedora' || distroId === 'rocky') {
+      pkgs.push('openbox', 'tint2', 'feh', 'obconf', 'alacritty', 'lightdm', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('openbox', 'tint2', 'feh', 'alacritty', 'lightdm', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'alpine') {
+      pkgs.push('openbox', 'tint2', 'feh', 'xorg-server', 'mesa');
+    } else if (distroId === 'void') {
+      pkgs.push('openbox', 'tint2', 'feh', 'obconf', 'alacritty', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'pipewire', 'NetworkManager');
+    }
+  } else if (recipe.desktop === 'niri') {
+    // Niri (Wayland Scrollable Tiling en Rust) — paquets réels sur Arch (Extra) et Fedora (Official)
+    if (isArchLike) {
+      pkgs.push('niri', 'xwayland-satellite', 'waybar', 'alacritty', 'fuzzel', 'mako', 'swaylock', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (distroId === 'fedora') {
+      pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
+    } else if (isDebianLike) {
+      pkgs.push('waybar', 'alacritty', 'fuzzel', 'mako', 'swaylock', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (distroId === 'alpine') {
+      pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'seatd');
+    } else if (distroId === 'void') {
+      pkgs.push('waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
+    }
   }
 
   // Base utilities & hardware drivers
@@ -925,6 +1033,22 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('zsh');
   } else if (recipe.user.shell === '/bin/fish') {
     pkgs.push(distroId === 'void' ? 'fish-shell' : 'fish');
+  }
+
+  // Flatpak & Flathub
+  if (recipe.enableFlatpak) {
+    pkgs.push('flatpak');
+  }
+
+  // zRAM Swap compressé
+  if (recipe.enableZram || recipe.security.enableZram) {
+    if (isDebianLike || isArchLike) {
+      pkgs.push('systemd-zram-generator');
+    } else if (isFedoraLike) {
+      pkgs.push('zram-generator');
+    } else if (distroId === 'alpine') {
+      pkgs.push('zram-init');
+    }
   }
 
   return Array.from(new Set(pkgs.filter(Boolean)));
@@ -1566,6 +1690,9 @@ ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
 ${autoSecurityUpdatesCmd(recipe, family)}
+${cisHardeningCmd(recipe, family)}
+${zramSetupCmd(recipe, family)}
+${flatpakSetupCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1758,6 +1885,9 @@ ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
 ${autoSecurityUpdatesCmd(recipe, family)}
+${cisHardeningCmd(recipe, family)}
+${zramSetupCmd(recipe, family)}
+${flatpakSetupCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1812,7 +1942,7 @@ cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${recipe.branding.osName}" {
-${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}
+${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
     initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
@@ -1957,6 +2087,9 @@ systemctl enable ssh || true` : ''}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
+${cisHardeningCmd(recipe, 'debian')}
+${zramSetupCmd(recipe, 'debian')}
+${flatpakSetupCmd(recipe, 'debian')}
 
 ${dmCmd}
 ${dmAutologinCmd(recipe, 'debian')}
@@ -2010,7 +2143,7 @@ FSTAB_EOF
 # doit être écrit pour pointer vers la vraie racine (UUID, pas /dev/sdaX qui n'est pas stable
 # selon le lecteur de carte SD utilisé pour flasher l'image).
 cat > "\${MNT_DIR}/boot/firmware/cmdline.txt" << CMDLINE_EOF
-console=serial0,115200 console=tty1 root=UUID=\${ROOT_UUID} rootfstype=ext4 fsck.repair=yes rootwait
+console=serial0,115200 console=tty1 root=UUID=\${ROOT_UUID} rootfstype=ext4 fsck.repair=yes rootwait${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
 CMDLINE_EOF
 
 umount -lf "\${MNT_DIR}/boot/firmware" || true
@@ -2223,7 +2356,7 @@ insmod search
 search --no-floppy --set=root --file /live/vmlinuz
 
 menuentry "${recipe.branding.osName} (${recipe.branding.editionName}) [Live Desktop]" {
-    linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}
+    linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
     initrd /live/initrd
 }
 
@@ -2525,6 +2658,9 @@ systemctl enable ssh 2>/dev/null || true
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
+${cisHardeningCmd(recipe, 'debian')}
+${zramSetupCmd(recipe, 'debian')}
+${flatpakSetupCmd(recipe, 'debian')}
 
 # Bug réel MAJEUR trouvé en auditant : le paquet du gestionnaire de connexion (installé par le
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
@@ -2789,6 +2925,66 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
       runcmd.push(cloudInitServiceEnableLine('unattended-upgrades', family));
     } else if (family === 'fedora') {
       runcmd.push(cloudInitServiceEnableLine('dnf-automatic.timer', family));
+    }
+  }
+  const cisLevel = recipe.security.cisBenchmarkLevel ?? 0;
+  if (cisLevel >= 1) {
+    const sysctlContent = cisLevel >= 2
+      ? `      fs.suid_dumpable = 0
+      kernel.randomize_va_space = 2
+      kernel.kptr_restrict = 2
+      net.ipv4.conf.all.rp_filter = 1
+      net.ipv4.conf.default.rp_filter = 1
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      net.ipv4.conf.default.send_redirects = 0
+      net.ipv4.icmp_echo_ignore_broadcasts = 1
+      net.ipv4.icmp_ignore_bogus_error_responses = 1
+      net.ipv6.conf.all.accept_redirects = 0
+      net.ipv6.conf.default.accept_redirects = 0
+      kernel.yama.ptrace_scope = 2
+      kernel.dmesg_restrict = 1
+      net.ipv4.tcp_syncookies = 1
+      net.ipv4.conf.all.log_martians = 1
+      net.ipv4.conf.default.log_martians = 1`
+      : `      fs.suid_dumpable = 0
+      kernel.randomize_va_space = 2
+      kernel.kptr_restrict = 2
+      net.ipv4.conf.all.rp_filter = 1
+      net.ipv4.conf.default.rp_filter = 1
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      net.ipv4.conf.default.send_redirects = 0
+      net.ipv4.icmp_echo_ignore_broadcasts = 1
+      net.ipv4.icmp_ignore_bogus_error_responses = 1
+      net.ipv6.conf.all.accept_redirects = 0
+      net.ipv6.conf.default.accept_redirects = 0`;
+
+    writeFiles.push(`  - path: /etc/sysctl.d/99-cis-security.conf
+    content: |
+${sysctlContent}`);
+    writeFiles.push(`  - path: /etc/security/limits.d/10-cis-coredumps.conf
+    content: |
+      * hard core 0`);
+    if (cisLevel >= 2) {
+      writeFiles.push(`  - path: /etc/profile.d/99-cis-umask.sh
+    content: |
+      umask 027`);
+    }
+    runcmd.push(`  - chmod 600 /etc/shadow /etc/gshadow 2>/dev/null || true`);
+    runcmd.push(`  - sysctl -p /etc/sysctl.d/99-cis-security.conf 2>/dev/null || true`);
+  }
+
+  if (recipe.enableZram || recipe.security.enableZram) {
+    if (family !== 'alpine' && family !== 'void') {
+      writeFiles.push(`  - path: /etc/systemd/zram-generator.conf
+    content: |
+      [zram0]
+      zram-size = min(ram / 2, 4096)
+      compression-algorithm = zstd`);
+      runcmd.push(cloudInitServiceEnableLine('systemd-zram-setup@zram0.service', family));
     }
   }
   if (recipe.dotfilesGitUrl) {

@@ -147,14 +147,13 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 30 commits poussés sur `main`, tous avec CI + Pages verts.
-- Suite de tests : 393 tests, tous verts.
+- 31 commits poussés sur `main`, tous avec CI + Pages verts.
+- Suite de tests : 412 tests, tous verts.
 - Derniers ajouts / correctifs en date :
-  - Ajout du noyau **`xanmod`** (`Linux-XanMod 6.13`) comme option de premier ordre dans l'UI et le type `KernelType`, avec installation du paquet officiel `linux-xanmod-x64v3` depuis `deb.xanmod.org` pour Debian/Ubuntu/Mint/Kali (x86_64), et avertissements clairs de repli pour Arch Linux et ARM64.
-  - Câblage complet de **`autoSecurityUpdates`** (`unattended-upgrades` sur Debian-like, `dnf-automatic` sur Fedora/Rocky, avertissements clairs rolling release / non-systemd) sur tous les générateurs bash et cloud-init.
-  - Câblage complet et robuste de la locale système (**`localeSetupCmd`**) sur les 13 distros (`/etc/locale.gen` avec syntaxe correcte `<loc>.UTF-8 UTF-8`, `/etc/locale.conf`, `/etc/default/locale`, `/etc/sysconfig/language`, `libc-locales`, `/etc/profile.d/locale.sh`).
-  - Prise en charge universelle des artéfacts non-ISO dans le workflow GitHub Actions (sommes SHA256 et publication des releases fiabilisées pour `qcow2`, `vmdk`, `raw_img`, `wsl2_tar`, `docker_rootfs`, `rpi_sd`).
-- Aucune tâche explicite en attente au-delà du mandat général : continuer à auditer le code pour
-  trouver de vrais écarts entre ce que l'UI promet et ce que le script produit, les corriger un
-  par un, et ajouter des systèmes de noyau/environnement de bureau supplémentaires — toujours
-  vérifiés en direct, jamais en supposant.
+  - **Durcissement CIS Benchmark (Niveaux 1 et 2)** : Câblage complet de `cisBenchmarkLevel` (`/etc/sysctl.d/99-cis-security.conf`, `/etc/security/limits.d/10-cis-coredumps.conf`, `/etc/profile.d/99-cis-umask.sh`, permissions de `/etc/shadow`) sur les scripts bash et le manifeste `cloud-init`.
+  - **Swap zRAM compressé en mémoire vive (`enableZram`)** : Intégration de `systemd-zram-generator` (Debian/Arch), `zram-generator` (Fedora), `zram-init` (Alpine) et configuration `/etc/systemd/zram-generator.conf` avec compression ZSTD.
+  - **Flatpak & Flathub OOB (`enableFlatpak`)** : Pré-installation du paquet `flatpak` et ajout automatique du remote officiel `flathub` au premier démarrage.
+  - **Nouveaux environnements de bureau & tiling WMs** : Intégration complète de `niri` (Wayland scrollable tiling en Rust) et `openbox` (X11 ultra-léger avec tint2/feh/obconf) sur toutes les distributions supportées.
+  - **Ligne de commande noyau personnalisée (`kernelCmdline`)** : Injection fidèle d'arguments noyau supplémentaires dans les configurations GRUB (`grub.cfg` pour ISO hybrides et images disque QCOW2/VMDK/RAW) ainsi que dans `cmdline.txt` pour carte SD Raspberry Pi.
+  - **3 nouveaux presets spécialisés** : `Local AI & LLM Inference Station` (Niri + XanMod + Ollama + PyTorch), `MAO & Studio Audio Pro` (Openbox + Realtime + PipeWire Low-Latency), et `Kubernetes & Container Hardened Node` (CIS Level 2 + zRAM + nftables).
+- Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

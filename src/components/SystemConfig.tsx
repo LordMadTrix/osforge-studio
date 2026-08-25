@@ -315,6 +315,60 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </div>
         </div>
       </div>
+
+      {/* 5. Kernel Boot Parameters & Flatpak App Store */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <TerminalSquare size={16} color="var(--purple)" />
+          {lang === 'fr' ? 'Ligne de Commande Noyau & Dépôt Flatpak' : 'Kernel Cmdline & Flatpak Store'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Injecte des paramètres au bootloader (GRUB / cmdline.txt) et pré-active le magasin Flathub.'
+              : 'Inject custom kernel boot parameters and enable Flathub app store out of the box.'}
+          />
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Paramètres Noyau Personnalisés (GRUB / cmdline.txt) :' : 'Custom Kernel Cmdline Arguments:'}
+            </label>
+            <input
+              type="text"
+              className="input-text font-mono"
+              value={recipe.kernelCmdline || ''}
+              onChange={(e) => onChange({ kernelCmdline: e.target.value })}
+              placeholder="ex: transparent_hugepage=madvise split_lock_mitigate=0 nomodeset"
+              style={{ fontSize: '0.8rem' }}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+              {lang === 'fr'
+                ? 'Ces arguments seront directement passés à la ligne linux de GRUB (ISO/VM) ou à cmdline.txt (Raspberry Pi).'
+                : 'Appended directly to GRUB linux entry (ISO/Disk) or Raspberry Pi cmdline.txt.'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? 'Activer Flatpak & Dépôt Flathub OOB' : 'Enable Flatpak & Flathub OOB'}
+                <InfoTooltip text="Installe l’écosystème Flatpak et ajoute automatiquement le dépôt distant Flathub au premier démarrage." />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Accès à des milliers d’applications sandboxées via Flathub' : 'Access thousands of sandboxed applications via Flathub'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableFlatpak ?? false}
+                onChange={(e) => onChange({ enableFlatpak: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

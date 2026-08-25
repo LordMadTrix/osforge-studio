@@ -256,6 +256,30 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
               <span className="toggle-slider"></span>
             </label>
           </div>
+
+          {/* zRAM Compressed Swap */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                Swap zRAM Compressé (ZSTD)
+                <InfoTooltip text="Alloue un périphérique de swap compressé directement en mémoire vive pour éviter les ralentissements disque et les OOM (Out Of Memory)." />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Compression en RAM haute performance (zram-generator)
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.security.enableZram ?? recipe.enableZram ?? false}
+                onChange={(e) => {
+                  updateSec({ enableZram: e.target.checked });
+                  onChange({ enableZram: e.target.checked });
+                }}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
         </div>
       </div>
     </div>

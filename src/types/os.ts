@@ -32,7 +32,9 @@ export type DesktopEnvironmentId =
   | 'hyprland'
   | 'cosmic'
   | 'sway'
+  | 'niri'
   | 'i3wm'
+  | 'openbox'
   | 'cinnamon'
   | 'lxqt'
   | 'lxde'
@@ -145,6 +147,7 @@ export interface SecurityConfig {
   luksEncryption: boolean;
   disableRootSSH: boolean;
   autoSecurityUpdates: boolean;
+  enableZram?: boolean;
 }
 
 export interface BrandingConfig {
@@ -168,6 +171,7 @@ export interface OSRecipe {
   desktop: DesktopEnvironmentId;
   displayManager: DisplayManagerId;
   kernel: KernelType;
+  kernelCmdline?: string;
   kioskUrl?: string;
   selectedPackages: string[]; // package IDs
   customPackages: string[]; // manual package names
@@ -178,6 +182,8 @@ export interface OSRecipe {
   locale: string;
   keyboardLayout: string;
   enableSSH: boolean;
+  enableFlatpak?: boolean;
+  enableZram?: boolean;
   security: SecurityConfig;
   customServices: CustomService[];
   firstBootScript: string;
@@ -191,7 +197,7 @@ export interface DistroPreset {
   subtitle: string;
   description: string;
   icon: string;
-  category: 'Dev' | 'Security' | 'Gaming' | 'Server' | 'IoT/Minimal' | 'AI';
+  category: 'Dev' | 'Security' | 'Gaming' | 'Server' | 'IoT/Minimal' | 'AI' | 'Media';
   recipe: Partial<OSRecipe>;
   highlights: string[];
   estimatedSize: string;
