@@ -480,9 +480,14 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 45,
     icon: 'TerminalSquare',
     tags: ['Shell', 'Productivité', 'Thème'],
+    // Bug réel trouvé en auditant : la description promet explicitement "Starship" mais Debian et
+    // Ubuntu n'installaient jamais que "zsh fzf curl" (Starship absent). Confirmé RÉEL sur les DEUX
+    // suites exactes ciblées par ce générateur (DEBOOTSTRAP_TARGETS, pas les suites génériques) :
+    // Debian "trixie" (packages.debian.org/trixie/starship, 1.22.1-5) et Ubuntu "resolute"
+    // (packages.ubuntu.com/resolute/starship, 1.22.1-9ubuntu1) — corrigé en l'ajoutant aux deux.
     pkgNames: {
-      debian: 'zsh fzf curl',
-      ubuntu: 'zsh fzf curl',
+      debian: 'zsh fzf curl starship',
+      ubuntu: 'zsh fzf curl starship',
       arch: 'zsh starship fzf',
       alpine: 'zsh starship fzf',
       fedora: 'zsh starship fzf',

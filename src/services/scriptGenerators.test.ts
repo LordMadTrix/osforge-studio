@@ -2347,6 +2347,13 @@ describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, 
     expect(pkgs).toContain('audacity');
   });
 
+  it('bug réel trouvé en auditant : "zsh_starship" ("ZSH Shell & Starship Prompt") sur Debian/Ubuntu installe bien "starship" (confirmé réel sur les suites exactes ciblées par ce générateur : Debian "trixie" et Ubuntu "resolute", DEBOOTSTRAP_TARGETS) — la description promettait Starship mais il manquait de pkgNames pour ces deux familles', () => {
+    const debianPkgs = resolvePackageList(makeRecipe({ distro: 'debian', selectedPackages: ['zsh_starship'] }));
+    expect(debianPkgs).toContain('starship');
+    const ubuntuPkgs = resolvePackageList(makeRecipe({ distro: 'ubuntu', selectedPackages: ['zsh_starship'] }));
+    expect(ubuntuPkgs).toContain('starship');
+  });
+
   it('Résout les paquets DevOps & IaC (ansible, opentofu_terraform, k8s_cli_tools) sur Fedora', () => {
     const pkgs = resolvePackageList(makeRecipe({
       distro: 'fedora',
