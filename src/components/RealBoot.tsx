@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Play,
   RotateCcw,
@@ -24,7 +24,10 @@ import {
   Wifi,
   Shield,
   Zap,
-  Info
+  Disc,
+  FolderOpen,
+  Info,
+  Server
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 
@@ -34,6 +37,8 @@ interface RealBootProps {
 }
 
 type TerminalTheme = 'matrix' | 'cyber' | 'amber' | 'monochrome' | 'synthwave';
+type BootOSMode = 'buildroot' | 'alpine' | 'debian' | 'tinycore' | 'custom_iso';
+type DisplayMode = 'serial' | 'vga';
 
 const THEMES: Record<TerminalTheme, { name: string; bg: string; text: string; border: string; glow: string; accent: string }> = {
   matrix: {
@@ -78,16 +83,84 @@ const THEMES: Record<TerminalTheme, { name: string; bg: string; text: string; bo
   },
 };
 
+const OS_PRESETS: Record<BootOSMode, {
+  name: string;
+  distro: string;
+  badge: string;
+  descFr: string;
+  descEn: string;
+  icon: string;
+  recommendedRam: number;
+  isIncluded?: boolean;
+}> = {
+  buildroot: {
+    name: 'Buildroot Micro-Linux',
+    distro: 'Buildroot 2024 (x86)',
+    badge: '5 Mo • Ultra-Rapide',
+    descFr: 'Noyau Linux 5.6 complet embarqué en local. Boot instantané en 1 seconde avec BusyBox et shell ash.',
+    descEn: 'Embedded local Linux 5.6 kernel. Instant 1-second boot with BusyBox and ash shell.',
+    icon: '🐧',
+    recommendedRam: 128,
+    isIncluded: true,
+  },
+  alpine: {
+    name: 'Alpine Linux Netboot',
+    distro: 'Alpine Linux v3.19 (i686)',
+    badge: '14 Mo • apk add',
+    descFr: 'Véritable distribution Alpine Linux avec le gestionnaire de paquets apk add et OpenRC.',
+    descEn: 'Real Alpine Linux system with official apk add package manager and OpenRC.',
+    icon: '🏔️',
+    recommendedRam: 256,
+  },
+  debian: {
+    name: 'Debian GNU/Linux Installer',
+    distro: 'Debian 12 Bookworm (i386)',
+    badge: '18 Mo • Base APT',
+    descFr: 'Installeur officiel Debian GNU/Linux avec noyau officiel Debian et console netboot.',
+    descEn: 'Official Debian GNU/Linux netboot installer with Debian kernel and base console.',
+    icon: '🌀',
+    recommendedRam: 512,
+  },
+  tinycore: {
+    name: 'Tiny Core Linux',
+    distro: 'Tiny Core 14 (x86)',
+    badge: '20 Mo • Bureau Léger',
+    descFr: 'Système Linux ultra-compact en RAM avec support X11, FLWM et gestionnaire de paquets TCE.',
+    descEn: 'Ultra-compact Linux system running 100% in RAM with X11, FLWM, and TCE manager.',
+    icon: '⚡',
+    recommendedRam: 256,
+  },
+  custom_iso: {
+    name: 'Image ISO Locale Personnalisée',
+    distro: 'ISO Locale (El Torito / GRUB)',
+    badge: 'Fichier .iso / .img',
+    descFr: 'Chargez votre propre image ISO générée par OSForge Studio (dist/*.iso) ou n’importe quelle ISO x86 32-bit.',
+    descEn: 'Load your custom ISO built with OSForge Studio (dist/*.iso) or any x86 32-bit ISO.',
+    icon: '💿',
+    recommendedRam: 512,
+  },
+};
+
 type QuickCategory = 'system' | 'memory' | 'network' | 'security' | 'benchmark' | 'recipe';
 
 export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   const serialRef = useRef<HTMLTextAreaElement>(null);
+  const screenContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isoFileInputRef = useRef<HTMLInputElement>(null);
   const emulatorRef = useRef<any>(null);
 
+  // État VM & Système sélectionné
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'paused' | 'error'>('idle');
+  const [selectedOS, setSelectedOS] = useState<BootOSMode>('buildroot');
+  const [ramSize, setRamSize] = useState<number>(128);
+  const [customIsoFile, setCustomIsoFile] = useState<File | null>(null);
+  const [customIsoName, setCustomIsoName] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState('');
   const [progress, setProgress] = useState(0);
+
+  // Affichage : Console Série (ttyS0) vs Écran Graphique VGA
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('serial');
 
   // Ergonomie, Thème & Scanlines
   const [theme, setTheme] = useState<TerminalTheme>('matrix');
@@ -113,6 +186,12 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   const [customScript, setCustomScript] = useState(
     'echo "=== Test Système v86 ==="\nuname -a\nfree -m\n'
   );
+
+  // Mise à jour de la RAM recommandée quand on change d'OS
+  const handleSelectOS = (os: BootOSMode) => {
+    setSelectedOS(os);
+    setRamSize(OS_PRESETS[os].recommendedRam);
+  };
 
   // Chronomètre d'Uptime
   useEffect(() => {
@@ -184,16 +263,47 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       const base = import.meta.env.BASE_URL;
       const { V86 } = await import(/* @vite-ignore */ `${base}v86/libv86.mjs`);
 
-      const emulator = new V86({
+      // Construction de la configuration de démarrage selon le système choisi
+      const v86Config: any = {
         wasm_path: `${base}v86/v86.wasm`,
-        memory_size: 128 * 1024 * 1024,
-        vga_memory_size: 2 * 1024 * 1024,
+        memory_size: ramSize * 1024 * 1024,
+        vga_memory_size: 8 * 1024 * 1024,
         bios: { url: `${base}v86/bios/seabios.bin` },
         vga_bios: { url: `${base}v86/bios/vgabios.bin` },
-        bzimage: { url: `${base}v86/buildroot-bzimage.bin` },
-        cmdline: 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0',
         autostart: true,
-      });
+      };
+
+      if (screenContainerRef.current) {
+        v86Config.screen_container = screenContainerRef.current;
+      }
+
+      if (selectedOS === 'buildroot') {
+        v86Config.bzimage = { url: `${base}v86/buildroot-bzimage.bin` };
+        v86Config.cmdline = 'tsc=reliable mitigations=off random.trust_cpu=on console=ttyS0';
+      } else if (selectedOS === 'alpine') {
+        v86Config.bzimage = { url: 'https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86/netboot/vmlinuz-lts' };
+        v86Config.initrd = { url: 'https://dl-cdn.alpinelinux.org/alpine/v3.19/releases/x86/netboot/initramfs-lts' };
+        v86Config.cmdline = 'console=ttyS0 modules=loop,squashfs quiet';
+      } else if (selectedOS === 'debian') {
+        v86Config.bzimage = { url: 'https://deb.debian.org/debian/dists/bookworm/main/installer-i386/current/images/netboot/debian-installer/i386/linux' };
+        v86Config.initrd = { url: 'https://deb.debian.org/debian/dists/bookworm/main/installer-i386/current/images/netboot/debian-installer/i386/initrd.gz' };
+        v86Config.cmdline = 'console=ttyS0 priority=low';
+      } else if (selectedOS === 'tinycore') {
+        v86Config.bzimage = { url: 'http://tinycorelinux.net/14.x/x86/release/distribution_files/vmlinuz' };
+        v86Config.initrd = { url: 'http://tinycorelinux.net/14.x/x86/release/distribution_files/core.gz' };
+        v86Config.cmdline = 'console=ttyS0 quiet';
+      } else if (selectedOS === 'custom_iso') {
+        if (!customIsoFile) {
+          throw new Error(
+            lang === 'fr'
+              ? 'Veuillez sélectionner un fichier image ISO (.iso) sur votre disque avant de démarrer.'
+              : 'Please select an ISO image file (.iso) from your local disk before starting.'
+          );
+        }
+        v86Config.cdrom = { buffer: customIsoFile };
+      }
+
+      const emulator = new V86(v86Config);
 
       // Écoute du flux série octet par octet pour l'affichage fidèle
       emulator.add_listener('serial0-output-byte', (byte: number) => {
@@ -206,27 +316,19 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         }
       });
 
-      const KNOWN_SIZES: Record<string, number> = {
-        'v86.wasm': 2101621,
-        'seabios.bin': 131072,
-        'vgabios.bin': 36352,
-        'buildroot-bzimage.bin': 5166352,
-      };
-      const GRAND_TOTAL = Object.values(KNOWN_SIZES).reduce((a, b) => a + b, 0);
-      const loadedByFile: Record<string, number> = {};
-
-      emulator.add_listener('download-progress', (e: { file_name: string; loaded: number }) => {
-        const short = e.file_name.split('/').pop() || e.file_name;
-        loadedByFile[short] = e.loaded;
-        const sum = Object.values(loadedByFile).reduce((a, b) => a + b, 0);
-        setProgress(Math.min(100, Math.round((sum / GRAND_TOTAL) * 100)));
+      emulator.add_listener('download-progress', (e: { file_name: string; loaded: number; total?: number }) => {
+        if (e.total && e.total > 0) {
+          setProgress(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+        } else {
+          setProgress((prev) => Math.min(95, prev + 10));
+        }
       });
 
       emulator.add_listener('download-error', (e: { file_name: string }) => {
         setErrorMsg(
           lang === 'fr'
-            ? `Impossible de télécharger "${e.file_name}". Un bloqueur de pub ou une extension de vie privée bloque probablement ce domaine externe.`
-            : `Failed to download "${e.file_name}". An ad blocker or privacy extension is likely blocking this domain.`
+            ? `Impossible de télécharger "${e.file_name}". Vérifiez votre connexion ou un bloqueur de requêtes cross-origin.`
+            : `Failed to download "${e.file_name}". Please check network connection or ad blockers.`
         );
         setStatus('error');
       });
@@ -235,18 +337,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       setStatus('running');
 
       setTimeout(() => {
-        serialRef.current?.focus();
-      }, 600);
-
-      setTimeout(() => {
-        if (emulatorRef.current === emulator && serialRef.current?.value.trim() === '') {
-          setErrorMsg(
-            lang === 'fr'
-              ? "Rien ne s'affiche après 15 secondes. Si un bloqueur de pub ou une extension est actif, essayez de le désactiver pour ce site."
-              : "Nothing has appeared after 15 seconds. If an ad blocker is active, try disabling it for this site."
-          );
+        if (displayMode === 'serial') {
+          serialRef.current?.focus();
         }
-      }, 15000);
+      }, 600);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : String(err));
       setStatus('error');
@@ -295,6 +389,28 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     }
   };
 
+  // Chargement d'une ISO Locale
+  const handleSelectIsoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCustomIsoFile(file);
+    setCustomIsoName(file.name);
+    setSelectedOS('custom_iso');
+    setRamSize(512);
+  };
+
+  const handleDropIsoFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (file.name.endsWith('.iso') || file.name.endsWith('.img') || file.name.endsWith('.bin')) {
+      setCustomIsoFile(file);
+      setCustomIsoName(file.name);
+      setSelectedOS('custom_iso');
+      setRamSize(512);
+    }
+  };
+
   // Injection de Fichier dans la VM
   const injectFileIntoVm = (filename: string, content: string) => {
     const cleanFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -315,18 +431,6 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
-
-  const handleDropFile = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      if (text) injectFileIntoVm(file.name, text);
-    };
-    reader.readAsText(file);
   };
 
   const executeCustomScript = () => {
@@ -442,13 +546,13 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* 1. Header & VM Control Strip */}
+      {/* 1. Header & Configuration Panel */}
       <div className="glass-panel" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                🚀 {lang === 'fr' ? 'Démarrage Réel dans le Navigateur' : 'Real Boot in the Browser'}
+                🚀 {lang === 'fr' ? 'Démarrage Réel dans le Navigateur (WebAssembly x86)' : 'Real Boot in Browser (WebAssembly x86)'}
               </h3>
 
               {/* Status Badge */}
@@ -506,7 +610,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                   }}
                 />
                 {status === 'running'
-                  ? (lang === 'fr' ? `Noyau Actif (${formatUptime(uptimeSeconds)})` : `Active Kernel (${formatUptime(uptimeSeconds)})`)
+                  ? (lang === 'fr' ? `Système Actif (${formatUptime(uptimeSeconds)})` : `Active System (${formatUptime(uptimeSeconds)})`)
                   : status === 'paused'
                   ? (lang === 'fr' ? 'VM en Pause' : 'VM Paused')
                   : status === 'loading'
@@ -517,8 +621,8 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
 
             <p style={{ fontSize: '0.80rem', color: 'var(--text-muted)', margin: 0 }}>
               {lang === 'fr'
-                ? "Vrai noyau Linux (Buildroot) émulé en WebAssembly (v86) x86 32-bit dans cet onglet. 100% exécuté sur votre machine."
-                : "Real Linux kernel (Buildroot) running in WebAssembly (v86) x86 32-bit directly inside this tab."}
+                ? "Véritable émulateur PC x86 complet (v86 WebAssembly) exécuté 100% dans votre navigateur. Démarre de vrais systèmes Linux ou vos images ISO locales."
+                : "Full x86 PC emulator running 100% in your browser. Boots real Linux distributions or your local ISO images."}
             </p>
           </div>
 
@@ -529,7 +633,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                 <Play size={14} />
                 {status === 'loading'
                   ? (lang === 'fr' ? `Chargement (${progress}%)` : `Loading (${progress}%)`)
-                  : (lang === 'fr' ? 'Démarrer un vrai Linux' : 'Boot a real Linux')}
+                  : (lang === 'fr' ? `Démarrer ${OS_PRESETS[selectedOS].name}` : `Boot ${OS_PRESETS[selectedOS].name}`)}
               </button>
             )}
             {(status === 'running' || status === 'paused') && (
@@ -555,20 +659,137 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
           </div>
         </div>
 
-        {/* Technical Badges & Real-Time Telemetry Strip */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* 1.1 OS Selection Grid (Buildroot, Alpine, Debian, TinyCore, Custom ISO) */}
+        {status === 'idle' && (
+          <div style={{ marginTop: '14px' }}>
+            <div style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Server size={13} color="var(--cyan)" />
+              {lang === 'fr' ? 'Choisissez le système Linux à démarrer :' : 'Select Linux system to boot:'}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+              {(Object.entries(OS_PRESETS) as [BootOSMode, typeof OS_PRESETS['buildroot']][]).map(([key, os]) => {
+                const isSelected = selectedOS === key;
+                return (
+                  <div
+                    key={key}
+                    onClick={() => handleSelectOS(key)}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '6px',
+                      background: isSelected ? 'rgba(14, 165, 233, 0.12)' : 'rgba(255,255,255,0.02)',
+                      border: `1px solid ${isSelected ? 'var(--cyan)' : 'var(--border-subtle)'}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isSelected ? 'var(--cyan)' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{os.icon}</span> {os.name}
+                      </span>
+                      <span style={{ fontSize: '0.66rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+                        {os.badge}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.70rem', color: 'var(--text-muted)', margin: 0 }}>
+                      {lang === 'fr' ? os.descFr : os.descEn}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Custom ISO file loader strip if selected */}
+            {selectedOS === 'custom_iso' && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '12px',
+                  background: 'rgba(14, 165, 233, 0.06)',
+                  border: '1px dashed var(--cyan)',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDropIsoFile}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Disc size={22} color="var(--cyan)" />
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#f1f5f9' }}>
+                      {customIsoName ? `Image sélectionnée : ${customIsoName}` : (lang === 'fr' ? 'Glissez-déposez votre fichier .iso ou cliquez pour parcourir' : 'Drop your .iso file or click to browse')}
+                    </div>
+                    <div style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>
+                      {customIsoFile ? `${(customIsoFile.size / (1024 * 1024)).toFixed(1)} Mo` : (lang === 'fr' ? 'Prend en charge vos ISOs compilées (dist/*.iso) ou toute ISO x86' : 'Supports your built ISOs (dist/*.iso) or any x86 ISO')}
+                    </div>
+                  </div>
+                </div>
+
+                <input
+                  type="file"
+                  ref={isoFileInputRef}
+                  accept=".iso,.img,.bin"
+                  style={{ display: 'none' }}
+                  onChange={handleSelectIsoFile}
+                />
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => isoFileInputRef.current?.click()}
+                  style={{ fontSize: '0.74rem', padding: '4px 12px' }}
+                >
+                  <FolderOpen size={13} />
+                  {lang === 'fr' ? 'Parcourir mes ISOs...' : 'Browse ISOs...'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 1.2 RAM Selector & Technical Badges */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
+          {/* RAM Size Pill */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>RAM WASM :</span>
+            <div style={{ display: 'inline-flex', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', padding: '2px' }}>
+              {[128, 256, 512].map((sz) => (
+                <button
+                  key={sz}
+                  onClick={() => setRamSize(sz)}
+                  disabled={status === 'running' || status === 'paused'}
+                  style={{
+                    border: 'none',
+                    background: ramSize === sz ? 'var(--emerald)' : 'transparent',
+                    color: ramSize === sz ? '#000' : 'var(--text-muted)',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '3px',
+                    cursor: (status === 'running' || status === 'paused') ? 'default' : 'pointer',
+                  }}
+                >
+                  {sz} Mo
+                </button>
+              ))}
+            </div>
+          </div>
+
           <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Cpu size={12} color="var(--cyan)" />
             Arch: <strong>x86 i686 (32-bit)</strong>
           </span>
-          <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <HardDrive size={12} color="var(--emerald)" />
-            RAM: <strong>128 Mo WASM</strong>
-          </span>
+
           <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Terminal size={12} color="var(--violet)" />
             Port: <strong>ttyS0 (115200 bps)</strong>
           </span>
+
           {recipe?.branding.osName && (
             <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <Sparkles size={12} color="#f59e0b" />
@@ -594,7 +815,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         {status === 'loading' && (
           <div style={{ marginTop: '12px' }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>{lang === 'fr' ? "Téléchargement du noyau Buildroot et de l'émulateur WebAssembly…" : "Downloading Buildroot kernel and WASM emulator…"}</span>
+              <span>{lang === 'fr' ? `Initialisation de ${OS_PRESETS[selectedOS].name}…` : `Initializing ${OS_PRESETS[selectedOS].name}…`}</span>
               <span className="font-mono">{progress}%</span>
             </div>
             <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
@@ -610,7 +831,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         )}
       </div>
 
-      {/* 2. Interactive Terminal Console Window */}
+      {/* 2. Interactive Terminal / VGA Console Window */}
       <div
         className="glass-panel"
         style={{
@@ -655,9 +876,48 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
             </div>
-            <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '6px', fontFamily: 'monospace' }}>
-              buildroot@v86-x86:~#
-            </span>
+
+            {/* Display Mode Toggle: Serial (ttyS0) vs VGA Graphic */}
+            <div style={{ display: 'inline-flex', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', padding: '2px', marginLeft: '6px' }}>
+              <button
+                onClick={() => setDisplayMode('serial')}
+                style={{
+                  border: 'none',
+                  background: displayMode === 'serial' ? 'var(--cyan)' : 'transparent',
+                  color: displayMode === 'serial' ? '#000' : 'var(--text-muted)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Terminal size={11} />
+                {lang === 'fr' ? 'Console Série (ttyS0)' : 'Serial Console (ttyS0)'}
+              </button>
+              <button
+                onClick={() => setDisplayMode('vga')}
+                style={{
+                  border: 'none',
+                  background: displayMode === 'vga' ? 'var(--cyan)' : 'transparent',
+                  color: displayMode === 'vga' ? '#000' : 'var(--text-muted)',
+                  fontSize: '0.70rem',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Monitor size={11} />
+                {lang === 'fr' ? 'Écran VGA Graphique' : 'VGA Screen'}
+              </button>
+            </div>
           </div>
 
           {/* Customization & Action Bar */}
@@ -681,44 +941,48 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             </button>
 
             {/* Theme Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>Thème :</span>
-              <select
-                className="select-custom font-mono"
-                style={{ fontSize: '0.72rem', padding: '2px 6px', height: '24px' }}
-                value={theme}
-                onChange={(e) => setTheme(e.target.value as TerminalTheme)}
-              >
-                {Object.entries(THEMES).map(([k, v]) => (
-                  <option key={k} value={k}>{v.name}</option>
-                ))}
-              </select>
-            </div>
+            {displayMode === 'serial' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>Thème :</span>
+                <select
+                  className="select-custom font-mono"
+                  style={{ fontSize: '0.72rem', padding: '2px 6px', height: '24px' }}
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value as TerminalTheme)}
+                >
+                  {Object.entries(THEMES).map(([k, v]) => (
+                    <option key={k} value={k}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Font Size Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>Taille :</span>
-              <div style={{ display: 'inline-flex', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', padding: '2px' }}>
-                {(['small', 'medium', 'large'] as const).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setFontSize(s)}
-                    style={{
-                      border: 'none',
-                      background: fontSize === s ? 'var(--cyan)' : 'transparent',
-                      color: fontSize === s ? '#000' : 'var(--text-muted)',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L'}
-                  </button>
-                ))}
+            {displayMode === 'serial' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>Taille :</span>
+                <div style={{ display: 'inline-flex', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', padding: '2px' }}>
+                  {(['small', 'medium', 'large'] as const).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setFontSize(s)}
+                      style={{
+                        border: 'none',
+                        background: fontSize === s ? 'var(--cyan)' : 'transparent',
+                        color: fontSize === s ? '#000' : 'var(--text-muted)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {s === 'small' ? 'S' : s === 'medium' ? 'M' : 'L'}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Clear terminal */}
             <button
@@ -774,12 +1038,12 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             </h4>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 18px' }}>
               {lang === 'fr'
-                ? 'Cliquez sur "Démarrer un vrai Linux" ci-dessus pour initialiser le BIOS SeaBIOS, charger le noyau Buildroot et ouvrir un vrai shell Linux interactif.'
-                : 'Click "Boot a real Linux" above to initialize SeaBIOS, boot the Buildroot Linux kernel, and interact with a live Linux shell.'}
+                ? `Prêt à démarrer ${OS_PRESETS[selectedOS].name} avec ${ramSize} Mo de RAM. Cliquez sur "Démarrer" pour lancer l'émulation.`
+                : `Ready to boot ${OS_PRESETS[selectedOS].name} with ${ramSize} MB RAM. Click "Boot" to start emulation.`}
             </p>
             <button className="btn btn-primary" onClick={startEmulator}>
               <Play size={14} />
-              {lang === 'fr' ? 'Démarrer un vrai Linux' : 'Boot a real Linux'}
+              {lang === 'fr' ? `Démarrer ${OS_PRESETS[selectedOS].name}` : `Boot ${OS_PRESETS[selectedOS].name}`}
             </button>
           </div>
         ) : (
@@ -787,9 +1051,9 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             className={scanlines ? 'crt-scanlines' : ''}
             style={{ position: 'relative', background: currentTheme.bg }}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDropFile}
+            onDrop={handleFileUpload as any}
           >
-            {/* Terminal Saisie / Sortie */}
+            {/* Mode 1 : Terminal Série Saisie / Sortie */}
             <textarea
               ref={serialRef}
               className="term-scroll"
@@ -866,7 +1130,22 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                 fontSize: fontSizeMap[fontSize],
                 lineHeight: 1.45,
                 boxSizing: 'border-box',
-                display: 'block',
+                display: displayMode === 'serial' ? 'block' : 'none',
+              }}
+            />
+
+            {/* Mode 2 : Écran Graphique VGA Container */}
+            <div
+              ref={screenContainerRef}
+              style={{
+                width: '100%',
+                minHeight: isFullscreen ? 'calc(100vh - 210px)' : '420px',
+                background: '#000',
+                display: displayMode === 'vga' ? 'flex' : 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'auto',
+                padding: '10px',
               }}
             />
 

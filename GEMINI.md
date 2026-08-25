@@ -163,6 +163,16 @@ après.
   11. 📦 **Dépôts Communautaires & Helpers (`enableCommunityRepos`)** : Activation RPM Fusion Free/Non-Free (Fedora/Rocky), Packman (openSUSE), Alpine Community & Testing (`/etc/apk/repositories`), helpers AUR (Arch).
   12. 🎮 & 🔋 **Optimisations Gaming & Économie d'Énergie Laptop (`enableGamingOptimizations`, `enablePowerSaving`)** : `vm.max_map_count=2147483642`, `gamemode`, `mangohud`, Mesa Vulkan (`mesa-vulkan-drivers`, `vulkan-radeon`, `vulkan-intel`), `tlp`, `powertop`, et service `tlp`.
 - **Amélioration Démarrage Réel (v86 WebAssembly x86)** :
+  - **Support Multi-OS & Presets de Distributions Linux** :
+    - 🐧 **Buildroot Micro-Linux** (embarqué en local, boot instantané en 1s).
+    - 🏔️ **Alpine Linux Minimal (i686)** (noyau v3.19 + gestionnaire `apk add`).
+    - 🌀 **Debian GNU/Linux Installer (i386)** (noyau Bookworm + base Debian).
+    - ⚡ **Tiny Core Linux (x86)** (système RAM avec environnement graphique X11/FLWM).
+    - 💿 **Chargeur d'Image ISO Locale Personnalisée** (glisser-déposer ou sélection de n'importe quel fichier `.iso` ou `.img` compilé en local ou téléchargé).
+  - **Double Mode d'Affichage** :
+    - 📟 **Console Série (ttyS0)** : Terminal texte ANSI avec dock de commandes rapides, historique, touches spéciales, signaux et injecteur de scripts.
+    - 🖥️ **Écran Graphique VGA Canvas** : Rendu natif VGA pour visualiser le BIOS SeaBIOS, le menu GRUB en couleur et l'interface graphique de l'OS.
+  - **Allocation de RAM Dynamique** : Sélecteur de RAM WebAssembly (128 Mo, 256 Mo, 512 Mo).
   - **Dock 1-Clic Intégré & Catégorisé (Zéro Scroll)** : 6 catégories d'actions rapides (🚀 Système, 💾 Mémoire/Disque, 🌐 Réseau/DHCP, 👥 Sécurité, ⚡ Benchmarks, 📜 Script Recette) intégrées directement sous la console.
   - **Historique de Commandes au Clavier** : Navigation interactive Flèches Haut/Bas (⬆️ / ⬇️) dans la barre de saisie `$ ...`.
   - **Mini-barre de Signaux & Contrôle 1-Clic** : Boutons rapides pour `Ctrl+C` (SIGINT), `Ctrl+L` (Clear), `Tab` (Autocomplétion), `Ctrl+D` (EOF), `Ctrl+Z` (SIGTSTP), et `Enter ↵`.
