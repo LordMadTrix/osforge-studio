@@ -18,7 +18,6 @@ import {
   Package,
   Lightbulb,
   FileCode,
-  Play,
   Sliders,
   X
 } from 'lucide-react';
@@ -84,7 +83,6 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
       { id: 'security', name: lang === 'fr' ? 'Aller à la Sécurité & Hardening CIS' : 'Go to Security & Hardening', icon: ShieldCheck },
       { id: 'postinstall', name: lang === 'fr' ? 'Aller aux Scripts First-Boot & Services' : 'Go to Scripts & Services', icon: Terminal },
       { id: 'inspector', name: lang === 'fr' ? 'Aller à l’Inspecteur de Code & Recette' : 'Go to Code & Recipe Inspector', icon: FileCode },
-      { id: 'sandbox', name: lang === 'fr' ? 'Aller au Simulateur WebVM Live' : 'Go to Live WebVM Simulator', icon: Play },
     ];
 
     tabs.forEach(t => {
@@ -163,18 +161,6 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
       icon: Lightbulb,
       action: () => { onOpenTips(); onClose(); },
       keywords: 'tips astuces guide best practices conseils aide optimisation',
-    });
-
-    list.push({
-      id: 'action-sandbox',
-      category: 'action',
-      title: lang === 'fr' ? 'Lancer la Machine Virtuelle WebVM' : 'Launch WebVM Simulator',
-      subtitle: lang === 'fr' ? 'Démarrage instantané 100% dans le navigateur' : 'Instant in-browser boot',
-      badge: 'Live',
-      badgeType: 'emerald',
-      icon: Play,
-      action: () => { onNavigateTab('sandbox'); onClose(); },
-      keywords: 'sandbox vm simulator tester demarrer run virtual machine',
     });
 
     // 3. Distributions
