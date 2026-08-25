@@ -601,6 +601,17 @@ describe('resolvePackageList — Void Linux : bureaux réellement câblés (aucu
     }
   });
 
+  it('bug réel trouvé dans le même audit : Arch/CachyOS tombaient AUSSI dans le "else" générique, qui installe "firefox-esr" et "network-manager" (noms Debian) — confirmés en direct ABSENTS d\'Arch via l\'API JSON officielle (archlinux.org/packages/search/json, "count": 0 pour les deux). "pacman -S" échoue sur tout paquet inconnu de sa liste, donc TOUT le bootstrap Arch échouait dès que "i3wm" était sélectionné. Corrigé avec une branche Arch dédiée utilisant "networkmanager" (sans tiret, confirmé réel et déjà utilisé partout ailleurs dans ce fichier pour Arch)', () => {
+    for (const distro of ['arch', 'cachyos'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, desktop: 'i3wm', selectedPackages: [], customPackages: [] }));
+      expect(pkgs, distro).toContain('i3-wm');
+      expect(pkgs, distro).toContain('firefox');
+      expect(pkgs, distro).not.toContain('firefox-esr');
+      expect(pkgs, distro).toContain('networkmanager');
+      expect(pkgs, distro).not.toContain('network-manager');
+    }
+  });
+
   it('desktop=hyprland n\'installe rien sur Void (hyprland et waybar confirmés absents du dépôt officiel, contrairement à Alpine)', () => {
     const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'hyprland', selectedPackages: [], customPackages: [] }));
     expect(pkgs.some(p => p.includes('hyprland') || p === 'waybar')).toBe(false);

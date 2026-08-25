@@ -803,6 +803,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // fedoraproject.org/api/0/rpms/alacritty : "Project not found") ; remplacé par "kitty",
       // confirmé réel sur Fedora ET EPEL9 (déjà utilisé ailleurs dans ce fichier, ex. Hyprland/Arch).
       pkgs.push('i3', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'kitty', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (isArchLike) {
+      // Bug réel trouvé en auditant, même cause que le bug Fedora/Rocky ci-dessus : Arch/CachyOS
+      // tombaient AUSSI dans le "else" générique ci-dessous, qui installe "firefox-esr" et
+      // "network-manager" (noms Debian) — confirmés en direct ABSENTS d'Arch via l'API JSON
+      // officielle (archlinux.org/packages/search/json/?name=firefox-esr et .../network-manager :
+      // "count": 0 pour les deux, contre "networkmanager" sans tiret qui, lui, existe réellement
+      // et est déjà utilisé pour Arch partout ailleurs dans ce fichier). "pacman -S" échoue sur
+      // tout paquet inconnu dans sa liste, donc TOUT le bootstrap Arch échouait dès que "i3wm"
+      // était sélectionné, pas seulement ces deux paquets. "i3-wm"/"alacritty" restent corrects
+      // (vrais noms Arch, déjà confirmés).
+      pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     } else {
       pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
     }
