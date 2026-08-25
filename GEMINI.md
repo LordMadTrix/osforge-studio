@@ -163,9 +163,15 @@ après.
   11. 📦 **Dépôts Communautaires & Helpers (`enableCommunityRepos`)** : Activation RPM Fusion Free/Non-Free (Fedora/Rocky), Packman (openSUSE), Alpine Community & Testing (`/etc/apk/repositories`), helpers AUR (Arch).
   12. 🎮 & 🔋 **Optimisations Gaming & Économie d'Énergie Laptop (`enableGamingOptimizations`, `enablePowerSaving`)** : `vm.max_map_count=2147483642`, `gamemode`, `mangohud`, Mesa Vulkan (`mesa-vulkan-drivers`, `vulkan-radeon`, `vulkan-intel`), `tlp`, `powertop`, et service `tlp`.
 - **Amélioration Démarrage Réel (v86 WebAssembly x86)** :
-  - Terminal ANSI complet avec séquences d'échappement pour flèches directionnelles (`\x1b[A/B/C/D`), Home/End, PageUp/Down, Delete, combinaisons `Ctrl+<key>`, et support du collage (`onPaste`).
-  - Barre de commandes rapides 1-clic (`uname -a`, `ls -la /`, `free -m`, `df -h`, `cat /etc/os-release`, `udhcpc`, `ps aux`, `uptime`, test I/O).
-  - Barre d'envoi direct de commandes avec bouton interactif et tiroir d'injection de scripts bash personnalisés / presets de test.
-  - Chronomètre d'uptime temps réel, badges techniques de la VM (`x86 i686`, `128 Mo RAM`, `ttyS0`), 5 thèmes rétro/cyberpunk, taille de police ajustable, mode plein écran, copie et export des logs `.log`.
+  - **Dock 1-Clic Intégré & Catégorisé (Zéro Scroll)** : 6 catégories d'actions rapides (🚀 Système, 💾 Mémoire/Disque, 🌐 Réseau/DHCP, 👥 Sécurité, ⚡ Benchmarks, 📜 Script Recette) intégrées directement sous la console.
+  - **Historique de Commandes au Clavier** : Navigation interactive Flèches Haut/Bas (⬆️ / ⬇️) dans la barre de saisie `$ ...`.
+  - **Mini-barre de Signaux & Contrôle 1-Clic** : Boutons rapides pour `Ctrl+C` (SIGINT), `Ctrl+L` (Clear), `Tab` (Autocomplétion), `Ctrl+D` (EOF), `Ctrl+Z` (SIGTSTP), et `Enter ↵`.
+  - **Glisser-Déposer / Injection de Fichiers** : Drag & drop de fichiers texte/scripts vers `/tmp/<nom>` dans la VM avec `cat << 'EOF' > ...` et notification visuelle.
+  - **Effet Rétro CRT Scanlines** : Filtre cathodique commutable avec lueur néon adaptée au thème actif.
+  - **Télémétrie RX/TX en direct & Contrôle VM** : Compteur d'octets échangés sur serial0, Pause/Reprendre (`emulator.pause()` / `unpause()`), badges LED haute visibilité.
+- **Amélioration des Batchs de Démarrage Windows (`launch.bat`, `run-live-windows.bat`, `auto-build.bat`)** :
+  - Activation native du mode VT100 / couleurs ANSI (`reg add HKCU\Console /v VirtualTerminalLevel ...`).
+  - Détection automatique de l'accélération matérielle Windows Hypervisor Platform (WHPX / `-accel whpx -accel tcg`) pour un démarrage 10x plus rapide de QEMU.
+  - Options de RAM configurables (4 Go Standard, 8 Go Haute Performance).
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

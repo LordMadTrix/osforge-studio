@@ -3,6 +3,7 @@ import {
   Play,
   RotateCcw,
   Power,
+  Pause,
   Terminal,
   Copy,
   Check,
@@ -17,7 +18,13 @@ import {
   Trash2,
   FileCode,
   Globe,
-  Sliders
+  Upload,
+  Layers,
+  Monitor,
+  Wifi,
+  Shield,
+  Zap,
+  Info
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 
@@ -28,62 +35,80 @@ interface RealBootProps {
 
 type TerminalTheme = 'matrix' | 'cyber' | 'amber' | 'monochrome' | 'synthwave';
 
-const THEMES: Record<TerminalTheme, { name: string; bg: string; text: string; border: string; glow: string }> = {
+const THEMES: Record<TerminalTheme, { name: string; bg: string; text: string; border: string; glow: string; accent: string }> = {
   matrix: {
     name: 'Matrix CRT',
     bg: '#020904',
     text: '#4ade80',
     border: '#166534',
-    glow: 'rgba(74, 222, 128, 0.18)',
+    glow: 'rgba(74, 222, 128, 0.22)',
+    accent: '#22c55e',
   },
   cyber: {
     name: 'Cyber Cyan',
     bg: '#030f1e',
     text: '#38bdf8',
     border: '#0369a1',
-    glow: 'rgba(56, 189, 248, 0.18)',
+    glow: 'rgba(56, 189, 248, 0.22)',
+    accent: '#0284c7',
   },
   amber: {
     name: 'Ambre 1982',
     bg: '#120700',
     text: '#fbbf24',
     border: '#b45309',
-    glow: 'rgba(251, 191, 36, 0.18)',
+    glow: 'rgba(251, 191, 36, 0.22)',
+    accent: '#f59e0b',
   },
   monochrome: {
     name: 'Monochrome',
     bg: '#090d16',
     text: '#f1f5f9',
     border: '#334155',
-    glow: 'rgba(241, 245, 249, 0.12)',
+    glow: 'rgba(241, 245, 249, 0.14)',
+    accent: '#94a3b8',
   },
   synthwave: {
     name: 'Synthwave',
     bg: '#0e051a',
     text: '#c084fc',
     border: '#7e22ce',
-    glow: 'rgba(192, 132, 252, 0.18)',
+    glow: 'rgba(192, 132, 252, 0.22)',
+    accent: '#a855f7',
   },
 };
 
+type QuickCategory = 'system' | 'memory' | 'network' | 'security' | 'benchmark' | 'recipe';
+
 export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   const serialRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const emulatorRef = useRef<any>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'error'>('idle');
+
+  const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'paused' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [progress, setProgress] = useState(0);
 
-  // Ergonomie & Thème du terminal
+  // Ergonomie, Thème & Scanlines
   const [theme, setTheme] = useState<TerminalTheme>('matrix');
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [scanlines, setScanlines] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [fileNotice, setFileNotice] = useState<string | null>(null);
 
-  // Uptime & Métriques
+  // Télémétrie RX/TX & Uptime
   const [uptimeSeconds, setUptimeSeconds] = useState(0);
+  const [rxBytes, setRxBytes] = useState(0);
+  const [txBytes, setTxBytes] = useState(0);
 
-  // Barre de commande rapide & Injecteur de script
+  // Commandes & Historique (Flèche Haut / Bas)
   const [cmdInput, setCmdInput] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [activeCategory, setActiveCategory] = useState<QuickCategory>('system');
+
+  // Tiroir Script Personnalisé
   const [showScriptDrawer, setShowScriptDrawer] = useState(false);
   const [customScript, setCustomScript] = useState(
     'echo "=== Test Système v86 ==="\nuname -a\nfree -m\n'
@@ -96,8 +121,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       interval = setInterval(() => {
         setUptimeSeconds((prev) => prev + 1);
       }, 1000);
-    } else {
+    } else if (status === 'idle') {
       setUptimeSeconds(0);
+      setRxBytes(0);
+      setTxBytes(0);
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -110,19 +137,46 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const stopEmulator = () => {
     try {
       emulatorRef.current?.destroy();
     } catch {
-      // Déjà détruit
+      // Nettoyé
     }
     emulatorRef.current = null;
+  };
+
+  const togglePauseEmulator = () => {
+    if (!emulatorRef.current) return;
+    if (status === 'running') {
+      try {
+        emulatorRef.current.pause();
+        setStatus('paused');
+      } catch (err) {
+        console.error(err);
+      }
+    } else if (status === 'paused') {
+      try {
+        emulatorRef.current.unpause();
+        setStatus('running');
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
   const startEmulator = async () => {
     setStatus('loading');
     setErrorMsg('');
     setProgress(0);
+    setRxBytes(0);
+    setTxBytes(0);
     stopEmulator();
     if (serialRef.current) serialRef.current.value = '';
 
@@ -143,6 +197,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
 
       // Écoute du flux série octet par octet pour l'affichage fidèle
       emulator.add_listener('serial0-output-byte', (byte: number) => {
+        setRxBytes((prev) => prev + 1);
         const char = String.fromCharCode(byte);
         if (char === '\r') return;
         if (serialRef.current) {
@@ -170,7 +225,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       emulator.add_listener('download-error', (e: { file_name: string }) => {
         setErrorMsg(
           lang === 'fr'
-            ? `Impossible de télécharger "${e.file_name}". Un bloqueur de pub ou une extension de vie privée bloque probablement ce domaine externe — essayez de le désactiver pour ce site.`
+            ? `Impossible de télécharger "${e.file_name}". Un bloqueur de pub ou une extension de vie privée bloque probablement ce domaine externe.`
             : `Failed to download "${e.file_name}". An ad blocker or privacy extension is likely blocking this domain.`
         );
         setStatus('error');
@@ -179,12 +234,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
       emulatorRef.current = emulator;
       setStatus('running');
 
-      // Auto-focus sur le terminal après démarrage
       setTimeout(() => {
         serialRef.current?.focus();
       }, 600);
 
-      // Filet de sécurité si écran noir prolongé
       setTimeout(() => {
         if (emulatorRef.current === emulator && serialRef.current?.value.trim() === '') {
           setErrorMsg(
@@ -204,15 +257,76 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
 
   // Envoi d'une chaîne ou d'une commande complète au port série
   const sendStringToEmulator = (str: string) => {
-    if (!emulatorRef.current || status !== 'running') return;
+    if (!emulatorRef.current || (status !== 'running' && status !== 'paused')) return;
+    setTxBytes((prev) => prev + str.length);
     emulatorRef.current.serial0_send(str);
   };
 
   const sendCommand = (cmd: string) => {
     if (!cmd.trim()) return;
     sendStringToEmulator(`${cmd}\n`);
+    setHistory((prev) => [...prev.filter((h) => h !== cmd), cmd]);
+    setHistoryIndex(-1);
     setCmdInput('');
     serialRef.current?.focus();
+  };
+
+  const handleKeyDownInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendCommand(cmdInput);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (history.length === 0) return;
+      const nextIndex = historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
+      setHistoryIndex(nextIndex);
+      setCmdInput(history[nextIndex]);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIndex === -1) return;
+      const nextIndex = historyIndex + 1;
+      if (nextIndex >= history.length) {
+        setHistoryIndex(-1);
+        setCmdInput('');
+      } else {
+        setHistoryIndex(nextIndex);
+        setCmdInput(history[nextIndex]);
+      }
+    }
+  };
+
+  // Injection de Fichier dans la VM
+  const injectFileIntoVm = (filename: string, content: string) => {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const safeContent = content.replace(/\r\n/g, '\n');
+    sendStringToEmulator(`cat << 'INJECT_EOF' > /tmp/${cleanFilename}\n${safeContent}\nINJECT_EOF\nchmod +x /tmp/${cleanFilename} 2>/dev/null || true\n`);
+    setFileNotice(lang === 'fr' ? `✅ Fichier /tmp/${cleanFilename} créé et prêt !` : `✅ File /tmp/${cleanFilename} created!`);
+    setTimeout(() => setFileNotice(null), 3500);
+    serialRef.current?.focus();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (text) injectFileIntoVm(file.name, text);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleDropFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (text) injectFileIntoVm(file.name, text);
+    };
+    reader.readAsText(file);
   };
 
   const executeCustomScript = () => {
@@ -221,12 +335,12 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     lines.forEach((line, idx) => {
       setTimeout(() => {
         sendStringToEmulator(`${line}\n`);
-      }, idx * 120);
+      }, idx * 100);
     });
     serialRef.current?.focus();
   };
 
-  // Copier le contenu du terminal
+  // Actions de Presse-Papier et Journal
   const handleCopyLogs = () => {
     if (serialRef.current) {
       navigator.clipboard.writeText(serialRef.current.value);
@@ -235,7 +349,6 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     }
   };
 
-  // Télécharger le journal de boot
   const handleDownloadLogs = () => {
     if (!serialRef.current) return;
     const blob = new Blob([serialRef.current.value], { type: 'text/plain;charset=utf-8' });
@@ -247,7 +360,6 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     URL.revokeObjectURL(a.href);
   };
 
-  // Effacer l'affichage local du terminal
   const handleClearTerminal = () => {
     if (serialRef.current) {
       serialRef.current.value = '';
@@ -255,40 +367,70 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
     sendStringToEmulator('clear\n');
   };
 
-  // Presets de commandes 1-Clic
-  const quickCommands = [
-    { label: 'uname -a', desc: lang === 'fr' ? 'Noyau & Architecture' : 'Kernel & Arch', cmd: 'uname -a' },
-    { label: 'ls -la /', desc: lang === 'fr' ? 'Arborescence RootFS' : 'Root filesystem', cmd: 'ls -la /' },
-    { label: 'free -m', desc: lang === 'fr' ? 'Mémoire vive RAM' : 'RAM usage', cmd: 'free -m' },
-    { label: 'df -h', desc: lang === 'fr' ? 'Points de montage disque' : 'Disk mounts', cmd: 'df -h' },
-    { label: 'cat /etc/os-release', desc: lang === 'fr' ? 'Distribution & Build' : 'OS Version', cmd: 'cat /etc/os-release' },
-    { label: 'udhcpc', desc: lang === 'fr' ? 'Initialiser Réseau DHCP' : 'Init DHCP Network', cmd: 'udhcpc' },
-    { label: 'ps aux', desc: lang === 'fr' ? 'Processus actifs' : 'Running processes', cmd: 'ps aux' },
-    { label: 'uptime', desc: lang === 'fr' ? 'Temps de fonctionnement' : 'Uptime & load', cmd: 'uptime && date' },
-    { label: '🧪 Test I/O', desc: lang === 'fr' ? 'Création de fichier' : 'File write test', cmd: 'echo "OSForge Studio Live OK" > /tmp/osforge.txt && cat /tmp/osforge.txt' },
-  ];
-
-  // Presets de scripts d'injection
-  const scriptPresets = [
-    {
-      name: lang === 'fr' ? '📊 Benchmark CPU Boucle' : '📊 CPU Loop Benchmark',
-      script: 'echo "Démarrage benchmark CPU..."\ntime for i in $(seq 1 20000); do :; done\necho "Benchmark terminé avec succès !"',
+  // Catégories de Commandes Rapides
+  const categorizedCommands: Record<QuickCategory, { name: string; icon: any; items: { label: string; desc: string; cmd: string }[] }> = {
+    system: {
+      name: lang === 'fr' ? '🚀 Système & Noyau' : '🚀 System & Kernel',
+      icon: Cpu,
+      items: [
+        { label: 'uname -a', desc: lang === 'fr' ? 'Noyau & Architecture' : 'Kernel & Arch', cmd: 'uname -a' },
+        { label: 'cat /etc/os-release', desc: lang === 'fr' ? 'Distribution & Build' : 'OS Version', cmd: 'cat /etc/os-release' },
+        { label: 'uptime && date', desc: lang === 'fr' ? 'Temps & Charge CPU' : 'Uptime & load', cmd: 'uptime && date' },
+        { label: 'dmesg | tail -n 25', desc: lang === 'fr' ? 'Derniers logs noyau' : 'Kernel boot logs', cmd: 'dmesg | tail -n 25' },
+        { label: 'cat /proc/version', desc: lang === 'fr' ? 'Version compilateur GCC' : 'Kernel GCC info', cmd: 'cat /proc/version' },
+      ],
     },
-    {
-      name: lang === 'fr' ? '👥 Utilisateurs & Groupes' : '👥 Users & Groups',
-      script: 'echo "=== /etc/passwd ==="\ncat /etc/passwd\necho "=== /etc/group ==="\ncat /etc/group',
+    memory: {
+      name: lang === 'fr' ? '💾 Mémoire & Disque' : '💾 Memory & Storage',
+      icon: HardDrive,
+      items: [
+        { label: 'free -m', desc: lang === 'fr' ? 'Mémoire vive RAM (Mo)' : 'RAM usage in MB', cmd: 'free -m' },
+        { label: 'df -h', desc: lang === 'fr' ? 'Montages disque & RootFS' : 'Filesystem mounts', cmd: 'df -h' },
+        { label: 'ls -la /', desc: lang === 'fr' ? 'Arborescence racine' : 'Root directory', cmd: 'ls -la /' },
+        { label: 'cat /proc/meminfo', desc: lang === 'fr' ? 'Détails mémoire vive' : 'Detailed memory info', cmd: 'cat /proc/meminfo | head -n 12' },
+        { label: 'ls -lh /bin', desc: lang === 'fr' ? 'Exécutables BusyBox' : 'BusyBox binaries', cmd: 'ls -lh /bin | head -n 15' },
+      ],
     },
-    {
-      name: lang === 'fr' ? '💾 Arborescence /proc & /sys' : '💾 Inspect /proc & /sys',
-      script: 'cat /proc/cpuinfo | head -n 12\ncat /proc/meminfo | head -n 8\ncat /proc/version',
+    network: {
+      name: lang === 'fr' ? '🌐 Réseau & DHCP' : '🌐 Network & DHCP',
+      icon: Wifi,
+      items: [
+        { label: 'udhcpc -i eth0', desc: lang === 'fr' ? 'Obtenir une IP DHCP' : 'Acquire DHCP Lease', cmd: 'udhcpc -i eth0 2>/dev/null || udhcpc' },
+        { label: 'ifconfig -a', desc: lang === 'fr' ? 'Interfaces réseau' : 'Network interfaces', cmd: 'ifconfig -a' },
+        { label: 'cat /etc/resolv.conf', desc: lang === 'fr' ? 'Serveurs DNS configurés' : 'DNS nameservers', cmd: 'cat /etc/resolv.conf' },
+        { label: 'route -n', desc: lang === 'fr' ? 'Table de routage IP' : 'Routing table', cmd: 'route -n' },
+      ],
     },
-    ...(recipe?.firstBootScript
-      ? [{
-          name: lang === 'fr' ? '🚀 Mon Script First-Boot (Recette)' : '🚀 My Recipe First-Boot Script',
-          script: recipe.firstBootScript,
-        }]
-      : []),
-  ];
+    security: {
+      name: lang === 'fr' ? '👥 Sécurité & Comptes' : '👥 Users & Security',
+      icon: Shield,
+      items: [
+        { label: 'id && whoami', desc: lang === 'fr' ? 'Utilisateur & UID/GID' : 'Current user UID', cmd: 'id && whoami' },
+        { label: 'cat /etc/passwd', desc: lang === 'fr' ? 'Comptes utilisateurs' : 'System accounts', cmd: 'cat /etc/passwd' },
+        { label: 'ps aux', desc: lang === 'fr' ? 'Processus en cours' : 'Running processes', cmd: 'ps aux' },
+        { label: 'env', desc: lang === 'fr' ? 'Variables environnement' : 'Environment variables', cmd: 'env' },
+      ],
+    },
+    benchmark: {
+      name: lang === 'fr' ? '⚡ Benchmarks & I/O' : '⚡ Benchmarks & I/O',
+      icon: Zap,
+      items: [
+        { label: 'Benchmark CPU Boucle', desc: lang === 'fr' ? 'Calcul boucle 20k itérations' : 'CPU loop test', cmd: 'time for i in $(seq 1 20000); do :; done' },
+        { label: '🧪 Test Écriture Disque', desc: lang === 'fr' ? 'Test I/O dans /tmp' : 'I/O write test', cmd: 'echo "OSForge Studio Live OK" > /tmp/osforge.txt && cat /tmp/osforge.txt' },
+        { label: 'cat /proc/cpuinfo', desc: lang === 'fr' ? 'Modèle processeur x86' : 'CPU capabilities', cmd: 'cat /proc/cpuinfo' },
+      ],
+    },
+    recipe: {
+      name: lang === 'fr' ? '📜 Recette Active' : '📜 Active Recipe',
+      icon: FileCode,
+      items: [
+        ...(recipe?.firstBootScript
+          ? [{ label: 'Exécuter First-Boot', desc: lang === 'fr' ? 'Script post-install de la recette' : 'Run recipe post-install script', cmd: recipe.firstBootScript }]
+          : []),
+        { label: 'Vérifier Hostname', desc: lang === 'fr' ? 'Test nom d’hôte recette' : 'Check configured hostname', cmd: `echo "Recette configurée : ${recipe?.branding.osName || 'ForgeOS'}" && hostname` },
+      ],
+    },
+  };
 
   const currentTheme = THEMES[theme];
 
@@ -299,73 +441,90 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* 1. Header & VM Controls */}
-      <div className="glass-panel" style={{ padding: '18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* 1. Header & VM Control Strip */}
+      <div className="glass-panel" style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
                 🚀 {lang === 'fr' ? 'Démarrage Réel dans le Navigateur' : 'Real Boot in the Browser'}
               </h3>
+
+              {/* Status Badge */}
               <span
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '3px 8px',
+                  padding: '3px 10px',
                   borderRadius: '12px',
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
                   background:
                     status === 'running'
-                      ? 'rgba(16, 185, 129, 0.15)'
+                      ? 'rgba(16, 185, 129, 0.18)'
+                      : status === 'paused'
+                      ? 'rgba(59, 130, 246, 0.18)'
                       : status === 'loading'
-                      ? 'rgba(245, 158, 11, 0.15)'
+                      ? 'rgba(245, 158, 11, 0.18)'
                       : 'rgba(148, 163, 184, 0.1)',
                   color:
                     status === 'running'
                       ? 'var(--emerald)'
+                      : status === 'paused'
+                      ? '#60a5fa'
                       : status === 'loading'
                       ? '#f59e0b'
                       : 'var(--text-muted)',
                   border: `1px solid ${
                     status === 'running'
-                      ? 'rgba(16, 185, 129, 0.3)'
+                      ? 'rgba(16, 185, 129, 0.35)'
+                      : status === 'paused'
+                      ? 'rgba(59, 130, 246, 0.35)'
                       : status === 'loading'
-                      ? 'rgba(245, 158, 11, 0.3)'
+                      ? 'rgba(245, 158, 11, 0.35)'
                       : 'rgba(148, 163, 184, 0.2)'
                   }`,
                 }}
               >
                 <span
                   style={{
-                    width: '6px',
-                    height: '6px',
+                    width: '7px',
+                    height: '7px',
                     borderRadius: '50%',
                     background:
-                      status === 'running' ? '#10b981' : status === 'loading' ? '#f59e0b' : '#94a3b8',
+                      status === 'running'
+                        ? '#10b981'
+                        : status === 'paused'
+                        ? '#3b82f6'
+                        : status === 'loading'
+                        ? '#f59e0b'
+                        : '#94a3b8',
+                    boxShadow: status === 'running' ? '0 0 8px #10b981' : 'none',
                     animation: status === 'running' ? 'pulse 2s infinite' : 'none',
                   }}
                 />
                 {status === 'running'
                   ? (lang === 'fr' ? `Noyau Actif (${formatUptime(uptimeSeconds)})` : `Active Kernel (${formatUptime(uptimeSeconds)})`)
+                  : status === 'paused'
+                  ? (lang === 'fr' ? 'VM en Pause' : 'VM Paused')
                   : status === 'loading'
                   ? (lang === 'fr' ? `Chargement ${progress}%` : `Loading ${progress}%`)
                   : (lang === 'fr' ? 'VM Arrêtée' : 'VM Stopped')}
               </span>
             </div>
 
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0, maxWidth: '850px' }}>
+            <p style={{ fontSize: '0.80rem', color: 'var(--text-muted)', margin: 0 }}>
               {lang === 'fr'
-                ? "Ceci n'est pas une simulation : un vrai noyau Linux (Buildroot) démarre dans une machine virtuelle x86 émulée en WebAssembly (v86), directement dans cet onglet. Aucun serveur, rien n'est installé sur votre machine."
-                : "This isn't a simulation: a real Linux kernel (Buildroot) boots inside a WebAssembly-emulated x86 virtual machine (v86), directly in this tab. No server, nothing installed on your machine."}
+                ? "Vrai noyau Linux (Buildroot) émulé en WebAssembly (v86) x86 32-bit dans cet onglet. 100% exécuté sur votre machine."
+                : "Real Linux kernel (Buildroot) running in WebAssembly (v86) x86 32-bit directly inside this tab."}
             </p>
           </div>
 
-          {/* VM Action Buttons */}
+          {/* VM Actions & Power Controls */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {status !== 'running' && (
+            {status !== 'running' && status !== 'paused' && (
               <button className="btn btn-primary" onClick={startEmulator} disabled={status === 'loading'}>
                 <Play size={14} />
                 {status === 'loading'
@@ -373,14 +532,22 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                   : (lang === 'fr' ? 'Démarrer un vrai Linux' : 'Boot a real Linux')}
               </button>
             )}
-            {status === 'running' && (
+            {(status === 'running' || status === 'paused') && (
               <>
+                <button
+                  className="btn btn-secondary"
+                  onClick={togglePauseEmulator}
+                  title={status === 'paused' ? 'Reprendre la VM' : 'Mettre la VM en pause'}
+                >
+                  {status === 'paused' ? <Play size={14} color="var(--emerald)" /> : <Pause size={14} />}
+                  {status === 'paused' ? (lang === 'fr' ? 'Reprendre' : 'Resume') : (lang === 'fr' ? 'Pause' : 'Pause')}
+                </button>
                 <button className="btn btn-secondary" onClick={startEmulator} title={lang === 'fr' ? 'Redémarrer la VM' : 'Restart VM'}>
                   <RotateCcw size={14} />
                   {lang === 'fr' ? 'Redémarrer' : 'Restart'}
                 </button>
                 <button className="btn btn-secondary" onClick={() => { stopEmulator(); setStatus('idle'); }} title={lang === 'fr' ? 'Éteindre la VM' : 'Power off VM'}>
-                  <Power size={14} />
+                  <Power size={14} color="#ef4444" />
                   {lang === 'fr' ? 'Arrêter' : 'Stop'}
                 </button>
               </>
@@ -388,30 +555,43 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
           </div>
         </div>
 
-        {/* VM Technical Badges */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        {/* Technical Badges & Real-Time Telemetry Strip */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Cpu size={12} color="var(--cyan)" />
             Arch: <strong>x86 i686 (32-bit)</strong>
           </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <HardDrive size={12} color="var(--emerald)" />
-            RAM: <strong>128 Mo WebAssembly</strong>
+            RAM: <strong>128 Mo WASM</strong>
           </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Terminal size={12} color="var(--violet)" />
-            TTY: <strong>serial0 (ttyS0)</strong>
+            Port: <strong>ttyS0 (115200 bps)</strong>
           </span>
           {recipe?.branding.osName && (
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '2px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '0.72rem', color: '#f1f5f9', padding: '3px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <Sparkles size={12} color="#f59e0b" />
-              Recette : <strong>{recipe.branding.osName}</strong>
+              Recette: <strong>{recipe.branding.osName}</strong>
             </span>
+          )}
+
+          {/* Telemetry Pills */}
+          {(status === 'running' || status === 'paused') && (
+            <>
+              <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)', padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Activity size={11} color="var(--emerald)" />
+                RX: <strong className="font-mono">{formatBytes(rxBytes)}</strong>
+              </span>
+              <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)', padding: '3px 8px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                TX: <strong className="font-mono">{formatBytes(txBytes)}</strong>
+              </span>
+            </>
           )}
         </div>
 
-        {/* Progress bar on download */}
-        {status === 'running' && progress < 100 && (
+        {/* Loading progress bar */}
+        {status === 'loading' && (
           <div style={{ marginTop: '12px' }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
               <span>{lang === 'fr' ? "Téléchargement du noyau Buildroot et de l'émulateur WebAssembly…" : "Downloading Buildroot kernel and WASM emulator…"}</span>
@@ -430,7 +610,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         )}
       </div>
 
-      {/* 2. Interactive Terminal Console with Custom Controls */}
+      {/* 2. Interactive Terminal Console Window */}
       <div
         className="glass-panel"
         style={{
@@ -439,7 +619,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
           display: 'flex',
           flexDirection: 'column',
           border: `1px solid ${status === 'running' ? currentTheme.border : 'var(--border-subtle)'}`,
-          boxShadow: status === 'running' ? `0 0 25px ${currentTheme.glow}` : 'none',
+          boxShadow: status === 'running' ? `0 0 30px ${currentTheme.glow}` : 'none',
           transition: 'all 0.3s ease',
           ...(isFullscreen
             ? {
@@ -481,7 +661,25 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
           </div>
 
           {/* Customization & Action Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* CRT Scanlines Toggle */}
+            <button
+              onClick={() => setScanlines(!scanlines)}
+              className="btn btn-secondary"
+              style={{
+                fontSize: '0.70rem',
+                padding: '2px 8px',
+                height: '24px',
+                background: scanlines ? 'rgba(74, 222, 128, 0.15)' : 'transparent',
+                borderColor: scanlines ? 'var(--emerald)' : 'var(--border-subtle)',
+                color: scanlines ? 'var(--emerald)' : 'var(--text-muted)',
+              }}
+              title={lang === 'fr' ? 'Activer/Désactiver effet CRT Scanlines' : 'Toggle CRT Scanlines'}
+            >
+              <Monitor size={12} />
+              CRT
+            </button>
+
             {/* Theme Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span style={{ fontSize: '0.70rem', color: 'var(--text-muted)' }}>Thème :</span>
@@ -526,10 +724,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             <button
               onClick={handleClearTerminal}
               className="btn btn-secondary"
-              style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              style={{ fontSize: '0.70rem', padding: '2px 7px', height: '24px' }}
               title={lang === 'fr' ? "Effacer l'affichage" : 'Clear terminal'}
             >
-              <Trash2 size={12} />
+              <Trash2 size={11} />
               {lang === 'fr' ? 'Effacer' : 'Clear'}
             </button>
 
@@ -537,10 +735,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             <button
               onClick={handleCopyLogs}
               className="btn btn-secondary"
-              style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              style={{ fontSize: '0.70rem', padding: '2px 7px', height: '24px' }}
               title={lang === 'fr' ? 'Copier le log du terminal' : 'Copy terminal text'}
             >
-              {copied ? <Check size={12} color="var(--emerald)" /> : <Copy size={12} />}
+              {copied ? <Check size={11} color="var(--emerald)" /> : <Copy size={11} />}
               {copied ? (lang === 'fr' ? 'Copié !' : 'Copied!') : (lang === 'fr' ? 'Copier' : 'Copy')}
             </button>
 
@@ -548,10 +746,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             <button
               onClick={handleDownloadLogs}
               className="btn btn-secondary"
-              style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              style={{ fontSize: '0.70rem', padding: '2px 7px', height: '24px' }}
               title={lang === 'fr' ? 'Télécharger les logs de session' : 'Download session log'}
             >
-              <Download size={12} />
+              <Download size={11} />
               .log
             </button>
 
@@ -559,10 +757,10 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
               className="btn btn-secondary"
-              style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              style={{ fontSize: '0.70rem', padding: '2px 7px', height: '24px' }}
               title={isFullscreen ? (lang === 'fr' ? 'Quitter plein écran' : 'Exit fullscreen') : (lang === 'fr' ? 'Plein écran' : 'Fullscreen')}
             >
-              {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              {isFullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
             </button>
           </div>
         </div>
@@ -585,10 +783,16 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
             </button>
           </div>
         ) : (
-          <div style={{ position: 'relative', background: currentTheme.bg }}>
+          <div
+            className={scanlines ? 'crt-scanlines' : ''}
+            style={{ position: 'relative', background: currentTheme.bg }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDropFile}
+          >
             {/* Terminal Saisie / Sortie */}
             <textarea
               ref={serialRef}
+              className="term-scroll"
               spellCheck={false}
               onPaste={(e) => {
                 if (!emulatorRef.current) return;
@@ -599,59 +803,59 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                 }
               }}
               onKeyDown={(e) => {
-                if (!emulatorRef.current || status !== 'running') return;
+                if (!emulatorRef.current || (status !== 'running' && status !== 'paused')) return;
                 e.preventDefault();
 
                 // Touches spéciales et séquences d'échappement ANSI
                 if (e.key === 'Enter') {
-                  emulatorRef.current.serial0_send('\n');
+                  sendStringToEmulator('\n');
                 } else if (e.key === 'Backspace') {
-                  emulatorRef.current.serial0_send('\x7f');
+                  sendStringToEmulator('\x7f');
                 } else if (e.key === 'Tab') {
-                  emulatorRef.current.serial0_send('\t');
+                  sendStringToEmulator('\t');
                 } else if (e.key === 'Escape') {
-                  emulatorRef.current.serial0_send('\x1b');
+                  sendStringToEmulator('\x1b');
                 } else if (e.key === 'ArrowUp') {
-                  emulatorRef.current.serial0_send('\x1b[A');
+                  sendStringToEmulator('\x1b[A');
                 } else if (e.key === 'ArrowDown') {
-                  emulatorRef.current.serial0_send('\x1b[B');
+                  sendStringToEmulator('\x1b[B');
                 } else if (e.key === 'ArrowRight') {
-                  emulatorRef.current.serial0_send('\x1b[C');
+                  sendStringToEmulator('\x1b[C');
                 } else if (e.key === 'ArrowLeft') {
-                  emulatorRef.current.serial0_send('\x1b[D');
+                  sendStringToEmulator('\x1b[D');
                 } else if (e.key === 'Home') {
-                  emulatorRef.current.serial0_send('\x1b[H');
+                  sendStringToEmulator('\x1b[H');
                 } else if (e.key === 'End') {
-                  emulatorRef.current.serial0_send('\x1b[F');
+                  sendStringToEmulator('\x1b[F');
                 } else if (e.key === 'PageUp') {
-                  emulatorRef.current.serial0_send('\x1b[5~');
+                  sendStringToEmulator('\x1b[5~');
                 } else if (e.key === 'PageDown') {
-                  emulatorRef.current.serial0_send('\x1b[6~');
+                  sendStringToEmulator('\x1b[6~');
                 } else if (e.key === 'Delete') {
-                  emulatorRef.current.serial0_send('\x1b[3~');
+                  sendStringToEmulator('\x1b[3~');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
-                  emulatorRef.current.serial0_send('\x03');
+                  sendStringToEmulator('\x03');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'd') {
-                  emulatorRef.current.serial0_send('\x04');
+                  sendStringToEmulator('\x04');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'l') {
-                  emulatorRef.current.serial0_send('\x0c');
+                  sendStringToEmulator('\x0c');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'z') {
-                  emulatorRef.current.serial0_send('\x1a');
+                  sendStringToEmulator('\x1a');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'u') {
-                  emulatorRef.current.serial0_send('\x15');
+                  sendStringToEmulator('\x15');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'k') {
-                  emulatorRef.current.serial0_send('\x0b');
+                  sendStringToEmulator('\x0b');
                 } else if (e.ctrlKey && e.key.toLowerCase() === 'w') {
-                  emulatorRef.current.serial0_send('\x17');
+                  sendStringToEmulator('\x17');
                 } else if (e.ctrlKey && e.key.length === 1) {
-                  emulatorRef.current.serial0_send(String.fromCharCode(e.key.toUpperCase().charCodeAt(0) - 64));
+                  sendStringToEmulator(String.fromCharCode(e.key.toUpperCase().charCodeAt(0) - 64));
                 } else if (e.key.length === 1) {
-                  emulatorRef.current.serial0_send(e.key);
+                  sendStringToEmulator(e.key);
                 }
               }}
               style={{
                 width: '100%',
-                height: isFullscreen ? 'calc(100vh - 170px)' : '420px',
+                height: isFullscreen ? 'calc(100vh - 210px)' : '420px',
                 resize: isFullscreen ? 'none' : 'vertical',
                 background: currentTheme.bg,
                 color: currentTheme.text,
@@ -665,11 +869,117 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                 display: 'block',
               }}
             />
+
+            {/* Notification de fichier injecté */}
+            {fileNotice && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '16px',
+                  padding: '6px 14px',
+                  background: 'rgba(16, 185, 129, 0.9)',
+                  color: '#fff',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                  zIndex: 20,
+                  animation: 'fadeIn 0.2s ease',
+                }}
+              >
+                {fileNotice}
+              </div>
+            )}
           </div>
         )}
 
-        {/* 3. Direct Command Send Bar (Always accessible) */}
-        {status === 'running' && (
+        {/* 3. Special Keys & Signal Control Strip (1-Click Control) */}
+        {(status === 'running' || status === 'paused') && (
+          <div
+            style={{
+              padding: '6px 14px',
+              background: 'rgba(6, 10, 20, 0.98)',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              gap: '6px',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, marginRight: '4px' }}>
+              SIGNAUX :
+            </span>
+            <button
+              onClick={() => sendStringToEmulator('\x03')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="Interrompre le processus (SIGINT)"
+            >
+              Ctrl+C
+            </button>
+            <button
+              onClick={() => sendStringToEmulator('\x0c')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="Effacer le terminal"
+            >
+              Ctrl+L
+            </button>
+            <button
+              onClick={() => sendStringToEmulator('\t')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="Autocomplétion"
+            >
+              Tab ⇥
+            </button>
+            <button
+              onClick={() => sendStringToEmulator('\x04')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="EOF / Déconnexion"
+            >
+              Ctrl+D
+            </button>
+            <button
+              onClick={() => sendStringToEmulator('\x1a')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="Suspendre en arrière-plan (SIGTSTP)"
+            >
+              Ctrl+Z
+            </button>
+            <button
+              onClick={() => sendStringToEmulator('\n')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', fontFamily: 'monospace' }}
+              title="Entrée"
+            >
+              Enter ↵
+            </button>
+
+            {/* Hidden File Input for Injection */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.68rem', padding: '2px 8px', height: '22px', marginLeft: 'auto' }}
+              title={lang === 'fr' ? 'Injecter un fichier .sh/.txt dans /tmp/' : 'Inject file into /tmp/'}
+            >
+              <Upload size={11} color="var(--cyan)" />
+              {lang === 'fr' ? 'Injecter Fichier' : 'Inject File'}
+            </button>
+          </div>
+        )}
+
+        {/* 4. Direct Command Input Bar */}
+        {(status === 'running' || status === 'paused') && (
           <div
             style={{
               padding: '10px 14px',
@@ -689,12 +999,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
               placeholder={lang === 'fr' ? 'Saisissez une commande bash (ex: uname -a, free, ls /)...' : 'Type a bash command (e.g. uname -a, free, ls /)...'}
               value={cmdInput}
               onChange={(e) => setCmdInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  sendCommand(cmdInput);
-                }
-              }}
+              onKeyDown={handleKeyDownInput}
               style={{ flex: 1, fontSize: '0.82rem', height: '34px' }}
             />
             <button
@@ -719,15 +1024,37 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         )}
       </div>
 
-      {/* 4. 1-Click Quick Commands Bar */}
-      {status === 'running' && (
-        <div className="glass-panel" style={{ padding: '16px' }}>
-          <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={15} color="var(--cyan)" />
-            {lang === 'fr' ? 'Commandes Rapides en 1-Clic (Test en Direct)' : '1-Click Quick Actions (Live Test)'}
-          </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
-            {quickCommands.map((q) => (
+      {/* 5. Integrated Categorized 1-Click Command Dock (Zero Scroll Hub) */}
+      {(status === 'running' || status === 'paused') && (
+        <div className="glass-panel" style={{ padding: '14px' }}>
+          {/* Category Tabs */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
+            {(Object.entries(categorizedCommands) as [QuickCategory, typeof categorizedCommands['system']][]).map(([k, cat]) => {
+              const Icon = cat.icon;
+              const isActive = activeCategory === k;
+              return (
+                <button
+                  key={k}
+                  onClick={() => setActiveCategory(k)}
+                  className={`btn ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{
+                    fontSize: '0.74rem',
+                    padding: '4px 10px',
+                    height: '28px',
+                    borderRadius: '4px',
+                    fontWeight: isActive ? 700 : 500,
+                  }}
+                >
+                  <Icon size={12} />
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Quick Action Items for Active Category */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+            {categorizedCommands[activeCategory].items.map((q) => (
               <button
                 key={q.cmd}
                 onClick={() => sendCommand(q.cmd)}
@@ -741,7 +1068,7 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
                   textAlign: 'left',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.80rem', color: '#f1f5f9' }} className="font-mono">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.78rem', color: '#f1f5f9' }} className="font-mono">
                   <Terminal size={12} color="var(--emerald)" />
                   {q.label}
                 </div>
@@ -754,8 +1081,8 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
         </div>
       )}
 
-      {/* 5. Custom Script Injector Drawer */}
-      {status === 'running' && showScriptDrawer && (
+      {/* 6. Custom Multi-Line Script Injector Drawer */}
+      {(status === 'running' || status === 'paused') && showScriptDrawer && (
         <div className="glass-panel" style={{ padding: '16px', border: '1px solid var(--violet)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
@@ -763,16 +1090,29 @@ export const RealBoot: React.FC<RealBootProps> = ({ lang, recipe }) => {
               {lang === 'fr' ? 'Injecteur de Script Bash dans la VM' : 'Bash Script Injector into VM'}
             </h4>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {scriptPresets.map((p, idx) => (
+              <button
+                onClick={() => setCustomScript('time for i in $(seq 1 20000); do :; done\necho "Terminé !"')}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              >
+                Benchmark
+              </button>
+              <button
+                onClick={() => setCustomScript('cat /etc/passwd\ncat /etc/group')}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
+              >
+                Passwd
+              </button>
+              {recipe?.firstBootScript && (
                 <button
-                  key={idx}
-                  onClick={() => setCustomScript(p.script)}
+                  onClick={() => setCustomScript(recipe.firstBootScript!)}
                   className="btn btn-secondary"
                   style={{ fontSize: '0.72rem', padding: '3px 8px', height: '26px' }}
                 >
-                  {p.name}
+                  First-Boot
                 </button>
-              ))}
+              )}
             </div>
           </div>
 

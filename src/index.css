@@ -385,3 +385,44 @@ input:checked + .toggle-slider:before {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* CRT Scanlines & Retro Terminal Effects */
+.crt-scanlines {
+  position: relative;
+}
+
+.crt-scanlines::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+  background-size: 100% 4px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.crt-glow {
+  text-shadow: 0 0 6px currentColor;
+}
+
+/* Custom Scrollbar for Terminal Output */
+.term-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.term-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.term-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.term-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+

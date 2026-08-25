@@ -4170,6 +4170,7 @@ export function generateWslInstallerBat(recipe: OSRecipe): string {
 
   return `@echo off
 chcp 65001 >nul
+reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 REM ==============================================================================
 REM OSForge Studio — Script d'installation 1-Click pour Windows WSL2
 REM Installe votre OS sur-mesure (${batEscapePercent(recipe.branding.osName)}) directement sous Windows
@@ -4268,13 +4269,15 @@ export function generateLiveWindowsBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
-title ${batEscapePercent(recipe.branding.osName)} - Machine Virtuelle QEMU (Test & Nettoyage Automatique)
+reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
+title ${batEscapePercent(recipe.branding.osName)} - Machine Virtuelle QEMU (Live RAM & Accélération WHPX)
 cls
 
 :MENU
 cls
 echo ===============================================================================
-echo   OSFORGE STUDIO - MACHINE VIRTUELLE DE TEST RAPIDE (QEMU)
+echo   🚀 OSFORGE STUDIO — MACHINE VIRTUELLE DE TEST RAPIDE (QEMU)
+echo   Distribution : ${batEscapePercent(recipe.branding.osName)} (${recipe.distro.toUpperCase()})
 echo ===============================================================================
 echo.
 
@@ -4286,18 +4289,18 @@ if not exist "%ISO_PATH%" (
 
 if not exist "%ISO_PATH%" (
     echo [ERREUR] Aucun fichier .iso n'a ete trouve dans dist\\
-    echo Assurez-vous d'avoir compile votre image ISO au prealable.
+    echo Assurez-vous d'avoir compile votre image ISO au prealable (build.sh ou auto-build.bat).
     echo.
     pause
     exit /b 1
 )
 
 echo [OK] Image ISO detectee : %ISO_PATH%
-echo.
 
 set QEMU_CMD=
 set QEMU_IMG_CMD=
 set QEMU_MODE=WINDOWS
+set ACCEL_ARGS=-accel tcg
 
 where qemu-system-x86_64 >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
@@ -4323,6 +4326,13 @@ if "%QEMU_CMD%"=="" (
 
 if not "%QEMU_CMD%"=="" (
     echo [OK] Moteur QEMU detecte : %QEMU_MODE%
+    if "%QEMU_MODE%"=="WINDOWS" (
+        "%QEMU_CMD%" -accel help 2>nul | findstr /i "whpx" >nul 2>&1
+        if !ERRORLEVEL! EQU 0 (
+            set ACCEL_ARGS=-accel whpx -accel tcg
+            echo [OK] Acceleration materielle WHPX (Windows Hypervisor Platform) activee !
+        )
+    )
 ) else (
     echo [ATTENTION] QEMU n'est pas encore installe sur votre systeme.
 )
@@ -4331,19 +4341,21 @@ echo.
 echo -------------------------------------------------------------------------------
 echo   CHOISISSEZ UNE OPTION :
 echo -------------------------------------------------------------------------------
-echo   [1] Lancer la VM Ephemere en Live RAM (Zero fichier modifie sur votre disque)
-echo   [2] Lancer la VM avec un Disque Virtuel Temporaire (20 Go QCOW2)
-echo   [3] Installer automatiquement QEMU (via Winget Windows ou WSL2)
-echo   [4] Nettoyer / Supprimer les disques virtuels de test temporaires
-echo   [0] Retour au menu principal
+echo   [1] ⚡ Lancer en Live RAM Standard (4 Go RAM, VirtIO, Zéro écriture disque)
+echo   [2] 🚀 Lancer en Haute Performance (8 Go RAM, Accélération CPU 4 cœurs)
+echo   [3] 💾 Lancer avec un Disque Virtuel Temporaire (20 Go QCOW2)
+echo   [4] 📦 Installer automatiquement QEMU (via Winget Windows ou WSL2)
+echo   [5] 🧹 Nettoyer / Supprimer les disques virtuels de test temporaires
+echo   [0] ❌ Retour au menu principal
 echo.
 echo ===============================================================================
-set /p CHOICE="Votre choix [1-4, 0] : "
+set /p CHOICE="Votre choix [1-5, 0] : "
 
-if "%CHOICE%"=="1" goto RUN_LIVE_RAM
-if "%CHOICE%"=="2" goto RUN_WITH_DISK
-if "%CHOICE%"=="3" goto INSTALL_QEMU
-if "%CHOICE%"=="4" goto CLEANUP_VM
+if "%CHOICE%"=="1" goto RUN_LIVE_RAM_STD
+if "%CHOICE%"=="2" goto RUN_LIVE_RAM_HIGH
+if "%CHOICE%"=="3" goto RUN_WITH_DISK
+if "%CHOICE%"=="4" goto INSTALL_QEMU
+if "%CHOICE%"=="5" goto CLEANUP_VM
 if "%CHOICE%"=="0" exit /b 0
 
 echo Choix invalide.
@@ -4396,31 +4408,30 @@ goto MENU
 
 :CHECK_QEMU_EXISTS
 if "%QEMU_CMD%"=="" (
-    echo [ERREUR] QEMU n'est pas installe. Veuillez choisir l'option [3] d'abord.
+    echo [ERREUR] QEMU n'est pas installe. Veuillez choisir l'option [4] d'abord.
     pause
     goto MENU
 )
 exit /b 0
 
-:RUN_LIVE_RAM
+:RUN_LIVE_RAM_STD
 call :CHECK_QEMU_EXISTS
 cls
 echo ===============================================================================
-echo   LANCEMENT DE LA VM EPHEMERE (LIVE RAM)
+echo   LANCEMENT DE LA VM EPHEMERE (LIVE RAM 4 GO)
 echo ===============================================================================
 echo.
-echo   Image ISO : %ISO_PATH%
-echo   Memoire   : 4096 Mo (4 Go RAM)
-echo   Processeur: 4 Coeurs CPU Virtuels
+echo   Image ISO  : %ISO_PATH%
+echo   Memoire    : 4096 Mo (4 Go RAM)
+echo   CPU Coeurs : 4 Coeurs Virtuels
 echo.
-echo [INFO] Cette VM tourne 100%% en memoire vive. Aucun fichier n'est cree.
 echo [INFO] Fermez simplement la fenetre QEMU quand vous avez termine le test.
 echo.
 
 if "%QEMU_MODE%"=="WSL" (
     wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d"
 ) else (
-    "%QEMU_CMD%" -cdrom "%CD%\\%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+    "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 )
 
 echo.
@@ -4428,11 +4439,34 @@ echo [OK] Session de test Live RAM terminee.
 pause
 goto MENU
 
+:RUN_LIVE_RAM_HIGH
+call :CHECK_QEMU_EXISTS
+cls
+echo ===============================================================================
+echo   LANCEMENT DE LA VM HAUTE PERFORMANCE (LIVE RAM 8 GO)
+echo ===============================================================================
+echo.
+echo   Image ISO  : %ISO_PATH%
+echo   Memoire    : 8192 Mo (8 Go RAM)
+echo   CPU Coeurs : 6 Coeurs Virtuels
+echo.
+
+if "%QEMU_MODE%"=="WSL" (
+    wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -m 8192 -smp 6 -vga virtio -display sdl -net nic -net user -boot d"
+) else (
+    "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -m 8192 -smp 6 -vga virtio -net nic -net user -boot d
+)
+
+echo.
+echo [OK] Session haute performance terminee.
+pause
+goto MENU
+
 :RUN_WITH_DISK
 call :CHECK_QEMU_EXISTS
 cls
 echo ===============================================================================
-echo   LANCEMENT DE LA VM AVEC DISQUE VIRTUEL TEMPORAIRE
+echo   LANCEMENT DE LA VM AVEC DISQUE VIRTUEL TEMPORAIRE (20 GO)
 echo ===============================================================================
 echo.
 set DISK_NAME=dist\\test-vm-disk.qcow2
@@ -4450,14 +4484,11 @@ if "%QEMU_MODE%"=="WSL" (
 
 echo [2/3] Demarrage de la VM avec support d'ecriture...
 echo.
-echo [INFO] Vous pouvez tester l'installateur de l'OS ou installer des paquets.
-echo [INFO] A la fermeture, le disque temporaire vous sera propose a la suppression.
-echo.
 
 if "%QEMU_MODE%"=="WSL" (
     wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); DISK_FILE=\\$(wslpath -a '%DISK_NAME%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -hda \\"\\$DISK_FILE\\" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d"
 ) else (
-    "%QEMU_CMD%" -cdrom "%CD%\\%ISO_PATH%" -hda "%CD%\\%DISK_NAME%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+    "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -hda "%CD%\\%DISK_NAME%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 )
 
 echo.
@@ -4520,27 +4551,20 @@ export function generateAutoBuildBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
+reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 title ${batEscapePercent(recipe.branding.osName)} - Compilation 100% Automatique
 cls
-
-:: =============================================================================
-:: ${batEscapePercent(recipe.branding.osName)} - Mode "1-Clic" 100% automatique
-:: Detecte WSL2, installe les dependances si besoin, compile l'ISO puis lance
-:: un test QEMU Live RAM automatiquement - aucune interaction requise.
-:: =============================================================================
 
 set LOG_FILE=auto-build.log
 echo [%DATE% %TIME%] Debut de la compilation automatique > "%LOG_FILE%"
 
 echo ===============================================================================
-echo   ${batEscapePercent(recipe.branding.osName)} - COMPILATION 100%% AUTOMATIQUE (1-CLIC)
+echo   🚀 ${batEscapePercent(recipe.branding.osName)} — COMPILATION 100%% AUTOMATIQUE (1-CLIC)
 echo   Toutes les etapes s'enchainent sans intervention. Logs : %LOG_FILE%
 echo ===============================================================================
 echo.
 
-:: ---------------------------------------------------------------------------
 :: [1/5] Verification / installation de WSL2
-:: ---------------------------------------------------------------------------
 echo [1/5] Verification de WSL2...
 wsl --status >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
@@ -4550,16 +4574,14 @@ if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [ATTENTION] WSL2 vient d'etre installe pour la premiere fois.
     echo Windows doit redemarrer pour terminer l'installation.
-    echo Relancez simplement auto-build.bat apres le redemarrage : tout reprendra automatiquement.
+    echo Relancez simplement auto-build.bat apres le redemarrage.
     pause
     exit /b 0
 )
 echo [OK] WSL2 est actif.
 echo.
 
-:: ---------------------------------------------------------------------------
 :: [2/5] Verification / installation d'une distribution WSL par defaut
-:: ---------------------------------------------------------------------------
 echo [2/5] Verification de la distribution Linux WSL...
 wsl -l -q >nul 2>&1
 set DISTRO_COUNT=0
@@ -4577,11 +4599,8 @@ if %DISTRO_COUNT% EQU 0 (
 echo [OK] Distribution WSL disponible.
 echo.
 
-:: ---------------------------------------------------------------------------
-:: [3/5] Installation des dependances de compilation (execute en root, sans mot de passe)
-:: ---------------------------------------------------------------------------
+:: [3/5] Installation des dependances de compilation
 echo [3/5] Installation des dependances de compilation ISO dans WSL2...
-echo       (debootstrap, xorriso, grub, squashfs-tools...)
 wsl -u root -- bash -c "apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync" >>"%LOG_FILE%" 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERREUR] Echec de l'installation des dependances. Voir %LOG_FILE%.
