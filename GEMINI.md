@@ -148,17 +148,35 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 33 commits poussés sur `main`, tous avec CI + Pages verts.
-- Suite de tests : 423 tests, tous verts.
-- Derniers ajouts / correctifs en date :
-  - **Catalogue Logiciel Avancé — Phase 2 (`PackageCatalog.tsx`, `packages.ts`, `os.ts`)** :
-    - 51 logiciels au total (+9 nouveaux paquets vérifiés : Compilateurs Go `golang_toolchain`, C/C++ `cpp_modern_stack`, Zig `zig_compiler`, 3D `blender_3d`, Sauvegarde chiffrée `restic_rclone`, Émulation `retroarch_gaming`, Drivers `gamepad_drivers`, Rédaction `typst_pandoc`, Métriques `prometheus_node_exporter`).
-    - Nouveaux filtres par Type d'application (Tous, Applications GUI, Outils Terminal CLI/TUI, Services & Démons).
-    - Outil interactif d'Import / Export de listes de paquets au format texte / copier-coller.
-    - Badges d'impact système (`low`, `medium`, `heavy`) et de type applicatif sur les 51 fiches logicielles.
-  - **Durcissement CIS Benchmark (Niveaux 1 et 2)** : Câblage complet de `cisBenchmarkLevel` (`/etc/sysctl.d/99-cis-security.conf`, `/etc/security/limits.d/10-cis-coredumps.conf`, `/etc/profile.d/99-cis-umask.sh`, permissions de `/etc/shadow`) sur les scripts bash et le manifeste `cloud-init`.
-  - **Swap zRAM compressé en mémoire vive (`enableZram`)** : Intégration de `systemd-zram-generator` (Debian/Arch), `zram-generator` (Fedora), `zram-init` (Alpine) et configuration `/etc/systemd/zram-generator.conf` avec compression ZSTD.
-  - **Flatpak & Flathub OOB (`enableFlatpak`)** : Pré-installation du paquet `flatpak` et ajout automatique du remote officiel `flathub` au premier démarrage.
-  - **Nouveaux environnements de bureau & tiling WMs** : Intégration complète de `niri` (Wayland scrollable tiling en Rust) et `openbox` (X11 ultra-léger avec tint2/feh/obconf) sur toutes les distributions supportées.
-  - **Ligne de commande noyau personnalisée (`kernelCmdline`)** : Injection fidèle d'arguments noyau supplémentaires dans les configurations GRUB (`grub.cfg` pour ISO hybrides et images disque QCOW2/VMDK/RAW) ainsi que dans `cmdline.txt` pour carte SD Raspberry Pi.
+- Suite de tests : 431 tests, tous verts. CI + Pages verts sur le dernier commit poussé.
+- **Correction importante à une affirmation précédente de ce fichier** : contrairement à ce qui
+  était écrit ici auparavant, `niri` n'est PAS intégré « sur toutes les distributions supportées ».
+  Vérifié en direct : le paquet `niri` lui-même est réellement ABSENT de Debian trixie
+  (packages.debian.org : « No such package ») et d'Ubuntu « resolute » (seuls `niri-companion` et
+  `librust-niri-ipc-dev` existent, uniquement dans la suite future « stonking »). La famille
+  Debian/Ubuntu/Kali/Raspbian/Mint installait donc waybar/alacritty/fuzzel/mako/swaylock — des
+  outils sans aucune utilité sans le compositeur lui-même — sans jamais installer `niri`. Corrigé :
+  plus aucun paquet installé pour cette combinaison (honnêtement hors périmètre, comme
+  Void+Hyprland). Bug distinct trouvé dans le même bloc : Void, à l'inverse, avait bien accès au
+  vrai paquet `niri` (confirmé via son template source) mais l'omettait du script — corrigé en
+  l'ajoutant.
+- **Faille de sécurité réelle trouvée et corrigée** : `kernelCmdline` (champ libre ajouté par le
+  chantier « Ligne de commande noyau personnalisée ») était interpolé sans échappement dans le
+  corps de heredocs bash NON protégés (`<< GRUBCFG_EOF` / `<< CMDLINE_EOF`, sans apostrophes —
+  nécessaire pour laisser `${KERNEL_PATH}`/`${ROOT_UUID}` s'évaluer à l'exécution). Un heredoc non
+  protégé développe aussi `$()`, les backticks et `\` dans tout son corps : un `kernelCmdline`
+  contenant `$(commande malveillante)` exécutait réellement cette commande avec les privilèges
+  root du script généré — reproduit et vérifié par exécution bash réelle (avant/après). Corrigé via
+  `sanitizeKernelCmdline()` qui retire `$`, backtick et `\` (une ligne de commande noyau légitime
+  n'en a jamais besoin).
+- **Point de vigilance pour la suite** : les nouveaux champs ajoutés par n'importe quelle session
+  (`enableZram`, `enableFlatpak`, `kernelCmdline`, etc.) doivent systématiquement être passés au
+  crible des deux mêmes questions que ci-dessus : (1) le paquet/mécanisme annoncé pour CHAQUE
+  distro est-il réellement vérifié en direct, pas seulement pour les familles « évidentes »
+  (Debian/Arch) ? (2) si le champ est un texte libre interpolé dans un heredoc bash NON protégé
+  (delimiteur sans apostrophes), a-t-il été passé par un sanitizer avant interpolation ?
+- Autres chantiers déjà en place (non re-vérifiés ce cycle, toujours considérés fiables) :
+  catalogue logiciel (51 paquets), durcissement CIS Benchmark, zRAM, Flatpak/Flathub, Openbox
+  (vérifié fiable : `openbox` est bien présent dans le push de toutes les familles, contrairement à
+  `niri`).
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
