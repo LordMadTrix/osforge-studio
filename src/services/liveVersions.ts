@@ -241,6 +241,10 @@ export async function fetchLiveDesktopVersions(): Promise<LiveVersionItem[]> {
     githubLatestTag('mate', 'MATE', 'desktop', 'mate-desktop/mate-desktop'),
     githubLatestTag('budgie', 'Budgie', 'desktop', 'BuddiesOfBudgie/budgie-desktop'),
     githubLatestTag('openbox', 'Openbox', 'desktop', 'danakj/openbox'),
+    // Deepin Desktop Environment (DDE) : vérifié en direct via l'API GitHub — l'organisation
+    // "linuxdeepin" existe réellement et son dépôt "dde-shell" publie de vraies releases
+    // GitHub (ex. "2.0.53", confirmé via releases/latest), contrairement à LXDE ci-dessous.
+    githubLatestTag('deepin', 'Deepin Desktop', 'desktop', 'linuxdeepin/dde-shell'),
     // LXDE reste honnêtement hors périmètre : contrairement aux autres bureaux ci-dessus,
     // "github.com/lxde/lxde" n'existe pas (404 vérifié en direct) — LXDE est éclaté en une
     // dizaine de sous-projets séparés (lxpanel, pcmanfm, lxde-common, lxsession...), sans dépôt
