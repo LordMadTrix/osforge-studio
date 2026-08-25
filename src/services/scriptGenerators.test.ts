@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat, generateUniversalLauncherSh } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -1182,6 +1182,45 @@ describe('generateBuildScript — "/etc/os-release" réellement personnalisé (b
     }));
     expect(script).toContain('NAME="Evil\\"; touch /tmp/preuve; echo \\""');
     expect(script).not.toContain('NAME="Evil"; touch /tmp/preuve; echo ""');
+  });
+});
+
+describe('shDoubleQuoteEscape — bug réel trouvé en RÉ-AUDITANT le correctif os-release du cycle précédent : échapper uniquement le guillemet double laissait "$" et le backtick actifs — un guillemet double bash n\'empêche PAS l\'expansion "$(...)"/backtick, seul un guillemet SIMPLE le ferait. Reproduit par une VRAIE EXÉCUTION bash : PRETTY_NAME="Evil $(touch /tmp/preuve)" sourcé exécutait réellement la commande malgré l\'échappement précédent (aucun guillemet à casser, la substitution restait active à l\'intérieur même du guillemet double intact). Corrigé en échappant aussi "$" et le backtick. Trois nouveaux sites du MÊME défaut trouvés dans la même passe et corrigés avec le même helper renforcé : deux "echo" bash (generateAutoBuildSh, generateUniversalLauncherSh) et un "git commit -m" (generateUniversalLauncherSh) qui interpolaient tous branding.osName brut à l\'intérieur d\'une chaîne bash entre guillemets doubles déjà ouverte', () => {
+  it('/etc/os-release : un osName contenant "$(...)" voit son "$" échappé, neutralisant la substitution de commande au moment du "source"', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'Evil $(touch /tmp/preuve)', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' } as any,
+    }));
+    expect(script).toContain('NAME="Evil \\$(touch /tmp/preuve)"');
+    expect(script).not.toContain('NAME="Evil $(touch /tmp/preuve)"');
+  });
+
+  it('generateAutoBuildSh : un osName contenant "$(...)" dans la bannière "echo -e" voit son "$" échappé', () => {
+    const sh = generateAutoBuildSh(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'Evil $(touch /tmp/preuve)', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' } as any,
+    }));
+    expect(sh).toContain('Evil \\$(touch /tmp/preuve) — COMPILATION 100% AUTOMATIQUE');
+  });
+
+  it('generateUniversalLauncherSh : un osName contenant "$(...)" dans le menu "echo" ET dans le message de "git commit -m" voit son "$" échappé aux deux endroits', () => {
+    const sh = generateUniversalLauncherSh(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid',
+      branding: { osName: 'Evil $(touch /tmp/preuve)', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' } as any,
+    }));
+    expect(sh).toContain('LANCEUR RAPIDE : Evil \\$(touch /tmp/preuve)');
+    expect(sh).toContain('git commit -m "feat: init Evil \\$(touch /tmp/preuve)"');
+  });
+
+  it('osName "normal" (sans caractère spécial) sur les 4 sites : non-régression, contenu identique', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'ForgeOS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' } as any,
+    });
+    expect(generateBuildScript({ ...recipe, distro: 'debian', outputFormat: 'iso_hybrid' })).toContain('NAME="ForgeOS"');
+    expect(generateAutoBuildSh({ ...recipe, distro: 'debian', outputFormat: 'iso_hybrid' })).toContain('ForgeOS — COMPILATION 100% AUTOMATIQUE');
+    const launcherSh = generateUniversalLauncherSh({ ...recipe, distro: 'debian', outputFormat: 'iso_hybrid' });
+    expect(launcherSh).toContain('LANCEUR RAPIDE : ForgeOS');
+    expect(launcherSh).toContain('git commit -m "feat: init ForgeOS"');
   });
 });
 

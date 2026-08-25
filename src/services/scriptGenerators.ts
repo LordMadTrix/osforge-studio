@@ -416,8 +416,14 @@ ${serviceEnableCmd('nftables', family)}`;
 // standard (backslash puis guillemet), qui préserve le texte affiché plutôt que de le tronquer
 // (PRETTY_NAME/NAME sont montrés tels quels par hostnamectl/neofetch, contrairement à un
 // kernelCmdline ou un titre de menu de boot).
+// Correctif du correctif ci-dessus, trouvé en le ré-auditant au cycle suivant : n'échapper que le
+// guillemet laissait "$" et le backtick actifs — un GUILLEMET DOUBLE bash n'empêche PAS
+// l'expansion "$(...)"/backtick, seul un guillemet SIMPLE le ferait. Reproduit en direct :
+// PRETTY_NAME="Evil $(touch /tmp/preuve)" sourcé exécute réellement la commande malgré
+// l'échappement précédent (aucun guillemet à casser, la substitution reste active à l'intérieur
+// même du guillemet double intact). Corrigé en échappant aussi "$" et le backtick.
 function shDoubleQuoteEscape(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return value.replace(/\\/g, '\\\\').replace(/["$`]/g, '\\$&');
 }
 
 function osReleaseCmd(recipe: OSRecipe, baseId: string): string {
@@ -3801,7 +3807,7 @@ LOG_FILE="auto-build.log"
 : > "\${LOG_FILE}"
 
 echo -e "\${CYAN}===============================================================================\${NC}"
-echo -e "\${CYAN}  ${recipe.branding.osName} — COMPILATION 100% AUTOMATIQUE (1-CLIC)\${NC}"
+echo -e "\${CYAN}  ${shDoubleQuoteEscape(recipe.branding.osName)} — COMPILATION 100% AUTOMATIQUE (1-CLIC)\${NC}"
 echo -e "\${CYAN}  Toutes les étapes s'enchaînent sans intervention. Logs : \${LOG_FILE}\${NC}"
 echo -e "\${CYAN}===============================================================================\${NC}"
 echo ""
@@ -4008,7 +4014,7 @@ set -e
 show_menu() {
     clear
     echo "==============================================================================="
-    echo "  🚀 OSFORGE STUDIO — LANCEUR RAPIDE : ${recipe.branding.osName} (${recipe.distro.toUpperCase()})"
+    echo "  🚀 OSFORGE STUDIO — LANCEUR RAPIDE : ${shDoubleQuoteEscape(recipe.branding.osName)} (${recipe.distro.toUpperCase()})"
     echo "==============================================================================="
     echo ""
     echo "  [1] 🔨 Compiler l'image ISO en local (build.sh)"
@@ -4049,7 +4055,7 @@ show_menu() {
             ;;
         4)
             echo "Poussée sur GitHub..."
-            git init -b main && git add . && git commit -m "feat: init ${recipe.branding.osName}"
+            git init -b main && git add . && git commit -m "feat: init ${shDoubleQuoteEscape(recipe.branding.osName)}"
             gh repo create "${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-os" --public --source=. --push
             read -rp "Appuyez sur Entrée pour continuer..."
             show_menu
