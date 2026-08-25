@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DISTRO_PRESETS } from './presets';
-import { generateBuildScript } from '../services/scriptGenerators';
+import { generateBuildScript, resolvePackageList } from '../services/scriptGenerators';
 import { OSRecipe } from '../types/os';
 
 const DEFAULTS: OSRecipe = {
@@ -80,5 +80,28 @@ describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe que "de
       const script = generateBuildScript(recipeFromPreset(preset.recipe));
       expect(script, id).not.toContain("n'est pas encore câblé");
     }
+  });
+});
+
+describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe : "retro_gaming_box" annonçait "Manettes Xbox/PS5 prêtes" sans jamais sélectionner "gamepad_drivers" (joystick/jstest-gtk/xboxdrv — le paquet catalogue conçu exactement pour cette promesse, Steam seul ne fournissant ni calibrage ni pilote générique hors du support xpad/hid-generic déjà présent dans le noyau). "devops_hyprland" avait la même incohérence interne que "cloud_native_homelab" (déjà corrigée) : highlight "Docker & Podman" alors que son propre sous-titre ne mentionne QUE Docker et que selectedPackages n\'installe que "docker"', () => {
+  it('retro_gaming_box : installe réellement joystick/jstest-gtk/xboxdrv (paquet "gamepad_drivers" désormais sélectionné)', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'retro_gaming_box')!;
+    expect(preset.recipe.selectedPackages).toContain('gamepad_drivers');
+    const pkgs = resolvePackageList(recipeFromPreset(preset.recipe));
+    expect(pkgs).toContain('joystick');
+    expect(pkgs).toContain('xboxdrv');
+  });
+
+  it('devops_hyprland : highlight annonce "Docker Engine" (cohérent avec son sous-titre et selectedPackages), plus "Podman" non installé', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'devops_hyprland')!;
+    expect(preset.recipe.selectedPackages).toContain('docker');
+    expect(preset.recipe.selectedPackages).not.toContain('podman');
+    expect(preset.highlights.join(' ')).not.toContain('Podman');
+  });
+
+  it('devops_hyprland : "LazyGit" reste une promesse honnête — réellement fourni par le paquet "git" sur Arch (non-régression)', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'devops_hyprland')!;
+    const pkgs = resolvePackageList(recipeFromPreset(preset.recipe));
+    expect(pkgs).toContain('lazygit');
   });
 });

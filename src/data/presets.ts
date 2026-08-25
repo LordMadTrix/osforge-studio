@@ -8,7 +8,12 @@ export const DISTRO_PRESETS: DistroPreset[] = [
     description: 'Une station de travail ultra-réactive pour les développeurs polyglottes. Tiling Wayland dynamique, moteur de conteneurs et stack complète préinstallée.',
     icon: 'TerminalSquare',
     category: 'Dev',
-    highlights: ['Hyprland Wayland Tiling', 'Docker & Podman', 'Neovim + LazyGit + Starship', 'Rust & Node.js'],
+    // Bug réel trouvé en auditant, même incohérence que "cloud_native_homelab" plus bas dans ce
+    // fichier : ce highlight annonçait "Docker & Podman" alors que selectedPackages ci-dessous
+    // n'installe que "docker" (pas "podman") — cohérent avec le sous-titre juste au-dessus, qui
+    // lui ne mentionne bien QUE Docker. Corrigé pour la même raison et de la même façon : le
+    // highlight suit maintenant ce qui est réellement installé.
+    highlights: ['Hyprland Wayland Tiling', 'Docker Engine', 'Neovim + LazyGit + Starship', 'Rust & Node.js'],
     estimatedSize: '1.4 Go',
     estimatedRam: '420 Mo',
     recipe: {
@@ -141,7 +146,13 @@ export const DISTRO_PRESETS: DistroPreset[] = [
       desktop: 'kde',
       displayManager: 'sddm',
       kernel: 'liquorix',
-      selectedPackages: ['steam', 'lutris_heroic', 'obs_studio', 'vlc_media', 'fastfetch'],
+      // Bug réel trouvé en auditant : le highlight "Manettes Xbox/PS5 prêtes" ne correspondait à
+      // aucun paquet réellement sélectionné — "gamepad_drivers" (joystick/jstest-gtk/xboxdrv,
+      // conçu exactement pour cette promesse, vrai nom "ubuntu" confirmé dans packages.ts) était
+      // absent. Steam seul ne fournit ni calibrage ni pilote générique pour les manettes hors du
+      // support xpad/hid-generic déjà présent dans le noyau — ce paquet reste nécessaire pour la
+      // config/calibration promise par "prêtes".
+      selectedPackages: ['steam', 'lutris_heroic', 'obs_studio', 'vlc_media', 'gamepad_drivers', 'fastfetch'],
       customPackages: ['gamemode', 'mangohud', 'goverlay'],
       hostname: 'arcade-box',
       user: {
