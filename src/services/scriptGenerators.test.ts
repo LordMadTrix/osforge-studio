@@ -2842,4 +2842,35 @@ describe('Tailscale — bug réel trouvé dans le même audit que K3s : le paque
   });
 });
 
+describe('Ollama Local AI — bug réel MAJEUR trouvé dans le même audit que K3s, même mécanisme : sur Debian/Ubuntu, "ollama_ai" n\'installait que "curl ca-certificates" (prérequis) sans jamais installer Ollama lui-même — vérifié par le CONTENU réel de la page (pas juste le code HTTP, qui renvoie 200 même sur la page d\'erreur "No such package" de packages.debian.org/packages.ubuntu.com) : "ollama" confirmé ABSENT des dépôts Debian bookworm/trixie ET Ubuntu noble. Corrigé en déclenchant le vrai installeur officiel (ollama.com/install.sh, qui crée et active lui-même son propre service systemd) au premier démarrage, vérifié via "systemd-analyze verify" (WSL Ubuntu, exit 0)', () => {
+  it('Debian ISO : crée ollama-setup.service qui déclenche le vrai installeur officiel', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['ollama_ai'],
+    }));
+    expect(script).toContain('/etc/systemd/system/ollama-setup.service');
+    expect(script).toContain('https://ollama.com/install.sh');
+    expect(script).toContain('systemctl enable ollama-setup.service');
+  });
+
+  it('Arch qcow2 : AUCUN service ollama-setup créé (vrai paquet natif "ollama" déjà fonctionnel)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'qcow2', selectedPackages: ['ollama_ai'],
+    }));
+    expect(script).not.toContain('ollama-setup.service');
+  });
+
+  it('Void : honnêtement hors périmètre — avertissement affiché, PAS de faux service ollama-setup', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'void', outputFormat: 'raw_img', selectedPackages: ['ollama_ai'],
+    }));
+    expect(script).toContain("n'est pas encore câblé pour Void");
+    expect(script).not.toContain('ollama-setup.service');
+  });
+
+  it('ollama_ai non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('ollama-setup.service');
+  });
+});
+
 

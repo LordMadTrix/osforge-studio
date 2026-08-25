@@ -285,6 +285,41 @@ function tailscaleServiceCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamil
   return serviceEnableCmd('tailscaled', family);
 }
 
+// Bug réel MAJEUR trouvé dans le même audit que K3s ci-dessus, même mécanisme : sur Debian/Ubuntu,
+// "ollama_ai" n'installait que "curl ca-certificates" (prérequis) sans jamais installer Ollama
+// lui-même — vérifié par le CONTENU réel de la page (pas juste le code HTTP, qui renvoie 200 même
+// sur la page d'erreur "No such package" de packages.debian.org/packages.ubuntu.com, même piège
+// que celui déjà documenté ailleurs dans ce projet pour Deepin) : "ollama" confirmé ABSENT des
+// dépôts Debian bookworm/trixie ET Ubuntu noble. Corrigé en déclenchant le vrai installeur officiel
+// (ollama.com/install.sh, qui crée et active lui-même son propre service systemd "ollama.service" —
+// contrairement à K3s, pas besoin de créer une unité manuellement) au premier démarrage. Void reste
+// honnêtement hors périmètre (aucun paquet natif réel confirmé, installeur officiel sans support
+// runit documenté) ; Alpine/Arch/Fedora/openSUSE conservent leurs vrais paquets natifs, inchangés.
+function ollamaSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('ollama_ai')) return '';
+  if (family === 'alpine' || family === 'arch' || family === 'fedora' || family === 'suse') return '';
+  if (family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] Ollama n'est pas encore câblé pour Void : aucun paquet xbps réel et l'installeur officiel (ollama.com/install.sh) ne documente pas de support runit.\${NC:-}" 2>/dev/null || true`;
+  }
+  return `cat > /etc/systemd/system/ollama-setup.service << 'OLLAMASVC_EOF'
+[Unit]
+Description=OSForge Studio - installation Ollama (ollama.com/install.sh)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "curl -fsSL https://ollama.com/install.sh | sh"
+ExecStartPost=-/usr/bin/systemctl disable ollama-setup.service
+RemainAfterExit=no
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
+OLLAMASVC_EOF
+${serviceEnableCmd('ollama-setup.service', family)}`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -1943,6 +1978,7 @@ ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
+${ollamaSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2141,6 +2177,7 @@ ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
+${ollamaSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2355,6 +2392,7 @@ ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
+${ollamaSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -2932,6 +2970,7 @@ ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
+${ollamaSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

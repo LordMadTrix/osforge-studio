@@ -507,6 +507,23 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 350,
     icon: 'Sparkles',
     tags: ['IA', 'LLM', 'Local', 'GPU', 'Inférence'],
+    // Bug réel MAJEUR trouvé en auditant, même classe que K3s ci-dessus : Debian/Ubuntu
+    // n'installaient que "curl ca-certificates" (de simples prérequis) sans jamais installer
+    // Ollama lui-même — vérifié par CONTENU de page (pas juste le code HTTP, qui renvoie 200 même
+    // sur la page d'erreur "No such package" de packages.debian.org/packages.ubuntu.com, même
+    // piège déjà documenté ailleurs dans ce projet pour Deepin) : "ollama" confirmé ABSENT des
+    // dépôts Debian bookworm/trixie ET Ubuntu noble. Corrigé en déclenchant le vrai installeur
+    // officiel (ollama.com/install.sh, qui crée et active lui-même son propre service systemd
+    // "ollama.service") au premier démarrage via ollamaSetupCmd(). Second bug trouvé dans le même
+    // audit : "void: 'ollama'" confirmé ABSENT (raw.githubusercontent.com/void-linux/
+    // void-packages srcpkgs/ollama/template : 404) — retiré ici (bascule sur PKG_NAME_FALLBACK
+    // void→alpine, qui redonne la même chaîne "ollama" : la boucle d'installation par paquet
+    // tolère déjà cet échec individuel, comportement déjà établi et accepté pour ce mécanisme de
+    // repli ailleurs dans ce fichier). Le vrai correctif honnête est l'avertissement explicite
+    // ajouté dans ollamaSetupCmd() pour la famille Void, pas la présence/absence de cette clé.
+    // Arch/Alpine/Fedora/openSUSE conservent leurs vrais paquets natifs déjà fonctionnels,
+    // confirmés réels via des sources fiables (API JSON Arch, contenu de page Alpine, listing
+    // direct du dépôt OSS officiel openSUSE).
     pkgNames: {
       debian: 'curl ca-certificates',
       ubuntu: 'curl ca-certificates',
@@ -514,7 +531,6 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
       alpine: 'ollama',
       fedora: 'ollama',
       opensuse: 'ollama',
-      void: 'ollama',
     },
   },
   {
