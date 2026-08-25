@@ -1597,3 +1597,33 @@ describe('resolvePackageList/generateBuildScript — nouvel environnement de bur
     expect(rockyPkgs.some(p => /deepin|ddm/.test(p))).toBe(false);
   });
 });
+
+describe('generateBuildScript — bootstrap Debian/APT multi-architecture réellement fonctionnel (2 bugs réels MAJEURS trouvés en auditant : (1) "debootstrap --arch=X" pour ARM64/RISC-V (librement sélectionnables dans l\'UI) était appelé en une seule passe SANS émulation qemu-user-static/binfmt — contrairement à generateRpiSdScript qui gère déjà correctement ce cas pour ARM64 — un hôte de build x86_64 (GitHub Actions, WSL2) ne peut PAS exécuter nativement des binaires ARM64/RISC-V, la 2e étape de debootstrap échoue immédiatement ; (2) "i686" était passé tel quel à debootstrap au lieu du vrai nom d\'architecture Debian "i386" (vérifié en direct : deb.debian.org/.../binary-i686/ = 404, binary-i386/ = 200) — tout build Debian/Ubuntu/Kali/Mint x86 32-bit aurait échoué immédiatement, quel que soit l\'architecture réellement visée)', () => {
+  it('aarch64 : bootstrap en deux étapes avec émulation qemu-aarch64-static (même mécanisme déjà éprouvé pour la carte SD Raspberry Pi)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'aarch64' }));
+    expect(script).toContain('debootstrap --arch="arm64" --foreign');
+    expect(script).toContain('cp /usr/bin/qemu-aarch64-static "${ROOTFS_DIR}/usr/bin/"');
+    expect(script).toContain('chroot "${ROOTFS_DIR}" /debootstrap/debootstrap --second-stage');
+    expect(script).toContain('qemu-user-static binfmt-support');
+  });
+
+  it('riscv64 : bootstrap en deux étapes avec émulation qemu-riscv64-static', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'riscv64' }));
+    expect(script).toContain('debootstrap --arch="riscv64" --foreign');
+    expect(script).toContain('cp /usr/bin/qemu-riscv64-static "${ROOTFS_DIR}/usr/bin/"');
+  });
+
+  it('i686 : utilise le vrai nom d\'architecture Debian "i386" (pas "i686"), sans émulation (natif sur un hôte x86_64)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'i686' }));
+    expect(script).toContain('debootstrap --arch="i386"');
+    expect(script).not.toContain('--foreign');
+    expect(script).not.toContain('qemu-');
+  });
+
+  it('x86_64 : aucune émulation, aucun changement de comportement (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'x86_64' }));
+    expect(script).toContain('debootstrap --arch="amd64"');
+    expect(script).not.toContain('--foreign');
+    expect(script).not.toContain('qemu-');
+  });
+});

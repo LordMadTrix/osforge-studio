@@ -1874,7 +1874,28 @@ export function generateBuildScript(recipe: OSRecipe): string {
 
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const isoName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.iso`;
-  const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch;
+  // Bug réel trouvé en auditant, distinct de celui juste en dessous : "i686" n'est PAS le vrai nom
+  // d'architecture Debian pour le x86 32-bit — Debian utilise "i386" (vérifié en direct :
+  // deb.debian.org/debian/dists/trixie/main/binary-i686/ renvoie 404, binary-i386/ renvoie 200).
+  // "debootstrap --arch=i686" aurait échoué immédiatement (architecture inconnue) pour absolument
+  // tout build Debian/Ubuntu/Kali/Mint en x86 32-bit, quel que soit le noyau/bureau choisi.
+  const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch === 'i686' ? 'i386' : recipe.arch;
+  // Bug réel MAJEUR trouvé en auditant : ce chemin général (contrairement à generateRpiSdScript,
+  // qui gère déjà correctement ARM64 avec qemu-aarch64-static + --foreign + second-stage, vérifié
+  // fonctionner en live sur GitHub Actions cette session) appelait "debootstrap --arch=X" en une
+  // seule passe pour N'IMPORTE QUELLE architecture choisie dans l'UI (ARM64 et RISC-V 64-bit sont
+  // tous deux librement sélectionnables), sans jamais configurer l'émulation nécessaire pour
+  // exécuter des binaires de l'architecture cible sur un hôte de build x86_64 (CI GitHub Actions,
+  // WSL2...). Un debootstrap "à une passe" (sans --foreign) EXÉCUTE des binaires de l'architecture
+  // cible pendant sa propre étape 2 (dpkg --configure des paquets de base) — sans
+  // qemu-user-static + binfmt enregistré, cette étape échoue immédiatement ("cannot execute
+  // binary file: Exec format error"), un hôte x86_64 seul ne pouvant pas exécuter nativement du
+  // code ARM64/RISC-V. i686 n'a besoin d'aucune émulation (un CPU x86_64 exécute nativement du
+  // code i686/i386 32-bit). Binaires qemu-*-static confirmés réels dans le paquet Debian
+  // "qemu-user-static" (packages.debian.org/trixie/amd64/qemu-user-static/filelist :
+  // /usr/bin/qemu-aarch64-static ET /usr/bin/qemu-riscv64-static tous deux présents).
+  const needsCrossArchEmulation = debArch !== 'amd64' && recipe.arch !== 'i686';
+  const qemuStaticBinary = recipe.arch === 'aarch64' ? 'qemu-aarch64-static' : recipe.arch === 'riscv64' ? 'qemu-riscv64-static' : null;
   const target = DEBOOTSTRAP_TARGETS[recipe.distro];
   const xkb = resolveXkb(recipe.keyboardLayout);
   const dmCmd = dmEnableCmd(recipe.displayManager, 'debian');
@@ -2118,19 +2139,22 @@ OUTPUT_DIR="$(pwd)/dist"
 mkdir -p "\${ROOTFS_DIR}" "\${ISO_DIR}" "\${OUTPUT_DIR}"
 
 echo -e "\${YELLOW}[1/7] 📦 Installation des dépendances de compilation de l'hôte...\${NC}"
-which debootstrap xorriso mtools grub-mkrescue squashfs-tools >/dev/null 2>&1 || {
-    echo -e "\${YELLOW}Installation des outils requis sur l'hôte...\${NC}"
-    apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync
+which debootstrap xorriso mtools grub-mkrescue squashfs-tools${needsCrossArchEmulation ? ` ${qemuStaticBinary}` : ''} >/dev/null 2>&1 || {
+    echo -e "\${YELLOW}Installation des outils requis sur l'hôte${needsCrossArchEmulation ? ' (bootstrap + émulation ' + recipe.arch + ')' : ''}...\${NC}"
+    apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync${needsCrossArchEmulation ? ' qemu-user-static binfmt-support' : ''}
 }
 
 echo -e "\${YELLOW}[2/7] 🏗️ Initialisation du RootFS de base (${recipe.distro} / ${target.suite})...\${NC}"
 ${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${recipe.kernel}\\" n'est pas encore câblé pour ${recipe.distro} (APT) : ${kernelPkg} (noyau par défaut de la distro) utilisé à la place. Zen/Hardened/LTS/RT sont réellement pris en charge pour Arch/CachyOS ; Mainline/Cloud-Micro pour Ubuntu/Mint ; Liquorix pour Debian et Ubuntu/Mint en x86_64 ; LTS/Realtime (via XanMod) pour Debian et Ubuntu/Mint en x86_64.\${NC}"
 ` : ''}${REAL_ALT_KERNEL ? `echo -e "\${CYAN}[INFO] Noyau \\"${recipe.kernel}\\" réellement câblé : installation après le bootstrap de base (voir étape 3).\${NC}"
-` : ''}debootstrap --arch="${debArch}" \\${target.components ? `
+` : ''}${needsCrossArchEmulation ? `echo -e "\${CYAN}[INFO] Architecture \\"${recipe.arch}\\" différente de l'hôte : bootstrap en deux étapes avec émulation ${qemuStaticBinary} (comme pour la carte SD Raspberry Pi).\${NC}"
+` : ''}debootstrap --arch="${debArch}"${needsCrossArchEmulation ? ' --foreign' : ''} \\${target.components ? `
   --components="${target.components}" \\` : ''}
   --include="${recipe.distro === 'raspbian' || REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
-
+${needsCrossArchEmulation ? `cp /usr/bin/${qemuStaticBinary} "\${ROOTFS_DIR}/usr/bin/"
+chroot "\${ROOTFS_DIR}" /debootstrap/debootstrap --second-stage
+` : ''}
 echo -e "\${YELLOW}[3/7] ⚙️ Configuration du système et installation des paquets...\${NC}"
 
 # Configuration des dépôts apt complets
