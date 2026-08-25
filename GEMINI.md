@@ -147,10 +147,12 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- 27 commits poussés sur `main` lors de cette session de plusieurs heures, tous avec CI + Pages
-  verts.
-- Suite de tests : 365 tests, tous verts.
-- Le dernier ajout en date est l'environnement de bureau **LXDE** (commit `9adb7e9`).
+- 29 commits poussés sur `main`, tous avec CI + Pages verts.
+- Suite de tests : 389 tests, tous verts.
+- Derniers ajouts / correctifs en date :
+  - Câblage complet de **`autoSecurityUpdates`** (`unattended-upgrades` sur Debian-like, `dnf-automatic` sur Fedora/Rocky, avertissements clairs rolling release / non-systemd) sur tous les générateurs bash et cloud-init.
+  - Câblage complet et robuste de la locale système (**`localeSetupCmd`**) sur les 13 distros (`/etc/locale.gen` avec syntaxe correcte `<loc>.UTF-8 UTF-8`, `/etc/locale.conf`, `/etc/default/locale`, `/etc/sysconfig/language`, `libc-locales`, `/etc/profile.d/locale.sh`).
+  - Prise en charge universelle des artéfacts non-ISO dans le workflow GitHub Actions (sommes SHA256 et publication des releases fiabilisées pour `qcow2`, `vmdk`, `raw_img`, `wsl2_tar`, `docker_rootfs`, `rpi_sd`).
 - Aucune tâche explicite en attente au-delà du mandat général : continuer à auditer le code pour
   trouver de vrais écarts entre ce que l'UI promet et ce que le script produit, les corriger un
   par un, et ajouter des systèmes de noyau/environnement de bureau supplémentaires — toujours
