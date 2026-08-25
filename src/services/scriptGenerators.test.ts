@@ -2895,4 +2895,51 @@ describe('OpenTofu — bug réel MAJEUR trouvé dans le même audit que K3s/Olla
   });
 });
 
+describe('K8s CLI Tools (kubectl/helm) — bug réel MAJEUR trouvé dans le même audit que K3s/Ollama/OpenTofu, même piège HTTP-200 : "kubectl"/"helm" installaient des paquets absents de Debian bookworm/trixie et Ubuntu noble (contenu réel confirmé), et "kubernetes-client" était fictif sous ce nom sur openSUSE (seuls des noms versionnés comme "kubernetes1.35-client-common" existent réellement). Corrigé en installant les vrais binaires officiels (dl.k8s.io pour kubectl, script officiel get-helm-4 pour Helm) directement pendant la compilation, vérifié en direct : les deux URLs répondent HTTP 200, et "bash -n" valide chaque script généré', () => {
+  it('Debian ISO x86_64 : déclenche le vrai installeur kubectl (amd64) ET Helm (get-helm-4) pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', arch: 'x86_64', selectedPackages: ['k8s_cli_tools'],
+    }));
+    expect(script).toContain('https://dl.k8s.io/release/');
+    expect(script).toContain('/bin/linux/amd64/kubectl');
+    expect(script).toContain('https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4');
+  });
+
+  it('Ubuntu ISO aarch64 : le binaire kubectl téléchargé est bien la variante arm64', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'iso_hybrid', arch: 'aarch64', selectedPackages: ['k8s_cli_tools'],
+    }));
+    expect(script).toContain('/bin/linux/arm64/kubectl');
+  });
+
+  it('openSUSE : installe kubectl via dl.k8s.io mais PAS Helm (vrai paquet natif "helm" déjà fonctionnel dans packages.ts)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse', outputFormat: 'wsl2_tar', selectedPackages: ['k8s_cli_tools'],
+    }));
+    expect(script).toContain('https://dl.k8s.io/release/');
+    expect(script).not.toContain('get-helm-4');
+  });
+
+  it('Arch : AUCUN installeur curl déclenché (vrais paquets natifs "kubectl"/"helm"/"k9s" déjà fonctionnels)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['k8s_cli_tools'],
+    }));
+    expect(script).not.toContain('dl.k8s.io');
+    expect(script).not.toContain('get-helm-4');
+  });
+
+  it('Architecture riscv64 (non publiée par dl.k8s.io) : avertissement honnête affiché, PAS de curl vers une URL cassée', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse', outputFormat: 'wsl2_tar', arch: 'riscv64', selectedPackages: ['k8s_cli_tools'],
+    }));
+    expect(script).toContain("n'est pas encore câblé pour l'architecture riscv64");
+    expect(script).not.toContain('curl -fsSL "https://dl.k8s.io');
+  });
+
+  it('k8s_cli_tools non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('dl.k8s.io');
+    expect(script).not.toContain('get-helm-4');
+  });
+});
 

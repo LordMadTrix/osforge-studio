@@ -341,6 +341,36 @@ function opentofuSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily):
   || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation d'OpenTofu échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
 }
 
+// Bug réel MAJEUR trouvé dans le même audit que K3s/Ollama/OpenTofu ci-dessus, même piège HTTP-200 :
+// le catalogue "k8s_cli_tools" ("Kubernetes CLI Tools (Kubectl & Helm)") pointait vers des paquets
+// "kubectl"/"helm" absents de Debian bookworm/trixie et Ubuntu noble (contenu réel confirmé), et vers
+// un paquet "kubernetes-client" fictif sur openSUSE (qui ne publie que des noms versionnés comme
+// "kubernetes1.35-client-common", trop instables pour un catalogue statique). Comme OpenTofu, ce sont
+// de simples binaires CLI sans démon : installables directement PENDANT la compilation via les vrais
+// installeurs officiels — kubectl via le binaire signé de dl.k8s.io (méthode documentée par
+// kubernetes.io/docs/tasks/tools/install-kubectl-linux/), Helm via le script officiel get-helm-4
+// (helm.sh/docs/intro/install/, qui détecte lui-même l'architecture). openSUSE garde son vrai paquet
+// natif "helm" (packages.ts) : seul kubectl y manque encore, donc Helm n'est PAS réinstallé par ce
+// mécanisme pour cette famille (éviterait un conflit avec le paquet zypper). Arch/Alpine/Fedora/Void
+// ont déjà de vrais paquets natifs (packages.ts, inchangés) : aucune action ici pour ces familles.
+function k8sCliSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('k8s_cli_tools')) return '';
+  if (family === 'alpine' || family === 'arch' || family === 'fedora' || family === 'void') return '';
+  const kubectlArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch === 'i686' ? '386' : null;
+  const kubectlCmd = kubectlArch
+    ? `curl -fsSL "https://dl.k8s.io/release/$(curl -fsSL https://dl.k8s.io/release/stable.txt)/bin/linux/${kubectlArch}/kubectl" -o /usr/local/bin/kubectl 2>/dev/null \\
+  && chmod +x /usr/local/bin/kubectl \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de kubectl échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`
+    : `echo -e "\${YELLOW:-}[INFO] kubectl n'est pas encore câblé pour l'architecture ${recipe.arch} : dl.k8s.io ne publie pas de binaire officiel pour cette cible.\${NC:-}" 2>/dev/null || true`;
+  if (family === 'suse') return kubectlCmd;
+  const helmCmd = `curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 -o /tmp/get-helm.sh 2>/dev/null \\
+  && chmod 700 /tmp/get-helm.sh \\
+  && /tmp/get-helm.sh 2>/dev/null \\
+  && rm -f /tmp/get-helm.sh \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Helm échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+  return `${kubectlCmd}\n${helmCmd}`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2001,6 +2031,7 @@ ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
+${k8sCliSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2201,6 +2232,7 @@ ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
+${k8sCliSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2417,6 +2449,7 @@ ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
+${k8sCliSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -2996,6 +3029,7 @@ ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
+${k8sCliSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

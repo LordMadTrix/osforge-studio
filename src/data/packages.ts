@@ -606,13 +606,24 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 95,
     icon: 'Server',
     tags: ['Kubernetes', 'Helm', 'CLI', 'Cloud', 'K8s'],
+    // Bug réel MAJEUR trouvé en auditant, même piège HTTP-200 que K3s/Ollama/OpenTofu ci-dessus :
+    // "kubectl"/"helm" sont ABSENTS des dépôts Debian bookworm/trixie et Ubuntu noble (contenu réel
+    // confirmé "Package not available in this suite" / "No such package", pas juste code HTTP 200).
+    // "kubernetes-client" (utilisé pour openSUSE) est également fictif sous ce nom stable : openSUSE
+    // ne publie QUE des paquets versionnés ("kubernetes1.35-client-common", etc., confirmés via
+    // manpages.opensuse.org) qui se périment à chaque rotation de Tumbleweed — les figer dans ce
+    // catalogue statique aurait introduit un NOUVEAU bug à retardement. "helm" en revanche est un vrai
+    // paquet openSUSE stable (confirmé via une annonce de sécurité openSUSE 2026, "helm-4.1.1-3.1").
+    // Corrigé en retirant les entrées fictives (Debian/Ubuntu entièrement, "kubernetes-client" pour
+    // openSUSE) et en installant kubectl "à la source" via k8sCliSetupCmd (scriptGenerators.ts) : le
+    // binaire officiel dl.k8s.io pour Debian/Ubuntu/openSUSE, et le script officiel get-helm-4 pour
+    // Debian/Ubuntu (openSUSE garde son vrai paquet natif "helm"). Arch/Alpine/Fedora/Void confirmés
+    // réels et inchangés.
     pkgNames: {
-      debian: 'kubectl helm',
-      ubuntu: 'kubectl helm',
       arch: 'kubectl helm k9s',
       alpine: 'kubectl helm',
       fedora: 'kubernetes-client helm',
-      opensuse: 'kubernetes-client helm',
+      opensuse: 'helm',
       void: 'kubectl helm',
     },
   },
