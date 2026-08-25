@@ -1649,6 +1649,16 @@ echo -e "\${GREEN}=======================================================\${NC}"
 function generateRpiSdScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const imgName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.img`;
+  // Bug réel MAJEUR trouvé en comparant les fonctions appelées par les 4 générateurs (même
+  // méthode qui a révélé le bug du pare-feu puis le manque de durcissement sécurité pour ce même
+  // générateur RPi) : ce générateur n'appelait NI dmEnableCmd/dmAutologinCmd (le gestionnaire de
+  // connexion installé par "desktop" n'était jamais activé, exactement le bug MAJEUR d'origine de
+  // cette session — un bureau Raspberry Pi démarrait toujours sur une console texte) NI
+  // kioskSetupCmd/dotfilesCloneCmd/customServicesCmd — alors que resolvePackageList() installe
+  // bel et bien les paquets du bureau choisi pour "rpi_sd" (aucun filtrage par format de sortie
+  // dans cette fonction) et que rien dans l'UI n'empêche de choisir un bureau graphique pour une
+  // carte SD Raspberry Pi.
+  const dmCmd = dmEnableCmd(recipe.displayManager, 'debian');
 
   return `#!/usr/bin/env bash
 # ==============================================================================
@@ -1753,6 +1763,12 @@ chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home
 systemctl enable ssh || true` : ''}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
+
+${dmCmd}
+${dmAutologinCmd(recipe, 'debian')}
+${kioskSetupCmd(recipe, 'debian')}
+${dotfilesCloneCmd(recipe)}
+${customServicesCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh

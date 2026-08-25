@@ -1464,3 +1464,32 @@ describe('generateBuildScript — durcissement sécurité étendu à la carte SD
     expect(script).not.toContain('nft -f /etc/nftables.conf');
   });
 });
+
+describe('generateBuildScript — bureau graphique et personnalisation réellement câblés sur la carte SD Raspberry Pi (même audit que le durcissement sécurité ci-dessus : generateRpiSdScript() n\'appelait ni dmEnableCmd/dmAutologinCmd ni kioskSetupCmd/dotfilesCloneCmd/customServicesCmd — alors que resolvePackageList() installe bel et bien les paquets du bureau choisi pour "rpi_sd" et que rien dans l\'UI n\'empêche de choisir un bureau graphique pour une carte SD Raspberry Pi. Sans ce correctif, un Raspberry Pi avec XFCE/KDE/etc. sélectionné installait le bureau mais démarrait TOUJOURS sur une console texte — exactement le bug MAJEUR d\'origine de cette session, jamais corrigé sur ce chemin précis)', () => {
+  it('Raspberry Pi SD + desktop="xfce" + displayManager="lightdm" + autologin=true : le service est activé et l\'autologin réellement configuré', () => {
+    const recipe = makeRecipe({
+      distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', desktop: 'xfce', displayManager: 'lightdm',
+      user: { username: 'tester', fullName: 'Tester', password: 'x', shell: '/bin/bash', sudo: true, autologin: true, sshPublicKey: '' } as any,
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('systemctl enable lightdm 2>/dev/null || true');
+    expect(script).toContain('autologin-user=tester');
+  });
+
+  it('Raspberry Pi SD + dotfilesGitUrl : le dépôt est réellement cloné (jamais câblé avant ce correctif)', () => {
+    const recipe = makeRecipe({
+      distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64',
+      dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
+    } as any);
+    const script = generateBuildScript(recipe);
+    expect(script).toContain("git clone --depth 1 'https://github.com/example/dotfiles.git'");
+  });
+
+  it('Raspberry Pi SD + desktop="none" : aucune trace de gestionnaire de connexion (comportement par défaut inchangé)', () => {
+    const recipe = makeRecipe({ distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', desktop: 'none', displayManager: 'none' });
+    const script = generateBuildScript(recipe);
+    expect(script).not.toContain('systemctl enable lightdm');
+    expect(script).not.toContain('systemctl enable gdm');
+    expect(script).not.toContain('systemctl enable sddm');
+  });
+});
