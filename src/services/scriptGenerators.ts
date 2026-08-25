@@ -377,6 +377,87 @@ HOME_URL="https://github.com/LordMadTrix/osforge-studio"
 OSREL_EOF`;
 }
 
+// Bug réel trouvé en auditant : "autoSecurityUpdates" (panneau Sécurité de l'UI) n'était câblé nulle
+// part dans les scripts de build bash (seul cloud-init avait un "package_upgrade" incomplet) — les
+// paquets nécessaires (unattended-upgrades / dnf-automatic) n'étaient jamais installés par
+// resolvePackageList(), et les timers/services jamais configurés ni activés.
+// Câblé pour Debian/Ubuntu/Kali/Raspbian/Mint (paquet "unattended-upgrades", fichier
+// /etc/apt/apt.conf.d/20auto-upgrades et service systemd) et Fedora/Rocky (paquet "dnf-automatic",
+// fichier /etc/dnf/automatic.conf avec apply_updates = yes et timer systemd dnf-automatic.timer).
+// Arch Linux / CachyOS (rolling-release où les mises à jour sans surveillance sont formellement
+// déconseillées par l'ArchWiki), openSUSE (rolling Tumbleweed) et Alpine/Void (musl/runit) reçoivent
+// un message d'information honnête dans le script au lieu d'un faux silence.
+function autoSecurityUpdatesCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.security.autoSecurityUpdates) return '';
+  if (family === 'debian') {
+    return `mkdir -p /etc/apt/apt.conf.d
+cat > /etc/apt/apt.conf.d/20auto-upgrades << 'APT_AUTO_EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT_AUTO_EOF
+${serviceEnableCmd('unattended-upgrades', family)}`;
+  }
+  if (family === 'fedora') {
+    return `if [ -f /etc/dnf/automatic.conf ]; then
+    sed -i 's/^apply_updates = no/apply_updates = yes/' /etc/dnf/automatic.conf 2>/dev/null || true
+fi
+systemctl enable dnf-automatic.timer 2>/dev/null || true
+systemctl enable dnf5-automatic.timer 2>/dev/null || true`;
+  }
+  if (family === 'arch') {
+    const label = recipe.distro === 'cachyos' ? 'CachyOS' : 'Arch Linux';
+    return `echo -e "\${YELLOW:-}[INFO] Sur une distribution en rolling-release (${label}), les mises à jour automatiques non surveillées sont déconseillées pour éviter des conflits de paquets.\${NC:-}" 2>/dev/null || true`;
+  }
+  if (family === 'suse') {
+    return `echo -e "\${YELLOW:-}[INFO] Mises à jour automatiques de sécurité non configurées par défaut sur openSUSE Tumbleweed (rolling-release).\${NC:-}" 2>/dev/null || true`;
+  }
+  return `echo -e "\${YELLOW:-}[INFO] Aucun démon officiel de mise à jour automatique de sécurité sur cette distribution (${family === 'alpine' ? 'Alpine' : 'Void'}).\${NC:-}" 2>/dev/null || true`;
+}
+
+// Bug réel trouvé en auditant : "locale" (panneau Système de l'UI : fr_FR, en_US, de_DE...) n'était
+// pas configuré du tout pour les 5 familles non-Debian (Arch, Fedora, openSUSE, Alpine, Void).
+// Sur la famille Debian, la commande "echo \"${recipe.locale} UTF-8\" >> /etc/locale.gen" écrivait
+// une syntaxe invalide pour locale-gen ("fr_FR UTF-8" au lieu de "fr_FR.UTF-8 UTF-8") et n'écrivait
+// jamais LANG dans /etc/default/locale ni /etc/locale.conf.
+// Ce helper configure fidèlement la locale système pour chaque distribution :
+// - Debian / Ubuntu / Kali / Raspbian / Mint : /etc/locale.gen + locale-gen + /etc/default/locale + /etc/locale.conf
+// - Arch / CachyOS : /etc/locale.gen + locale-gen + /etc/locale.conf
+// - Fedora / Rocky : /etc/locale.conf
+// - openSUSE : /etc/locale.conf + /etc/sysconfig/language
+// - Void (glibc) : /etc/default/libc-locales + xbps-reconfigure + /etc/locale.conf
+// - Alpine (musl) : /etc/profile.d/locale.sh
+function localeSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const loc = recipe.locale || 'en_US';
+  if (family === 'debian') {
+    return `echo "${loc}.UTF-8 UTF-8" >> /etc/locale.gen || true
+locale-gen || true
+echo "LANG=${loc}.UTF-8" > /etc/default/locale
+echo "LANG=${loc}.UTF-8" > /etc/locale.conf`;
+  }
+  if (family === 'arch') {
+    return `echo "${loc}.UTF-8 UTF-8" >> /etc/locale.gen || true
+locale-gen 2>/dev/null || true
+echo "LANG=${loc}.UTF-8" > /etc/locale.conf`;
+  }
+  if (family === 'fedora') {
+    return `echo "LANG=${loc}.UTF-8" > /etc/locale.conf`;
+  }
+  if (family === 'suse') {
+    return `echo "LANG=${loc}.UTF-8" > /etc/locale.conf
+echo 'RC_LANG="${loc}.UTF-8"' > /etc/sysconfig/language 2>/dev/null || true`;
+  }
+  if (family === 'void') {
+    return `echo "${loc}.UTF-8 UTF-8" >> /etc/default/libc-locales 2>/dev/null || true
+xbps-reconfigure -f glibc-locales 2>/dev/null || true
+echo "LANG=${loc}.UTF-8" > /etc/locale.conf`;
+  }
+  if (family === 'alpine') {
+    return `mkdir -p /etc/profile.d
+echo "export LANG=${loc}.UTF-8" > /etc/profile.d/locale.sh`;
+  }
+  return '';
+}
+
 export function resolvePackageList(recipe: OSRecipe): string[] {
   const distro = DISTROS.find(d => d.id === recipe.distro);
   const distroId = distro ? distro.id : 'debian';
@@ -822,6 +903,16 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('ufw');
   } else if (recipe.security.firewall === 'nftables') {
     pkgs.push('nftables');
+  }
+
+  // "autoSecurityUpdates" — voir autoSecurityUpdatesCmd pour le détail. Paquets confirmés réels :
+  // "unattended-upgrades" (Debian/Ubuntu/Kali/Raspbian/Mint) et "dnf-automatic" (Fedora/Rocky BaseOS).
+  if (recipe.security.autoSecurityUpdates) {
+    if (isDebianLike) {
+      pkgs.push('unattended-upgrades');
+    } else if (isFedoraLike) {
+      pkgs.push('dnf-automatic');
+    }
   }
 
   // Bug réel MAJEUR trouvé en auditant : "useradd -s ${recipe.user.shell}" fixe le shell de
@@ -1438,6 +1529,7 @@ HOSTS
 ${osReleaseCmd(recipe, family === 'suse' ? 'opensuse' : family)}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
+${localeSetupCmd(recipe, family)}
 
 # Bug réel trouvé en auditant : "keyboardLayout" (choisi dans l'UI) n'était jamais appliqué —
 # le clavier gardait toujours la disposition par défaut de l'image, quel que soit le choix.
@@ -1471,6 +1563,7 @@ ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
+${autoSecurityUpdatesCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1628,6 +1721,7 @@ HOSTS
 ${osReleaseCmd(recipe, family === 'suse' ? 'opensuse' : family)}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
+${localeSetupCmd(recipe, family)}
 
 # Bug réel trouvé en auditant : "keyboardLayout" (choisi dans l'UI) n'était jamais appliqué —
 # le clavier gardait toujours la disposition par défaut de l'image, quel que soit le choix.
@@ -1661,6 +1755,7 @@ ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
+${autoSecurityUpdatesCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1842,8 +1937,7 @@ HOSTS
 ${osReleaseCmd(recipe, 'debian')}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
-echo "${recipe.locale} UTF-8" >> /etc/locale.gen || true
-locale-gen || true
+${localeSetupCmd(recipe, 'debian')}
 
 if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
     useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
@@ -1860,6 +1954,7 @@ chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home
 systemctl enable ssh || true` : ''}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
+${autoSecurityUpdatesCmd(recipe, 'debian')}
 
 ${dmCmd}
 ${dmAutologinCmd(recipe, 'debian')}
@@ -2390,8 +2485,7 @@ ${osReleaseCmd(recipe, 'debian')}
 
 # Configuration de la locale et du fuseau horaire
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
-echo "${recipe.locale} UTF-8" >> /etc/locale.gen || true
-locale-gen || true
+${localeSetupCmd(recipe, 'debian')}
 
 # Bug réel trouvé en auditant : "keyboardLayout" n'était jamais appliqué — le clavier gardait
 # toujours la disposition par défaut de l'image. /etc/default/keyboard est le vrai mécanisme
@@ -2428,6 +2522,7 @@ systemctl enable ssh 2>/dev/null || true
 ` : ''}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
+${autoSecurityUpdatesCmd(recipe, 'debian')}
 
 # Bug réel MAJEUR trouvé en auditant : le paquet du gestionnaire de connexion (installé par le
 # bloc "desktop" ci-dessus) n'était jamais activé au premier boot — le système démarrait toujours
@@ -2565,24 +2660,36 @@ jobs:
       - name: 🔍 Calcul des sommes de contrôle SHA-256
         run: |
           cd dist
-          sha256sum *.iso > SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: 📤 Publication de l'ISO en Artéfact GitHub (accès rapide, 14 jours)
+      - name: 📤 Publication en Artéfact GitHub (accès rapide, 14 jours)
         uses: actions/upload-artifact@v4
         with:
-          name: ${isoName}-iso-artifact
+          name: ${isoName}-build-artifact
           path: dist/*
           retention-days: 14
 
       - name: 📏 Vérification de la taille (limite de 2 Go pour une Release GitHub)
         id: sizecheck
         run: |
-          SIZE=$(stat -c%s dist/*.iso)
-          echo "Taille de l'ISO : $(( SIZE / 1024 / 1024 )) Mo"
+          # Bug réel MAJEUR trouvé en auditant : "dist/*.iso" codé en dur ici (et dans les 2 étapes
+          # ci-dessus/ci-dessous avant correctif) — alors que build.sh ne produit un .iso QUE pour
+          # le format "ISO hybride". Les formats "RootFS WSL2/Docker" (.tar.gz, seul format
+          # réellement fonctionnel pour Arch/CachyOS/Fedora/Rocky/Alpine/openSUSE/Void, cf.
+          # generateNonDebianBuildScript), les images disque (.qcow2/.vmdk/.img) et la carte SD
+          # Raspberry Pi (.img.xz) sont TOUS des combinaisons réellement supportées par ce même
+          # générateur — "sha256sum *.iso"/"stat dist/*.iso" y échouaient systématiquement
+          # ("cannot stat"), cassant tout le pipeline de publication automatique avant même
+          # d'atteindre la Release. dist/ ne contient qu'un seul fichier de sortie à ce stade
+          # (avant l'écriture de SHA256SUMS.txt juste au-dessus) : "dist/*" cible n'importe quel
+          # format sans avoir à connaître son extension à l'avance.
+          ARTIFACT=$(find dist -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' | head -1)
+          SIZE=$(stat -c%s "\${ARTIFACT}")
+          echo "Fichier généré : \${ARTIFACT} — Taille : $(( SIZE / 1024 / 1024 )) Mo"
           if [ "\${SIZE}" -ge 2147483648 ]; then
-            echo "⚠️ ISO trop volumineuse pour une Release GitHub (limite stricte : 2 Go)."
-            echo "   Récupérez-la via l'Artéfact ci-dessus (onglet Summary de ce run, 14 jours)."
+            echo "⚠️ Fichier trop volumineux pour une Release GitHub (limite stricte : 2 Go)."
+            echo "   Récupérez-le via l'Artéfact ci-dessus (onglet Summary de ce run, 14 jours)."
             echo "over_limit=true" >> "\${GITHUB_OUTPUT}"
           else
             echo "over_limit=false" >> "\${GITHUB_OUTPUT}"
@@ -2606,8 +2713,7 @@ jobs:
           tag_name: \${{ steps.autotag.outputs.tag }}
           name: "${recipe.branding.osName} \${{ steps.autotag.outputs.tag }}"
           files: |
-            dist/*.iso
-            dist/SHA256SUMS.txt
+            dist/*
           generate_release_notes: true
           make_latest: true
 `;
@@ -2671,6 +2777,17 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
     // arch/alpine/suse/void : aucune action, cohérent avec resolvePackageList() qui n'installe
     // ni apparmor ni selinux-policy-targeted pour ces familles (case sans effet, comme dans les
     // 4 générateurs bash déjà audités).
+  }
+  if (recipe.security.autoSecurityUpdates) {
+    if (!family) {
+      writeFiles.push(`  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";`);
+      runcmd.push(cloudInitServiceEnableLine('unattended-upgrades', family));
+    } else if (family === 'fedora') {
+      runcmd.push(cloudInitServiceEnableLine('dnf-automatic.timer', family));
+    }
   }
   if (recipe.dotfilesGitUrl) {
     // Faille réelle trouvée et vérifiée en direct (fichier de preuve créé localement) : cette

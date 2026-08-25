@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -402,7 +402,7 @@ describe('generateBuildScript — sélection de noyau réellement câblée pour 
   });
 
   it("kernel='generic' n'affiche aucun avertissement de repli", () => {
-    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'generic' }));
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', kernel: 'generic', security: { ...makeRecipe().security, autoSecurityUpdates: false } }));
     expect(script).not.toContain('[INFO]');
     expect(script).toContain('grub linux linux-firmware');
   });
@@ -1856,5 +1856,141 @@ describe('generateBuildScript — bug réel MAJEUR trouvé en auditant : "raspbe
     const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'wsl2_tar', arch: 'aarch64' }));
     const kernelLine = script.split('\n').find(l => l.includes('apt-get install') && l.includes('raspi-firmware'));
     expect(kernelLine).toContain('raspberrypi-kernel');
+  });
+});
+
+describe('generateBuildScript/resolvePackageList/cloudInitYaml — "autoSecurityUpdates" réellement câblé (bug réel trouvé en auditant : la case "Mises à jour de sécurité auto" de l\'UI n\'installait ni "unattended-upgrades" sur Debian-like ni "dnf-automatic" sur Fedora/Rocky, et n\'activait aucun timer/service dans les scripts de build bash — zéro action réelle malgré la promesse de l\'UI. Câblé pour Debian/Ubuntu/Kali/Raspbian/Mint avec configuration /etc/apt/apt.conf.d/20auto-upgrades et service systemd, pour Fedora/Rocky avec /etc/dnf/automatic.conf et dnf-automatic.timer, avec avertissements honnêtes sur les rolling releases et Alpine/Void)', () => {
+  it('Debian / Ubuntu / Kali / Mint / Raspbian : installe "unattended-upgrades", configure /etc/apt/apt.conf.d/20auto-upgrades et active le service', () => {
+    for (const distro of ['debian', 'ubuntu', 'kali', 'linuxmint', 'raspbian'] as const) {
+      const recipe = makeRecipe({ distro, outputFormat: 'iso_hybrid', arch: distro === 'raspbian' ? 'aarch64' : 'x86_64', security: { ...makeRecipe().security, autoSecurityUpdates: true } });
+      const pkgs = resolvePackageList(recipe);
+      expect(pkgs).toContain('unattended-upgrades');
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/apt/apt.conf.d/20auto-upgrades');
+      expect(script).toContain('APT::Periodic::Unattended-Upgrade "1";');
+      expect(script).toContain('systemctl enable unattended-upgrades');
+    }
+  });
+
+  it('Fedora / Rocky : installe "dnf-automatic", configure apply_updates = yes dans /etc/dnf/automatic.conf et active les timers systemd', () => {
+    for (const distro of ['fedora', 'rocky'] as const) {
+      const recipe = makeRecipe({ distro, outputFormat: 'raw_img', security: { ...makeRecipe().security, autoSecurityUpdates: true } });
+      const pkgs = resolvePackageList(recipe);
+      expect(pkgs).toContain('dnf-automatic');
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/dnf/automatic.conf');
+      expect(script).toContain('apply_updates = yes');
+      expect(script).toContain('systemctl enable dnf-automatic.timer');
+    }
+  });
+
+  it('Arch Linux / CachyOS : avertissement honnête de distribution rolling-release, pas de faux démon inerte', () => {
+    const archScript = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(archScript).toContain('Sur une distribution en rolling-release (Arch Linux)');
+    const cachyScript = generateBuildScript(makeRecipe({ distro: 'cachyos', outputFormat: 'raw_img', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(cachyScript).toContain('Sur une distribution en rolling-release (CachyOS)');
+  });
+
+  it('openSUSE / Alpine / Void : avertissements honnêtes et précis selon la famille', () => {
+    const suseScript = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(suseScript).toContain('openSUSE Tumbleweed');
+    const alpineScript = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'wsl2_tar', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(alpineScript).toContain('Alpine');
+    const voidScript = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'wsl2_tar', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(voidScript).toContain('Void');
+  });
+
+  it('Carte SD Raspberry Pi (rpi_sd) : configure bien unattended-upgrades', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(script).toContain('/etc/apt/apt.conf.d/20auto-upgrades');
+    expect(script).toContain('systemctl enable unattended-upgrades');
+  });
+
+  it('Cloud-Init : injecte /etc/apt/apt.conf.d/20auto-upgrades et active unattended-upgrades sur Debian, dnf-automatic.timer sur Fedora', () => {
+    const debianCloud = generateCloudInitYaml(makeRecipe({ distro: 'debian', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(debianCloud).toContain('/etc/apt/apt.conf.d/20auto-upgrades');
+    expect(debianCloud).toContain('systemctl enable --now unattended-upgrades');
+    const fedoraCloud = generateCloudInitYaml(makeRecipe({ distro: 'fedora', security: { ...makeRecipe().security, autoSecurityUpdates: true } }));
+    expect(fedoraCloud).toContain('systemctl enable --now dnf-automatic.timer');
+  });
+
+  it('autoSecurityUpdates désactivé : aucune écriture ni activation', () => {
+    const debianScript = generateBuildScript(makeRecipe({ distro: 'debian', security: { ...makeRecipe().security, autoSecurityUpdates: false } }));
+    expect(debianScript).not.toContain('/etc/apt/apt.conf.d/20auto-upgrades');
+    const fedoraScript = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', security: { ...makeRecipe().security, autoSecurityUpdates: false } }));
+    expect(fedoraScript).not.toContain('dnf-automatic.timer');
+  });
+});
+
+describe('generateBuildScript/generateNonDebianBuildScript/generateNonDebianDiskImageScript/generateRpiSdScript — "locale" réellement configurée sur toutes les distributions (bug réel trouvé en auditant : "recipe.locale" ignoré sur les 5 familles non-Debian, syntaxe "fr_FR UTF-8" invalide sur Debian au lieu de "fr_FR.UTF-8 UTF-8" pour locale-gen, et omission de /etc/locale.conf / /etc/default/locale)', () => {
+  it('Debian / Ubuntu / Kali / Mint : génère fr_FR.UTF-8 UTF-8 dans /etc/locale.gen, lance locale-gen et définit LANG dans /etc/default/locale et /etc/locale.conf', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', locale: 'fr_FR' }));
+    expect(script).toContain('echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen');
+    expect(script).toContain('locale-gen');
+    expect(script).toContain('echo "LANG=fr_FR.UTF-8" > /etc/default/locale');
+    expect(script).toContain('echo "LANG=fr_FR.UTF-8" > /etc/locale.conf');
+  });
+
+  it('Arch Linux / CachyOS : génère /etc/locale.gen + locale-gen + /etc/locale.conf', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', locale: 'de_DE' }));
+    expect(script).toContain('echo "de_DE.UTF-8 UTF-8" >> /etc/locale.gen');
+    expect(script).toContain('locale-gen');
+    expect(script).toContain('echo "LANG=de_DE.UTF-8" > /etc/locale.conf');
+  });
+
+  it('Fedora / Rocky : génère /etc/locale.conf', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', locale: 'es_ES' }));
+    expect(script).toContain('echo "LANG=es_ES.UTF-8" > /etc/locale.conf');
+  });
+
+  it('openSUSE : génère /etc/locale.conf et /etc/sysconfig/language', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', locale: 'en_GB' }));
+    expect(script).toContain('echo "LANG=en_GB.UTF-8" > /etc/locale.conf');
+    expect(script).toContain('RC_LANG="en_GB.UTF-8"');
+  });
+
+  it('Void Linux : génère /etc/default/libc-locales, exécute xbps-reconfigure et écrit /etc/locale.conf', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'wsl2_tar', locale: 'fr_FR' }));
+    expect(script).toContain('/etc/default/libc-locales');
+    expect(script).toContain('xbps-reconfigure -f glibc-locales');
+    expect(script).toContain('echo "LANG=fr_FR.UTF-8" > /etc/locale.conf');
+  });
+
+  it('Alpine Linux : génère /etc/profile.d/locale.sh pour musl', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'wsl2_tar', locale: 'fr_FR' }));
+    expect(script).toContain('/etc/profile.d/locale.sh');
+    expect(script).toContain('export LANG=fr_FR.UTF-8');
+  });
+
+  it('Carte SD Raspberry Pi : applique localeSetupCmd', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', locale: 'fr_FR' }));
+    expect(script).toContain('echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen');
+    expect(script).toContain('echo "LANG=fr_FR.UTF-8" > /etc/default/locale');
+  });
+});
+
+
+describe('generateGitHubWorkflow — bug réel MAJEUR trouvé en auditant : "dist/*.iso" était codé en dur dans 3 étapes (sommes de contrôle SHA-256, vérification de taille, glob de la Release) — alors que build.sh ne produit un .iso QUE pour le format "ISO hybride". Les formats RootFS WSL2/Docker (.tar.gz, seul format réellement fonctionnel pour Arch/CachyOS/Fedora/Rocky/Alpine/openSUSE/Void), les images disque (.qcow2/.vmdk/.img) et la carte SD Raspberry Pi (.img.xz) sont TOUS des combinaisons réellement supportées par ce même générateur, mais "sha256sum *.iso"/"stat dist/*.iso" y échouaient systématiquement ("cannot stat"), cassant tout le pipeline de publication automatique avant même d\'atteindre la Release GitHub — vérifié en exécutant réellement les commandes bash extraites contre un vrai fichier .tar.gz dans un répertoire temporaire (exit code 0 après correctif, échec avant)', () => {
+  it('N\'importe quelle distro/format : ne contient plus AUCUNE ligne active (hors commentaire) référençant "dist/*.iso"', () => {
+    for (const [distro, format] of [['debian', 'iso_hybrid'], ['arch', 'wsl2_tar'], ['fedora', 'qcow2'], ['void', 'docker_rootfs']] as const) {
+      const wf = generateGitHubWorkflow(makeRecipe({ distro: distro as DistroId, outputFormat: format as OutputFormat }));
+      const activeLine = wf.split('\n').find(l => !l.trim().startsWith('#') && l.includes('dist/*.iso'));
+      expect(activeLine).toBeUndefined();
+    }
+  });
+
+  it('Calcule les sommes de contrôle sur tout le contenu de dist/ ("sha256sum *"), pas seulement les .iso', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({ distro: 'arch', outputFormat: 'wsl2_tar' }));
+    expect(wf).toContain('sha256sum * > SHA256SUMS.txt');
+  });
+
+  it('Détecte le fichier de sortie réel par exclusion (pas par extension) pour la vérification de taille', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({ distro: 'fedora', outputFormat: 'qcow2' }));
+    expect(wf).toContain(`find dist -maxdepth 1 -type f ! -name 'SHA256SUMS.txt'`);
+  });
+
+  it('La Release GitHub cible tout le contenu de dist/ ("dist/*"), quel que soit le format produit', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({ distro: 'void', outputFormat: 'docker_rootfs' }));
+    expect(wf).toMatch(/files: \|\s*\n\s*dist\/\*\s*\n/);
   });
 });
