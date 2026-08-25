@@ -1,6 +1,6 @@
 # 🚀 OSForge Studio — Custom Linux Distro & ISO Graphical Builder
 
-**OSForge Studio** est un environnement complet et graphique pour concevoir, personnaliser, simuler et compiler des distributions Linux sur mesure (Debian, Ubuntu, Arch Linux, Alpine, Fedora, Rocky, Raspbian).
+**OSForge Studio** est un environnement complet et graphique pour concevoir, personnaliser, simuler et compiler des distributions Linux sur mesure (Debian, Ubuntu, Linux Mint, Arch Linux, CachyOS, Alpine, Kali Linux, Fedora, Rocky Linux, openSUSE Tumbleweed, Void Linux, Raspberry Pi OS, NixOS).
 
 ---
 
@@ -40,8 +40,8 @@ chmod +x launch.sh
    - Bandeaux contextuels rotatifs et centre complet d'astuces d'ingénierie Linux (tailles, RAM, sécurité CIS Benchmark, WSL2).
 3. **Architecte IA (Prompt to Distro)** :
    - Décrivez vos besoins en langage naturel et l'IA configure la recette optimale.
-4. **Simulateur WebVM 100% dans le Navigateur** :
-   - Testez l'interface, le terminal, le gestionnaire de fichiers et les applications sans quitter votre navigateur.
+4. **Démarrage réel d'un noyau Linux dans le navigateur** :
+   - Un vrai noyau Linux (Buildroot) démarre dans une machine virtuelle x86 émulée en WebAssembly (v86), directement dans l'onglet — pas une simulation à réponses codées en dur.
 5. **Multi-Export** :
    - Image ISO Hybride Live, Distribution Windows WSL2, Image Cloud QCOW2, Conteneur Docker RootFS, Carte SD Raspberry Pi.
    - Scripts autonomes, Dockerfile et workflow GitHub Actions (build cloud 100% gratuit).
