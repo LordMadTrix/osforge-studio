@@ -644,6 +644,32 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // "patterns-lxqt-lxqt" confirmé vrai pattern zypper officiel (rpmfind.net).
       pkgs.push('patterns-lxqt-lxqt', 'sddm', 'pcmanfm-qt', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
+  } else if (recipe.desktop === 'lxde') {
+    // Nouvel environnement de bureau ajouté (LXDE, prédécesseur GTK de LXQt — Openbox + PCManFM,
+    // pas de portage Qt6) — aucune trace dans le catalogue avant cet ajout. Noms de paquets tous
+    // vérifiés en direct avant câblage : méta-paquet "lxde" réel sur Debian trixie (13.0) ET
+    // bookworm (11, suite utilisée par Raspbian), Ubuntu "resolute" (universe) et Kali (source
+    // "lxde-metapackages", vérifié via pkg.kali.org) — couvre les 5 distros isDebianLike. Groupe
+    // Arch officiel "lxde" confirmé (archlinux.org/packages/search/json, paquet lxde-common,
+    // build récent). "@lxde-desktop" confirmé vrai groupe dnf officiel Fedora (guide d'installation
+    // + convention comps.xml déjà utilisée dans ce fichier pour @xfce-desktop/@kde-desktop) ;
+    // Rocky/EPEL9 confirmé ABSENT (dl.fedoraproject.org/pub/epel/9/.../l/ ne contient aucun
+    // "lxde*", même limite qu'LXQt déjà documentée ci-dessus). "patterns-lxde-lxde" confirmé vrai
+    // pattern zypper officiel openSUSE Tumbleweed (rpmfind.net). Méta-paquet "lxde" confirmé réel
+    // et complet sur Void (raw.githubusercontent.com/void-linux/void-packages
+    // srcpkgs/lxde/template, metapackage=yes, dépend d'openbox/pcmanfm/lxde-common). Alpine
+    // confirmé ABSENT (aucun résultat sur pkgs.alpinelinux.org pour "lxde*").
+    if (isDebianLike) {
+      pkgs.push('lxde', 'lightdm', 'lightdm-gtk-greeter', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('lxde', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (distroId === 'fedora') {
+      pkgs.push('@lxde-desktop', 'lightdm', 'firefox', 'pipewire');
+    } else if (distroId === 'void') {
+      pkgs.push('lxde', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('patterns-lxde-lxde', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
+    }
   } else if (recipe.desktop === 'mate') {
     // Nouvel environnement de bureau ajouté (MATE, continuation de GNOME 2 classique) — aucune
     // trace dans le catalogue avant cet ajout. Noms de paquets tous vérifiés en direct avant

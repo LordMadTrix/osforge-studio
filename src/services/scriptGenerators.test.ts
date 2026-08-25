@@ -1479,6 +1479,42 @@ describe('generateBuildScript/resolvePackageList — "appArmorOrSELinux" réelle
   });
 });
 
+describe('resolvePackageList — nouvel environnement de bureau LXDE ajouté au catalogue (prédécesseur GTK de LXQt, Openbox + PCManFM) — paquets tous vérifiés en direct avant câblage : méta-paquet "lxde" réel sur Debian trixie ET bookworm (suite Raspbian), Ubuntu "resolute" (universe) et Kali (source lxde-metapackages) ; groupe Arch officiel "lxde" confirmé (archlinux.org/packages/search/json) ; "@lxde-desktop" confirmé vrai groupe dnf Fedora ; Rocky/EPEL9 confirmé ABSENT (même limite que LXQt) ; "patterns-lxde-lxde" confirmé vrai pattern zypper openSUSE Tumbleweed ; méta-paquet "lxde" confirmé réel sur Void (metapackage=yes) ; Alpine confirmé ABSENT', () => {
+  it('Debian, Kali, Raspbian, Linux Mint : installent le vrai méta-paquet "lxde" (regroupement isDebianLike)', () => {
+    for (const distro of ['debian', 'kali', 'raspbian', 'linuxmint'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, outputFormat: 'iso_hybrid', desktop: 'lxde', selectedPackages: [] }));
+      expect(pkgs).toEqual(expect.arrayContaining(['lxde', 'lightdm', 'lightdm-gtk-greeter']));
+    }
+  });
+
+  it('Arch : installe le vrai groupe "lxde"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['lxde', 'lightdm']));
+  });
+
+  it('Fedora : installe le vrai groupe dnf "@lxde-desktop" ; Rocky reste honnêtement hors périmètre (absent d\'EPEL9, comme LXQt)', () => {
+    const fedoraPkgs = resolvePackageList(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    const rockyPkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    expect(fedoraPkgs).toContain('@lxde-desktop');
+    expect(rockyPkgs.some(p => p.toLowerCase().includes('lxde'))).toBe(false);
+  });
+
+  it('openSUSE : installe le vrai pattern zypper "patterns-lxde-lxde"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    expect(pkgs).toContain('patterns-lxde-lxde');
+  });
+
+  it('Void : installe le vrai méta-paquet complet "lxde"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    expect(pkgs).toContain('lxde');
+  });
+
+  it('Alpine : reste honnêtement hors périmètre, aucun paquet lxde-* installé (confirmé absent du dépôt)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', desktop: 'lxde', selectedPackages: [] }));
+    expect(pkgs.some(p => p.toLowerCase().includes('lxde'))).toBe(false);
+  });
+});
+
 describe('resolvePackageList — nouvel environnement de bureau MATE ajouté au catalogue (dérivé de GNOME 2, continuation classique) — paquets tous vérifiés en direct avant câblage : "mate-desktop-environment" réel sur Debian (sources.debian.org, 1.26.0) ; groupes Arch officiels "mate"/"mate-extra" confirmés (archlinux.org/groups/x86_64/) ; composants individuels réels sur Fedora ET Rocky/EPEL9 (mate-session-manager, mate-panel, marco, mate-terminal, caja, mate-control-center — contrairement à LXQt qui est absent d\'EPEL9) ; "patterns-mate-mate" confirmé vrai pattern zypper officiel (rpmfind.net) ; méta-paquet "mate" confirmé réel et complet sur Void (metapackage=yes dans le template source) ; Alpine confirmé ABSENT (aucun paquet "mate*" pertinent trouvé)', () => {
   it('Debian : installe le vrai méta-paquet "mate-desktop-environment" avec la pile graphique complète', () => {
     const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'mate', selectedPackages: [] }));

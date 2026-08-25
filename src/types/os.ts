@@ -35,6 +35,7 @@ export type DesktopEnvironmentId =
   | 'i3wm'
   | 'cinnamon'
   | 'lxqt'
+  | 'lxde'
   | 'mate'
   | 'budgie'
   | 'deepin'
