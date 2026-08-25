@@ -1658,3 +1658,22 @@ describe('generateBuildScript — avertissement honnête pour les 5 familles non
     }
   });
 });
+
+describe('generateBuildScript — avertissement honnête sur la chaîne d\'amorçage x86-only pour Debian/APT en architecture non-x86_64 (bug réel trouvé en auto-auditant le correctif d\'émulation multi-architecture du cycle précédent : le bootstrap ARM64/RISC-V fonctionne désormais réellement grâce à l\'émulation qemu-*-static, MAIS la chaîne GRUB/xorriso qui suit (grub-mkstandalone --format=i386-pc ET --format=x86_64-efi, El Torito, isohybrid-mbr) reste câblée exclusivement pour x86_64 — une ISO "iso_hybrid" en ARM64/RISC-V se construirait sans erreur mais ne démarrerait JAMAIS sur du vrai matériel cible. wsl2_tar/docker_rootfs (simple RootFS, sans chaîne d\'amorçage) restent en revanche pleinement fonctionnels, déjà couverts par le correctif précédent)', () => {
+  it('iso_hybrid + aarch64 : avertissement explicite sur l\'incompatibilité de la chaîne d\'amorçage', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'aarch64' }));
+    expect(script).toContain('ne démarrera PAS sur du matériel aarch64');
+  });
+
+  it('wsl2_tar + aarch64 et docker_rootfs + riscv64 : aucun avertissement (RootFS pur, pas de chaîne d\'amorçage concernée, pleinement fonctionnel)', () => {
+    const wslScript = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'wsl2_tar', arch: 'aarch64' }));
+    const dockerScript = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'docker_rootfs', arch: 'riscv64' }));
+    expect(wslScript).not.toContain('ne démarrera PAS');
+    expect(dockerScript).not.toContain('ne démarrera PAS');
+  });
+
+  it('iso_hybrid + x86_64 : aucun avertissement (non-régression, comportement inchangé)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', arch: 'x86_64' }));
+    expect(script).not.toContain('ne démarrera PAS');
+  });
+});
