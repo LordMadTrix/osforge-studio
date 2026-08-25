@@ -96,12 +96,17 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 140,
     icon: 'Terminal',
     tags: ['Python', 'Scripting', 'Data'],
+    // Bug réel trouvé en auditant : la description promet "UV" mais AUCUNE des 5 familles ne
+    // l'installait — absent de pkgNames partout. Confirmé RÉEL sur Arch/Alpine/Fedora (API JSON,
+    // contenu de page réel) — ajouté ici. Confirmé ABSENT (contenu réel "No such package") de
+    // Debian trixie ET Ubuntu noble — installé à la place via le vrai installeur officiel
+    // (astral.sh/uv/install.sh) pendant la compilation (uvSetupCmd dans scriptGenerators.ts).
     pkgNames: {
       debian: 'python3 python3-pip python3-venv python3-full',
       ubuntu: 'python3 python3-pip python3-venv',
-      arch: 'python python-pip python-virtualenv',
-      alpine: 'python3 py3-pip py3-virtualenv',
-      fedora: 'python3 python3-pip python3-virtualenv',
+      arch: 'python python-pip python-virtualenv uv',
+      alpine: 'python3 py3-pip py3-virtualenv uv',
+      fedora: 'python3 python3-pip python3-virtualenv uv',
     },
   },
   {

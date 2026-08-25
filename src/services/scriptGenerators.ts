@@ -448,6 +448,27 @@ apt-get update -y 2>/dev/null && apt-get install -y codium 2>/dev/null \\
   || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de VSCodium échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
 }
 
+// Bug réel trouvé en auditant : la description du paquet "python_stack" ("Environnement complet
+// Python 3 avec gestionnaire de paquets Pip, UV et environnements virtuels") promet "UV" (le
+// gestionnaire de paquets Python moderne d'Astral), mais AUCUNE des 5 familles ne l'installait
+// jamais — absent de "pkgNames" pour toutes. "uv" confirmé ABSENT (contenu réel "No such package")
+// de Debian trixie ET Ubuntu noble. Confirmé RÉEL sur Arch/Alpine/Fedora (API JSON, contenu de
+// page) — ajouté directement à pkgNames pour ces 3 familles (voir packages.ts). Pour Debian/Ubuntu,
+// installé via le vrai installeur officiel autonome (astral.sh/uv/install.sh, documenté par
+// docs.astral.sh) : "UV_INSTALL_DIR=/usr/local/bin" force une installation SYSTÈME (pas le défaut
+// par utilisateur "~/.local/bin", inutilisable ici puisque ce script tourne en root dans le chroot
+// pendant la compilation — l'utilisateur final de l'OS généré n'est pas "root") — vérifié en
+// exécutant réellement l'installeur sous WSL Linux avec cette variable : le binaire produit
+// fonctionne ("uv --version" répond correctement), pas seulement "bash -n".
+function uvSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('python_stack')) return '';
+  if (family !== 'debian') return '';
+  return `export UV_INSTALL_DIR=/usr/local/bin
+export UV_NO_MODIFY_PATH=1
+curl -LsSf https://astral.sh/uv/install.sh 2>/dev/null | sh 2>/dev/null \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation d'uv échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2111,6 +2132,7 @@ ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
+${uvSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2314,6 +2336,7 @@ ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
+${uvSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2533,6 +2556,7 @@ ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
+${uvSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -3115,6 +3139,7 @@ ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
+${uvSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

@@ -3043,3 +3043,25 @@ describe('VSCodium — bug réel MAJEUR trouvé en auditant, le pire de cette cl
   });
 });
 
+describe('uv (Python) — bug réel trouvé en auditant : la description de "python_stack" promet "UV" (le gestionnaire de paquets Python moderne d\'Astral) mais aucune des 5 familles ne l\'installait jamais. "uv" confirmé ABSENT (contenu réel "No such package") de Debian trixie et Ubuntu noble, confirmé RÉEL sur Arch/Alpine/Fedora (ajouté à pkgNames). Corrigé pour Debian/Ubuntu via le vrai installeur officiel astral.sh/uv/install.sh, avec UV_INSTALL_DIR=/usr/local/bin (installation système, pas le défaut par utilisateur "~/.local/bin" inutilisable dans un chroot qui tourne en root) — vérifié en exécutant réellement l\'installeur sous WSL Linux avec cette variable : "uv --version" répond correctement sur le vrai binaire produit', () => {
+  it('Debian ISO : déclenche le vrai installeur officiel uv (UV_INSTALL_DIR=/usr/local/bin) pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['python_stack'],
+    }));
+    expect(script).toContain('https://astral.sh/uv/install.sh');
+    expect(script).toContain('UV_INSTALL_DIR=/usr/local/bin');
+  });
+
+  it('Arch : "uv" fait partie du vrai paquet natif résolu (pkgNames), AUCUN installeur curl déclenché', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', selectedPackages: ['python_stack'] }));
+    expect(pkgs).toContain('uv');
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['python_stack'] }));
+    expect(script).not.toContain('astral.sh');
+  });
+
+  it('python_stack non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('astral.sh');
+  });
+});
+
