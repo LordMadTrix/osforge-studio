@@ -231,6 +231,48 @@ FBSVC_EOF
 ${serviceEnableCmd('firstboot.service', family)}`;
 }
 
+// Bug réel MAJEUR trouvé en auditant : le paquet "K3s Lightweight Kubernetes" du catalogue
+// (packages.ts) n'installait RÉELLEMENT k3s que sur Alpine ("k3s", vrai paquet apk confirmé) —
+// partout ailleurs le nom de paquet configuré était soit un pur prérequis sans k3s lui-même
+// (debian/ubuntu : "curl iptables wireguard", aucun de ces 3 paquets N'EST k3s), soit un paquet
+// fictif/inaccessible via le gestionnaire natif de la distro : "k3s-bin" sur Arch n'existe que
+// dans l'AUR (confirmé via l'API JSON officielle Arch, absent des dépôts officiels ; ce
+// générateur n'installe jamais de paquet AUR), "k3s" sur Fedora confirmé ABSENT
+// (src.fedoraproject.org/rpms/k3s : 404) — et Rocky/openSUSE en héritent via PKG_NAME_FALLBACK,
+// "k3s" sur Void également confirmé ABSENT (raw.githubusercontent.com/void-linux/void-packages
+// srcpkgs/k3s/template : 404). Choisir "K3s" produisait donc un système SANS Kubernetes
+// fonctionnel sur 9 distros sur 10, malgré la promesse du catalogue ("Distribution Kubernetes
+// certifiée ultra-légère par Rancher"). Corrigé en utilisant le vrai installeur officiel
+// (get.k3s.io, documenté comme détectant et supportant à la fois systemd ET OpenRC) déclenché au
+// premier démarrage via le même mécanisme oneshot que firstbootTriggerCmd ci-dessus — couvre
+// toutes les familles systemd concernées ici. Void reste honnêtement hors périmètre (runit non
+// documenté comme supporté par l'installeur officiel k3s, et aucun paquet natif réel n'existe).
+// Alpine conserve son vrai paquet apk natif déjà fonctionnel, inchangé.
+function k3sSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('k3s')) return '';
+  if (family === 'alpine') return '';
+  if (family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] K3s n'est pas encore câblé pour Void : aucun paquet xbps réel et l'installeur officiel (get.k3s.io) ne documente pas de support runit.\${NC:-}" 2>/dev/null || true`;
+  }
+  return `cat > /etc/systemd/system/k3s-setup.service << 'K3SSVC_EOF'
+[Unit]
+Description=OSForge Studio - installation K3s (get.k3s.io)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "curl -sfL https://get.k3s.io | sh -"
+ExecStartPost=-/usr/bin/systemctl disable k3s-setup.service
+RemainAfterExit=no
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
+K3SSVC_EOF
+${serviceEnableCmd('k3s-setup.service', family)}`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -1887,6 +1929,7 @@ ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
+${k3sSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2083,6 +2126,7 @@ ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
+${k3sSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2295,6 +2339,7 @@ ${dmAutologinCmd(recipe, 'debian')}
 ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
+${k3sSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -2870,6 +2915,7 @@ ${dmAutologinCmd(recipe, 'debian')}
 ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
+${k3sSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

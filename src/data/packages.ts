@@ -304,12 +304,21 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 150,
     icon: 'Server',
     tags: ['Kubernetes', 'K3s', 'Microservices'],
+    // Bug réel MAJEUR trouvé en auditant : "k3s-bin" (Arch) confirmé ABSENT des dépôts officiels
+    // (archlinux.org/packages/search/json/?name=k3s-bin : "count": 0 — n'existe que dans l'AUR,
+    // jamais installable via "pacman -S" dans ce générateur) ; "k3s" (Fedora, dont héritent
+    // Rocky/openSUSE via PKG_NAME_FALLBACK) confirmé ABSENT (src.fedoraproject.org/rpms/k3s :
+    // 404). Seul Alpine avait un vrai paquet natif. Remplacés par les VRAIS prérequis (curl pour
+    // l'installeur officiel get.k3s.io, iptables et wireguard-tools réellement requis par k3s à
+    // l'exécution) — tous confirmés réels sur Arch (archlinux.org) et Fedora (src.fedoraproject.org)
+    // — combinés à un vrai déclenchement de get.k3s.io au premier démarrage (k3sSetupCmd dans
+    // scriptGenerators.ts), l'installeur officiel documenté comme auto-détectant systemd ET OpenRC.
     pkgNames: {
       debian: 'curl iptables wireguard',
       ubuntu: 'curl iptables wireguard',
-      arch: 'k3s-bin',
+      arch: 'curl iptables wireguard-tools',
       alpine: 'k3s',
-      fedora: 'k3s',
+      fedora: 'curl iptables wireguard-tools',
     },
   },
   {

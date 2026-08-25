@@ -2776,4 +2776,53 @@ describe('firstBootScript — bug réel MAJEUR trouvé en auditant, probablement
   });
 });
 
+describe('K3s Lightweight Kubernetes — bug réel MAJEUR trouvé en auditant : le paquet du catalogue n\'installait RÉELLEMENT k3s que sur Alpine (vrai paquet apk) — "k3s-bin" sur Arch confirmé ABSENT des dépôts officiels (archlinux.org/packages/search/json, "count": 0, AUR uniquement, jamais installable via "pacman -S" dans ce générateur) et "k3s" sur Fedora confirmé ABSENT (src.fedoraproject.org/rpms/k3s : 404, dont héritent Rocky/openSUSE) — sur Debian/Ubuntu, seuls des prérequis (curl/iptables/wireguard) étaient installés, jamais k3s lui-même. Choisir "K3s" produisait donc un système SANS Kubernetes fonctionnel sur 9 distros sur 10. Corrigé avec k3sSetupCmd() : déclenche le vrai installeur officiel (get.k3s.io, documenté comme supportant systemd ET OpenRC) au premier démarrage via un service "oneshot" auto-désactivant, vérifié via "systemd-analyze verify" (WSL Ubuntu, exit 0 sur le fichier réel généré, sans substitution)', () => {
+  it('Debian ISO : crée k3s-setup.service qui déclenche le vrai installeur get.k3s.io', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['k3s'],
+    }));
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', selectedPackages: ['k3s'], customPackages: [] }));
+    expect(pkgs).toContain('curl');
+    expect(script).toContain('/etc/systemd/system/k3s-setup.service');
+    expect(script).toContain('curl -sfL https://get.k3s.io | sh -');
+    expect(script).toContain('systemctl enable k3s-setup.service');
+  });
+
+  it('Arch qcow2 : installe les vrais prérequis (PAS "k3s-bin", AUR uniquement) et déclenche get.k3s.io', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', selectedPackages: ['k3s'], customPackages: [] }));
+    expect(pkgs).not.toContain('k3s-bin');
+    expect(pkgs).toContain('curl');
+    expect(pkgs).toContain('wireguard-tools');
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'qcow2', selectedPackages: ['k3s'] }));
+    expect(script).toContain('/etc/systemd/system/k3s-setup.service');
+  });
+
+  it('Fedora raw_img : installe les vrais prérequis (PAS "k3s", confirmé absent de Fedora) et déclenche get.k3s.io', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', selectedPackages: ['k3s'], customPackages: [] }));
+    expect(pkgs).not.toContain('k3s');
+    expect(pkgs).toContain('curl');
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', selectedPackages: ['k3s'] }));
+    expect(script).toContain('/etc/systemd/system/k3s-setup.service');
+  });
+
+  it('Alpine : conserve son vrai paquet apk natif "k3s", AUCUN service k3s-setup créé (déjà fonctionnel, rien à déclencher)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', selectedPackages: ['k3s'], customPackages: [] }));
+    expect(pkgs).toContain('k3s');
+    const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'wsl2_tar', selectedPackages: ['k3s'] }));
+    expect(script).not.toContain('k3s-setup.service');
+  });
+
+  it('Void : honnêtement hors périmètre — avertissement affiché, PAS de faux service k3s-setup (runit non documenté comme supporté par get.k3s.io)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img', selectedPackages: ['k3s'] }));
+    expect(script).toContain("n'est pas encore câblé pour Void");
+    expect(script).not.toContain('k3s-setup.service');
+  });
+
+  it('K3s non sélectionné : aucun mécanisme k3s créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('k3s-setup.service');
+    expect(script).not.toContain('get.k3s.io');
+  });
+});
+
 
