@@ -2825,4 +2825,21 @@ describe('K3s Lightweight Kubernetes — bug réel MAJEUR trouvé en auditant : 
   });
 });
 
+describe('Tailscale — bug réel trouvé dans le même audit que K3s : le paquet catalogue "wireguard" (nommé "WireGuard VPN & Tailscale" dans l\'UI, tag "Mesh") n\'installait jamais rien lié à Tailscale malgré la promesse du nom et des tags. Contrairement à K3s, "tailscale" est confirmé un vrai paquet natif sur les 4 familles (packages.debian.org/bookworm, archlinux.org, src.fedoraproject.org, pkgs.alpinelinux.org — tous 200) : simple ajout au catalogue, plus activation du service "tailscaled" (jamais démarré auparavant, rendant "tailscale up" inutilisable au premier login même une fois le paquet présent)', () => {
+  it('sélectionner "wireguard" installe réellement "tailscale" et active "tailscaled" sur Debian/Arch/Fedora/Alpine', () => {
+    for (const distro of ['debian', 'arch', 'fedora', 'alpine'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, selectedPackages: ['wireguard'], customPackages: [] }));
+      expect(pkgs, distro).toContain('tailscale');
+      const format = distro === 'alpine' ? 'wsl2_tar' : distro === 'arch' ? 'qcow2' : distro === 'fedora' ? 'raw_img' : 'iso_hybrid';
+      const script = generateBuildScript(makeRecipe({ distro, outputFormat: format as any, selectedPackages: ['wireguard'] }));
+      expect(script, distro).toContain('tailscaled');
+    }
+  });
+
+  it('wireguard non sélectionné : aucune activation de tailscaled (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('tailscaled');
+  });
+});
+
 

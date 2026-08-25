@@ -273,6 +273,18 @@ K3SSVC_EOF
 ${serviceEnableCmd('k3s-setup.service', family)}`;
 }
 
+// Bug réel trouvé dans le même audit que K3s ci-dessus : le paquet catalogue "wireguard" (nommé
+// "WireGuard VPN & Tailscale" dans l'UI) installe désormais réellement "tailscale" (packages.ts,
+// confirmé vrai paquet natif sur les 4 familles), mais son service "tailscaled" n'était jamais
+// activé — le binaire "tailscale" existait sur le disque sans que son démon tourne, rendant la
+// commande "tailscale up" inutilisable au premier login. "tailscale up" lui-même (authentification
+// interactive via URL de connexion) reste hors de portée d'un script non interactif — seule
+// l'activation du service est automatisable honnêtement ici.
+function tailscaleServiceCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('wireguard')) return '';
+  return serviceEnableCmd('tailscaled', family);
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -1930,6 +1942,7 @@ ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
+${tailscaleServiceCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2127,6 +2140,7 @@ ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
+${tailscaleServiceCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2340,6 +2354,7 @@ ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
+${tailscaleServiceCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -2916,6 +2931,7 @@ ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
+${tailscaleServiceCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

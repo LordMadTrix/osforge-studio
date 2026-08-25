@@ -329,12 +329,21 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 40,
     icon: 'ShieldCheck',
     tags: ['VPN', 'Mesh', 'Réseau sécurisé'],
+    // Bug réel trouvé dans le même audit que K3s ci-dessus : le nom affiché ("WireGuard VPN &
+    // Tailscale") et les tags ("Mesh") promettent Tailscale, mais "pkgNames" n'installait jamais
+    // rien lié à Tailscale — contrairement à K3s, "tailscale" est confirmé un VRAI paquet natif
+    // sur les 4 familles (packages.debian.org/bookworm/tailscale, archlinux.org/packages/search/
+    // json, src.fedoraproject.org/rpms/tailscale, pkgs.alpinelinux.org — tous 200), donc un simple
+    // ajout suffit (contrairement à K3s qui nécessitait un vrai installeur au premier démarrage).
+    // "tailscale up" (authentification interactive via URL) reste hors de portée d'un script non
+    // interactif — le service "tailscaled" est activé (tailscaleServiceCmd) pour que la commande
+    // soit immédiatement utilisable au premier login, sans prétendre automatiser l'authentification.
     pkgNames: {
-      debian: 'wireguard wireguard-tools iptables',
-      ubuntu: 'wireguard wireguard-tools',
-      arch: 'wireguard-tools',
-      alpine: 'wireguard-tools',
-      fedora: 'wireguard-tools',
+      debian: 'wireguard wireguard-tools iptables tailscale',
+      ubuntu: 'wireguard wireguard-tools tailscale',
+      arch: 'wireguard-tools tailscale',
+      alpine: 'wireguard-tools tailscale',
+      fedora: 'wireguard-tools tailscale',
     },
   },
   {
