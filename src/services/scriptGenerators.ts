@@ -727,7 +727,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // "selinux-policy-targeted"/"policycoreutils" (packages.fedoraproject.org, et
   // download.rockylinux.org/.../BaseOS/.../Packages/ pour Rocky).
   if (recipe.security.appArmorOrSELinux) {
-    if (distroId === 'debian' || distroId === 'ubuntu' || distroId === 'linuxmint' || distroId === 'kali') {
+    if (distroId === 'debian' || distroId === 'ubuntu' || distroId === 'linuxmint' || distroId === 'kali' || distroId === 'raspbian') {
       pkgs.push('apparmor');
     } else if (isFedoraLike) {
       pkgs.push('selinux-policy-targeted', 'policycoreutils');
@@ -1751,6 +1751,9 @@ ${recipe.user.sshPublicKey ? `echo ${shQuote(recipe.user.sshPublicKey || '')} > 
 chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
 chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 systemctl enable ssh || true` : ''}
+${sshHardeningCmd(recipe, 'debian')}
+${macHardeningCmd(recipe, 'debian')}
+${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/usr/bin/env bash

@@ -1437,3 +1437,30 @@ describe('resolvePackageList — nouvel environnement de bureau Budgie ajouté a
     expect(pkgs.some(p => p.includes('budgie'))).toBe(false);
   });
 });
+
+describe('generateBuildScript — durcissement sécurité étendu à la carte SD Raspberry Pi (bug réel trouvé en comparant les fonctions appelées par les 4 générateurs : generateRpiSdScript() n\'appelait QUE osReleaseCmd(), aucun des sshHardeningCmd/macHardeningCmd/firewallCmd déjà câblés partout ailleurs — une image Raspberry Pi ne recevait ni fail2ban, ni durcissement SSH, ni AppArmor, ni pare-feu, malgré la création réelle d\'un compte utilisateur et l\'activation SSH sur ce même chemin. "apparmor" ajouté à la liste de paquets pour "raspbian" (absent de la condition existante), déjà réel dans le dépôt Debian bookworm que Raspberry Pi OS réutilise directement)', () => {
+  it('Raspberry Pi SD : fail2ban, disableRootSSH, AppArmor et nftables tous réellement câblés', () => {
+    const recipe = makeRecipe({
+      distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: true, fail2ban: true, luksEncryption: false, disableRootSSH: true, autoSecurityUpdates: true },
+    });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toEqual(expect.arrayContaining(['fail2ban', 'apparmor', 'nftables']));
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('echo "PermitRootLogin no" >> /etc/ssh/sshd_config');
+    expect(script).toContain('systemctl enable fail2ban 2>/dev/null || true');
+    expect(script).toContain('systemctl enable apparmor 2>/dev/null || true');
+    expect(script).toContain('systemctl enable nftables 2>/dev/null || true');
+  });
+
+  it('Raspberry Pi SD : aucune trace de durcissement quand tout est désactivé (comportement par défaut inchangé)', () => {
+    const recipe = makeRecipe({
+      distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', enableSSH: true,
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true },
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).not.toContain('fail2ban');
+    expect(script).not.toContain('systemctl enable apparmor');
+    expect(script).not.toContain('nft -f /etc/nftables.conf');
+  });
+});
