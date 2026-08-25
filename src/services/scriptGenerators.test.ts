@@ -2540,4 +2540,29 @@ describe('generateWslInstallerBat / generateLiveWindowsBat / generateAutoBuildBa
   });
 });
 
+describe('generateBuildScript (ISO hybride) — bug réel MAJEUR trouvé en auditant, même sévérité que le fix "kernelCmdline" en tout début de session : la ligne "-volid" de la commande xorriso interpolait "branding.osName" directement entre guillemets doubles bash SANS AUCUNE protection. Reproduit par une VRAIE EXÉCUTION bash (pas juste une lecture de code) : un osName aussi simple que \'test"; touch /tmp/preuve; echo "\' brise le guillemet double englobant et permet d\'injecter une commande shell ARBITRAIRE qui s\'exécute réellement lors de la compilation de l\'ISO ("echo INJECTED_COMMAND_RAN > preuve.txt" placé entre les deux guillemets injectés s\'est réellement exécuté, fichier de preuve confirmé créé). Corrigé en réutilisant shQuote() (déjà écrit et vérifié pour ce même problème sur username/fullName/shell/dotfilesGitUrl)', () => {
+  it('branding.osName avec guillemets et point-virgule (tentative d\'injection shell) : la ligne "-volid" reste un littéral bash sûr entre guillemets simples, round-trip exact', () => {
+    const osName = 'test"; touch /tmp/preuve_injection; echo "';
+    const recipe = makeRecipe({
+      branding: { osName, editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+      distro: 'debian', outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    const volidLine = script.split('\n').find(l => l.trim().startsWith('-volid'));
+    expect(volidLine, 'ligne "-volid" introuvable dans le script généré').toBeDefined();
+    const match = volidLine!.match(/-volid '([^']*)' \\$/);
+    expect(match, 'la valeur de -volid doit être entièrement entre guillemets simples bash (shQuote)').not.toBeNull();
+    expect(match![1]).toBe(osName.toUpperCase().slice(0, 32));
+  });
+
+  it('branding.osName "normal" (sans caractère spécial) : non-régression, contenu identique', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'ForgeOS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+      distro: 'debian', outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain("-volid 'FORGEOS' \\");
+  });
+});
+
 

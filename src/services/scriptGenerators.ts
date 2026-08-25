@@ -2424,7 +2424,7 @@ echo -e "\${YELLOW}[7/7] 📀 Création de l'image ISO hybride amorçable (BIOS 
 xorriso -as mkisofs \\
   -iso-level 3 \\
   -full-iso9660-filenames \\
-  -volid "${recipe.branding.osName.toUpperCase().slice(0, 32)}" \\
+  -volid ${shQuote(recipe.branding.osName.toUpperCase().slice(0, 32))} \\
   -eltorito-boot boot/grub/i386-pc/eltorito.img \\
     -no-emul-boot -boot-load-size 4 -boot-info-table \\
   --eltorito-catalog boot/grub/boot.cat \\
