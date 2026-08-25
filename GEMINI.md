@@ -156,5 +156,10 @@ après.
   4. 🔑 **Injection & Import GitHub de Clés SSH Publiques** : Clé publique libre `authorized_keys` (mode `0600`) et import direct GitHub (`curl -sSL https://github.com/<user>.keys`), miroir dans cloud-init (`ssh_authorized_keys` et `ssh_import_id: [gh:<user>]`).
   5. 🐳 **Exportateur `Containerfile` / `Dockerfile` Multi-Stage** : Nouveau générateur `generateContainerfile(recipe)` produisant une image OCI 100% exécutable sur Podman/Docker, avec mapping fidèle des bases distros (Debian, Arch, Fedora, Rocky, Alpine, openSUSE, Void).
   6. 📊 **Score de Posture de Sécurité & Conformité Interactif** : Calcul dynamique (0-100 pts), jauge visuelle colorée et checklist temps réel dans `SecurityConfig.tsx`.
+- **Amélioration Démarrage Réel (v86 WebAssembly x86)** :
+  - Terminal ANSI complet avec séquences d'échappement pour flèches directionnelles (`\x1b[A/B/C/D`), Home/End, PageUp/Down, Delete, combinaisons `Ctrl+<key>`, et support du collage (`onPaste`).
+  - Barre de commandes rapides 1-clic (`uname -a`, `ls -la /`, `free -m`, `df -h`, `cat /etc/os-release`, `udhcpc`, `ps aux`, `uptime`, test I/O).
+  - Barre d'envoi direct de commandes avec bouton interactif et tiroir d'injection de scripts bash personnalisés / presets de test.
+  - Chronomètre d'uptime temps réel, badges techniques de la VM (`x86 i686`, `128 Mo RAM`, `ttyS0`), 5 thèmes rétro/cyberpunk, taille de police ajustable, mode plein écran, copie et export des logs `.log`.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

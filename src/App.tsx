@@ -193,7 +193,7 @@ export const App: React.FC = () => {
         {/* Tab 7: Real Linux boot in the browser (v86 WASM x86 emulator) */}
         {activeTab === 'sandbox' && (
           <Suspense fallback={null}>
-            <RealBoot lang={lang} />
+            <RealBoot lang={lang} recipe={recipe} />
           </Suspense>
         )}
       </main>
