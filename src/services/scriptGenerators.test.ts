@@ -604,10 +604,11 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
       distro: 'debian', outputFormat: 'iso_hybrid', enableSSH: true,
       security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
     }));
-    expect(script).toContain('apt-get install -y --no-install-recommends nftables');
+    expect(script).toContain("'nftables'");
     expect(script).toContain('policy drop');
     expect(script).toContain('tcp dport 22 accept');
     expect(script).toContain('nft -f /etc/nftables.conf');
+    expect(script).toContain('systemctl enable nftables 2>/dev/null || true');
   });
 
   it('ISO : n\'ajoute pas la règle SSH si enableSSH=false', () => {
@@ -623,8 +624,10 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
       distro: 'debian', outputFormat: 'iso_hybrid',
       security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
     }));
-    expect(script).not.toContain('install -y --no-install-recommends nftables');
-    expect(script).not.toContain('install -y --no-install-recommends ufw');
+    expect(script).not.toContain("'nftables'");
+    expect(script).not.toContain("'ufw'");
+    expect(script).not.toContain('nft -f /etc/nftables.conf');
+    expect(script).not.toContain('ufw --force enable');
   });
 
   it('cloud-init : ajoute nftables aux paquets et un fichier de règles réel (bug annexe corrigé : "ufw" n\'était lui non plus jamais ajouté aux paquets cloud-init malgré "ufw --force enable" dans runcmd)', () => {
@@ -643,6 +646,40 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
       security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
     }));
     expect(yaml).toContain('- ufw');
+  });
+});
+
+describe('generateBuildScript — pare-feu réellement câblé au-delà de Debian/Ubuntu (bug réel MAJEUR trouvé en auditant : "firewall" n\'était référencé QUE dans generateBuildScript(), jamais dans generateNonDebianBuildScript()/generateNonDebianDiskImageScript() — un système Arch, Fedora, Rocky, Alpine, Void ou openSUSE ne recevait ZÉRO pare-feu quel que soit le choix explicite de l\'utilisateur. Paquets "ufw"/"nftables" vérifiés réels en direct par famille, service activé explicitement via serviceEnableCmd() pour les 3 systèmes d\'init)', () => {
+  it('Arch + firewall="ufw" : paquet installé et service systemd activé', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).toContain('ufw');
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain('ufw --force enable');
+    expect(script).toContain('systemctl enable ufw 2>/dev/null || true');
+  });
+
+  it('Void + firewall="ufw" : paquet installé et service runit activé (contrairement à Debian, jamais câblé avant ce correctif)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain('ln -sf /etc/sv/ufw /etc/runit/runsvdir/default/ufw');
+  });
+
+  it('Fedora + firewall="nftables" : paquet installé, règles écrites et service systemd activé', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain('policy drop');
+    expect(script).toContain('systemctl enable nftables 2>/dev/null || true');
+  });
+
+  it('openSUSE + firewall="ufw" : avertissement honnête plutôt qu\'un paquet inexistant (confirmé absent du dépôt officiel Tumbleweed)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).not.toContain('ufw');
+    const script = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'ufw', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(script).toContain("UFW n'a pas de paquet officiel pour openSUSE");
+    expect(script).not.toContain('ufw --force enable');
+  });
+
+  it('openSUSE + firewall="nftables" : câblé normalement (contrairement à ufw, réellement disponible)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: true } }));
+    expect(pkgs).toContain('nftables');
   });
 });
 

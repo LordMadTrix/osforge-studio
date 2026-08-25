@@ -281,6 +281,57 @@ SELINUX_EOF`;
   return '';
 }
 
+// Bug réel MAJEUR trouvé en auditant : "firewall" (ufw/nftables, panneau Sécurité) n'était câblé
+// QUE dans generateBuildScript() (famille "debian" — Debian/Ubuntu/Kali/Mint), jamais dans
+// generateNonDebianBuildScript()/generateNonDebianDiskImageScript() — un système Arch, Fedora,
+// Rocky, Alpine, Void ou openSUSE ne recevait ZÉRO pare-feu, quel que soit le choix explicite de
+// l'utilisateur dans l'UI. Paquets vérifiés réels en direct avant extension : "ufw" présent sur
+// Arch (archlinux.org/packages/extra), Fedora ET Rocky/EPEL9, Alpine, Void — mais confirmé ABSENT
+// du dépôt officiel openSUSE Tumbleweed (download.opensuse.org/tumbleweed/repo/oss/x86_64/, testé
+// en direct) : avertissement honnête plutôt qu'un paquet inexistant. "nftables" présent partout,
+// y compris Rocky (déjà dans BaseOS, pas besoin d'EPEL) et openSUSE. Contrairement à l'implémentation
+// Debian d'origine (qui ne faisait que "ufw --force enable"/"nft -f" sans activer explicitement le
+// service), le service est maintenant activé explicitement via serviceEnableCmd() pour les 3
+// systèmes d'init (systemd/OpenRC/runit — noms de service confirmés identiques au nom du paquet sur
+// les 3, vérifié via les APKBUILD/templates sources Alpine et Void).
+function firewallCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (recipe.security.firewall === 'ufw') {
+    if (family === 'suse') {
+      return `echo -e "\${YELLOW:-}[INFO] UFW n'a pas de paquet officiel pour openSUSE Tumbleweed : pare-feu non configuré. Choisissez \\"nftables\\" pour cette distribution.\${NC:-}" 2>/dev/null || true`;
+    }
+    return `if command -v ufw &>/dev/null; then
+    ufw default deny incoming || true
+    ufw default allow outgoing || true
+    ${recipe.enableSSH ? 'ufw allow 22/tcp || true' : ''}
+    ufw --force enable || true
+fi
+${serviceEnableCmd('ufw', family)}`;
+  }
+  if (recipe.security.firewall === 'nftables') {
+    return `if command -v nft &>/dev/null; then
+    cat > /etc/nftables.conf << 'NFT_EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        ct state established,related accept
+        iif lo accept
+        icmp type echo-request accept
+        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert } accept
+${recipe.enableSSH ? '        tcp dport 22 accept' : ''}
+    }
+    chain forward { type filter hook forward priority 0; policy drop; }
+    chain output { type filter hook output priority 0; policy accept; }
+}
+NFT_EOF
+    nft -f /etc/nftables.conf || true
+fi
+${serviceEnableCmd('nftables', family)}`;
+  }
+  return '';
+}
+
 // Bug réel trouvé en auditant : les 4 champs de branding visuel (accentColor, wallpaperPreset,
 // customWallpaperUrl, bootSplashTheme) ont ZERO référence, mais leur câblage réel nécessiterait
 // des assets de thème Plymouth/fond d'écran par bureau — invérifiable dans cet environnement sans
@@ -681,6 +732,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (isFedoraLike) {
       pkgs.push('selinux-policy-targeted', 'policycoreutils');
     }
+  }
+
+  // "firewall" (ufw/nftables) — voir firewallCmd (activation du service/écriture de la config)
+  // pour le détail de la vérification. "ufw" confirmé réel partout SAUF openSUSE Tumbleweed
+  // (absent du dépôt officiel OSS, vérifié en direct sur download.opensuse.org) — avertissement
+  // honnête à la place plutôt qu'un paquet inexistant. "nftables" confirmé réel sur toutes les
+  // familles, y compris Rocky (déjà dans BaseOS, sans besoin d'EPEL).
+  if (recipe.security.firewall === 'ufw' && distroId !== 'opensuse') {
+    pkgs.push('ufw');
+  } else if (recipe.security.firewall === 'nftables') {
+    pkgs.push('nftables');
   }
 
   // Bug réel MAJEUR trouvé en auditant : "useradd -s ${recipe.user.shell}" fixe le shell de
@@ -1311,6 +1373,7 @@ chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
+${firewallCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -1500,6 +1563,7 @@ chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home
 ${sshEnableCmd}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
+${firewallCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -2218,44 +2282,7 @@ ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
-${recipe.security.firewall === 'ufw' ? `
-if ! command -v ufw &>/dev/null; then
-    apt-get install -y --no-install-recommends ufw >/dev/null 2>&1 || true
-fi
-if command -v ufw &>/dev/null; then
-    ufw default deny incoming || true
-    ufw default allow outgoing || true
-    ${recipe.enableSSH ? 'ufw allow 22/tcp || true' : ''}
-    ufw --force enable || true
-fi
-` : ''}${recipe.security.firewall === 'nftables' ? `
-# "nftables" était sélectionnable dans l'interface mais n'était câblé nulle part dans ce
-# générateur (bug réel trouvé en auditant) : le choix n'installait ni ne configurait rien,
-# laissant le système sans aucun pare-feu malgré le choix explicite de l'utilisateur.
-if ! command -v nft &>/dev/null; then
-    apt-get install -y --no-install-recommends nftables >/dev/null 2>&1 || true
-fi
-if command -v nft &>/dev/null; then
-    cat > /etc/nftables.conf << 'NFT_EOF'
-#!/usr/sbin/nft -f
-flush ruleset
-table inet filter {
-    chain input {
-        type filter hook input priority 0; policy drop;
-        ct state established,related accept
-        iif lo accept
-        icmp type echo-request accept
-        icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert } accept
-${recipe.enableSSH ? '        tcp dport 22 accept' : ''}
-    }
-    chain forward { type filter hook forward priority 0; policy drop; }
-    chain output { type filter hook output priority 0; policy accept; }
-}
-NFT_EOF
-    nft -f /etc/nftables.conf || true
-    systemctl enable nftables 2>/dev/null || true
-fi
-` : ''}
+${firewallCmd(recipe, 'debian')}
 
 # Script de post-installation First-Boot
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
