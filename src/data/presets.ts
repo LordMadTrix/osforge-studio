@@ -76,14 +76,19 @@ export const DISTRO_PRESETS: DistroPreset[] = [
     // pour debian (APT) : linux-image-amd64 [...] utilisé à la place"). Le preset est un LABORATOIRE
     // DE SÉCURITÉ — promettre un noyau durci qu'il n'installe pas réellement est particulièrement
     // trompeur ici. Remplacé par "generic" et par les protections RÉELLEMENT câblées et déjà
-    // présentes dans ce même preset (cisBenchmarkLevel: 2, appArmorOrSELinux, fail2ban,
-    // luksEncryption — voir security ci-dessous, tous vérifiés ailleurs dans ce projet), qui
-    // offrent un durcissement de sécurité authentique sans rien inventer.
+    // présentes dans ce même preset (cisBenchmarkLevel: 2, appArmorOrSELinux, fail2ban),
+    // qui offrent un durcissement de sécurité authentique sans rien inventer.
+    // Correction ultérieure (même audit, cycle suivant) : le highlight ci-dessus mentionnait
+    // encore "LUKS" et security.luksEncryption valait "true" — vérifié en direct que ce
+    // correctif précédent s'était trompé : "luksEncryption" n'est PAS câblé ailleurs dans ce
+    // projet (aucune trace de "cryptsetup"/"luksFormat" dans tout src/, confirmé par recherche
+    // exhaustive). Retiré du highlight et repassé à "false" — même faute que le kernel "hardened"
+    // initialement corrigé ci-dessus, appliquée cette fois au chiffrement disque.
     subtitle: 'Debian 12 + XFCE + Pentest Suite + Durcissement CIS Niveau 2',
     description: 'Système d’audit de sécurité complet avec suite de sniffing, scan réseau, frameworks d’exploitation et audit sans fil préconfigurés.',
     icon: 'ShieldAlert',
     category: 'Security',
-    highlights: ['Wireshark + Tshark', 'Metasploit Framework', 'Aircrack-ng + Nmap', 'CIS Niveau 2 + AppArmor + LUKS'],
+    highlights: ['Wireshark + Tshark', 'Metasploit Framework', 'Aircrack-ng + Nmap', 'CIS Niveau 2 + AppArmor'],
     estimatedSize: '1.8 Go',
     estimatedRam: '510 Mo',
     recipe: {
@@ -120,7 +125,7 @@ export const DISTRO_PRESETS: DistroPreset[] = [
         firewall: 'nftables',
         appArmorOrSELinux: true,
         fail2ban: true,
-        luksEncryption: true,
+        luksEncryption: false,
         disableRootSSH: true,
         autoSecurityUpdates: true,
       },

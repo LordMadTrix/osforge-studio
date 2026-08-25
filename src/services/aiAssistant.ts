@@ -173,19 +173,26 @@ export function analyzePromptToRecipe(prompt: string, currentRecipe: OSRecipe): 
     reasons.push('K3s Kubernetes, Cockpit et WireGuard ajoutés pour un serveur homelab clé en main.');
   }
 
-  // Security & Hardening
+  // Security & Hardening — Bug réel MAJEUR trouvé en auditant : "luksEncryption: true" + tag
+  // "Chiffrement LUKS" promettaient un chiffrement disque réellement appliqué, alors que
+  // "luksEncryption" n'est câblé NULLE PART dans ce projet (aucune trace de "cryptsetup"/
+  // "luksFormat" dans tout src/, confirmé par recherche exhaustive) — un prompt "OS sécurisé pour
+  // la banque" activait ce toggle et affichait un tag de chiffrement affirmatif alors qu'aucun
+  // disque n'est jamais chiffré. Retiré, même correction que pour le toggle UI direct
+  // (SecurityConfig.tsx) et le preset "cybersec_lab" (presets.ts), tous deux corrigés dans le
+  // même audit.
   if (p.includes('sécurisé') || p.includes('durci') || p.includes('cis') || p.includes('banque')) {
     updated.security = {
       cisBenchmarkLevel: 2,
       firewall: 'nftables',
       appArmorOrSELinux: true,
       fail2ban: true,
-      luksEncryption: true,
+      luksEncryption: false,
       disableRootSSH: true,
       autoSecurityUpdates: true,
     };
-    tags.push('CIS Level 2', 'Chiffrement LUKS');
-    reasons.push('Durcissement maximal CIS Level 2, pare-feu NFTables et chiffrement de disque activés.');
+    tags.push('CIS Level 2');
+    reasons.push('Durcissement maximal CIS Level 2, pare-feu NFTables et AppArmor activés.');
   }
 
   updated.selectedPackages = Array.from(selectedPkgs);

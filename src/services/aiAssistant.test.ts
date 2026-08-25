@@ -102,4 +102,11 @@ describe('analyzePromptToRecipe — bug réel trouvé en auditant, même classe 
     expect(result.recipe.kernel).toBe('xanmod');
     expect(result.suggestedTags).toContain('Noyau XanMod');
   });
+
+  it('bug réel MAJEUR trouvé en auditant : un prompt "sécurisé"/"durci" activait security.luksEncryption=true et affichait le tag "Chiffrement LUKS", alors que "luksEncryption" n\'est câblé NULLE PART dans ce projet (aucune trace de "cryptsetup"/"luksFormat" dans tout src/, confirmé par recherche exhaustive) — l\'utilisateur croyait son disque chiffré sans que rien ne le soit réellement. Corrigé : luksEncryption reste false, aucun tag "Chiffrement LUKS" affiché', () => {
+    const result = analyzePromptToRecipe('je veux un OS sécurisé et durci pour la banque', makeRecipe());
+    expect(result.recipe.security?.luksEncryption).toBe(false);
+    expect(result.suggestedTags).not.toContain('Chiffrement LUKS');
+    expect(result.suggestedTags).toContain('CIS Level 2');
+  });
 });

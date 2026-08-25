@@ -83,6 +83,14 @@ describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe que "de
   });
 });
 
+describe('DISTRO_PRESETS — bug réel MAJEUR trouvé en RÉ-AUDITANT le fix "cybersec_lab" ci-dessus : le correctif du noyau "hardened" avait lui-même introduit une nouvelle fausse promesse en remplacement — le highlight annonçait "CIS Niveau 2 + AppArmor + LUKS" et security.luksEncryption valait "true", alors que "luksEncryption" n\'est câblé NULLE PART dans ce projet (aucune trace de "cryptsetup"/"luksFormat" dans tout src/, confirmé par recherche exhaustive). Le même défaut existait aussi dans le toggle UI direct (SecurityConfig.tsx, sans aucun avertissement) et dans l\'Architecte IA (aiAssistant.ts, tag "Chiffrement LUKS")', () => {
+  it('cybersec_lab : n\'annonce plus "LUKS" dans ses highlights et n\'active plus luksEncryption (non câblé)', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'cybersec_lab')!;
+    expect(preset.highlights.join(' ')).not.toMatch(/luks/i);
+    expect(preset.recipe.security?.luksEncryption).toBe(false);
+  });
+});
+
 describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe : "retro_gaming_box" annonçait "Manettes Xbox/PS5 prêtes" sans jamais sélectionner "gamepad_drivers" (joystick/jstest-gtk/xboxdrv — le paquet catalogue conçu exactement pour cette promesse, Steam seul ne fournissant ni calibrage ni pilote générique hors du support xpad/hid-generic déjà présent dans le noyau). "devops_hyprland" avait la même incohérence interne que "cloud_native_homelab" (déjà corrigée) : highlight "Docker & Podman" alors que son propre sous-titre ne mentionne QUE Docker et que selectedPackages n\'installe que "docker"', () => {
   it('retro_gaming_box : installe réellement joystick/jstest-gtk/xboxdrv (paquet "gamepad_drivers" désormais sélectionné)', () => {
     const preset = DISTRO_PRESETS.find(p => p.id === 'retro_gaming_box')!;

@@ -173,15 +173,23 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
             </label>
           </div>
 
-          {/* LUKS Disk Encryption */}
+          {/* LUKS Disk Encryption — Bug réel MAJEUR trouvé en auditant : ce toggle et son InfoTooltip
+              affirmaient sans réserve "Chiffre les partitions système et données avec AES-XTS pour
+              empêcher le vol de données", alors qu'aucune trace de "cryptsetup"/"luksFormat" n'existe
+              nulle part dans tout src/ (vérifié en direct par recherche exhaustive) — activer ce
+              réglage ne chiffre RIEN, contrairement à ce que l'UI promettait avec assurance. Un
+              utilisateur cochant cette case pour un usage sensible (conformité, protection de
+              données) croirait à tort son disque protégé. Corrigé en remplaçant la promesse par un
+              avertissement honnête, même esprit que les avertissements déjà en place dans
+              scriptGenerators.ts pour les fonctionnalités non câblées (ex. bootstrap cross-arch). */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
                 Chiffrement complet LUKS
-                <InfoTooltip text="Chiffre les partitions système et données avec AES-XTS pour empêcher le vol de données." />
+                <InfoTooltip text="Non câblé pour le moment : ce réglage est enregistré dans la recette mais AUCUN script généré ne chiffre réellement le disque. À n'activer que si vous ajoutez vous-même le chiffrement (cryptsetup/LUKS) après compilation." />
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                Chiffrement AES-XTS du disque et du swap
+              <div style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 600 }}>
+                ⚠ Pas encore implémenté — n'a aucun effet sur le script généré
               </div>
             </div>
             <label className="toggle-switch">
