@@ -371,6 +371,39 @@ function k8sCliSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): s
   return `${kubectlCmd}\n${helmCmd}`;
 }
 
+// Bug réel MAJEUR trouvé dans le même audit que K8s CLI Tools ci-dessus, même piège HTTP-200 : "zig"
+// confirmé ABSENT de Debian bookworm/trixie ET Ubuntu noble (contenu réel des pages : "No such
+// package" / "Package not available in this suite", vérifié en direct, pas juste le code HTTP).
+// Confirmé RÉEL sur Arch (API JSON), Alpine (contenu de page), Fedora (packages.fedoraproject.org),
+// Void (dépôt srcpkgs réel) et openSUSE (documenté par le wiki officiel openSUSE, "zypper in zig") —
+// ces 5 familles restent inchangées. Comme OpenTofu/kubectl/Helm, Zig est un simple binaire CLI
+// autonome sans démon : installable directement PENDANT la compilation en téléchargeant la vraie
+// archive officielle depuis ziglang.org/download/ (les 4 architectures gérées par ce générateur —
+// x86_64, aarch64, x86/i686, riscv64 — toutes vérifiées répondre HTTP 200 en direct). La version
+// stable est extraite du vrai index JSON officiel (ziglang.org/download/index.json, qui liste aussi
+// les builds "master" — exclus par le filtre semver strict X.Y.Z ne gardant que le plus récent),
+// plutôt que figée en dur, pour que ce correctif ne se périme pas à la prochaine sortie de Zig.
+function zigSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('zig_compiler')) return '';
+  if (family !== 'debian') return '';
+  const zigArch = recipe.arch === 'x86_64' ? 'x86_64' : recipe.arch === 'aarch64' ? 'aarch64' : recipe.arch === 'i686' ? 'x86' : recipe.arch === 'riscv64' ? 'riscv64' : null;
+  if (!zigArch) {
+    return `echo -e "\${YELLOW:-}[INFO] Zig n'est pas encore câblé pour l'architecture ${recipe.arch}.\${NC:-}" 2>/dev/null || true`;
+  }
+  return `apt-get install -y --no-install-recommends xz-utils 2>/dev/null || true
+ZIG_VERSION=$(curl -fsSL https://ziglang.org/download/index.json 2>/dev/null | grep -oE '"[0-9]+\\.[0-9]+\\.[0-9]+"[[:space:]]*:' | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+if [ -n "\${ZIG_VERSION:-}" ]; then
+  curl -fsSL "https://ziglang.org/download/\${ZIG_VERSION}/zig-${zigArch}-linux-\${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz 2>/dev/null \\
+  && mkdir -p /opt/zig \\
+  && tar -xJf /tmp/zig.tar.xz -C /opt/zig --strip-components=1 2>/dev/null \\
+  && ln -sf /opt/zig/zig /usr/local/bin/zig \\
+  && rm -f /tmp/zig.tar.xz \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Zig échouée (réseau indisponible pendant la compilation ?).\${NC:-}"
+else
+  echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Zig échouée : impossible de déterminer la dernière version stable.\${NC:-}"
+fi`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2032,6 +2065,7 @@ ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
+${zigSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2233,6 +2267,7 @@ ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
+${zigSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2450,6 +2485,7 @@ ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
+${zigSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -3030,6 +3066,7 @@ ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
+${zigSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

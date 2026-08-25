@@ -833,9 +833,14 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 95,
     icon: 'Zap',
     tags: ['Zig', 'Système', 'Performance', 'Compilation'],
+    // Bug réel MAJEUR trouvé en auditant, même piège HTTP-200 que K3s/Ollama/OpenTofu/K8s CLI Tools
+    // ci-dessus : "zig" est confirmé ABSENT de Debian bookworm/trixie ET Ubuntu noble (contenu réel
+    // des pages "No such package"/"Package not available in this suite", pas juste le code HTTP).
+    // Corrigé en installant la vraie archive officielle depuis ziglang.org/download/ pendant la
+    // compilation (zigSetupCmd dans scriptGenerators.ts). Arch/Alpine/Fedora/openSUSE/Void confirmés
+    // réels et inchangés (API JSON Arch, contenu de page Alpine/Fedora, dépôt source Void, wiki
+    // officiel openSUSE "zypper in zig").
     pkgNames: {
-      debian: 'zig',
-      ubuntu: 'zig',
       arch: 'zig',
       alpine: 'zig',
       fedora: 'zig',

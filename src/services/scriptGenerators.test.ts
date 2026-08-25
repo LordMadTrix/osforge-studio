@@ -2966,3 +2966,40 @@ describe('K8s CLI Tools (kubectl/helm) — bug réel MAJEUR trouvé dans le mêm
   });
 });
 
+describe('Zig Toolchain — bug réel MAJEUR trouvé dans le même audit que K8s CLI Tools, même piège HTTP-200 : "zig" installait un paquet absent de Debian bookworm/trixie et Ubuntu noble (contenu réel confirmé "No such package"/"Package not available in this suite"). Corrigé en installant la vraie archive officielle depuis ziglang.org/download/ directement pendant la compilation, vérifié en direct : la version stable extraite du vrai index.json (0.16.0 au moment du test) s\'extrait bien via le pipeline shell réel, les 4 URLs d\'archive (x86_64/aarch64/x86/riscv64) répondent HTTP 200, et l\'archive réelle s\'extrait et s\'exécute correctement sous WSL Linux (pas seulement "bash -n")', () => {
+  it('Debian ISO x86_64 : déclenche le vrai installeur Zig (archive x86_64-linux) pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', arch: 'x86_64', selectedPackages: ['zig_compiler'],
+    }));
+    expect(script).toContain('https://ziglang.org/download/index.json');
+    expect(script).toContain('zig-x86_64-linux-');
+  });
+
+  it('Ubuntu ISO i686 : l\'archive téléchargée est bien la variante "x86" (pas "i686", nom réel utilisé par ziglang.org)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'iso_hybrid', arch: 'i686', selectedPackages: ['zig_compiler'],
+    }));
+    expect(script).toContain('zig-x86-linux-');
+    expect(script).not.toContain('zig-i686-linux-');
+  });
+
+  it('Arch : AUCUN installeur curl déclenché (vrai paquet natif "zig" déjà fonctionnel)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['zig_compiler'],
+    }));
+    expect(script).not.toContain('ziglang.org');
+  });
+
+  it('openSUSE : AUCUN installeur curl déclenché (vrai paquet natif "zig" documenté par le wiki officiel openSUSE)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse', outputFormat: 'wsl2_tar', selectedPackages: ['zig_compiler'],
+    }));
+    expect(script).not.toContain('ziglang.org');
+  });
+
+  it('zig_compiler non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('ziglang.org');
+  });
+});
+
