@@ -1677,3 +1677,42 @@ describe('generateBuildScript — avertissement honnête sur la chaîne d\'amor�
     expect(script).not.toContain('ne démarrera PAS');
   });
 });
+
+describe('resolvePackageList — bug réel MAJEUR trouvé en auditant : Kali, Raspberry Pi OS (hors format rpi_sd) et Linux Mint passent tous par ce générateur (DEBOOTSTRAP_TARGETS les liste) avec un distroId différent de "debian"/"ubuntu", mais TOUS les blocs de paquets de bureau (GNOME/KDE/XFCE/Cosmic/Hyprland/Sway/Cinnamon/LXQt/MATE/Budgie) ainsi que les utilitaires de base et "openssh-server" ne testaient QUE "debian"/"ubuntu" littéralement — un système Linux Mint + Cinnamon (combinaison pourtant emblématique de Mint) ou Kali + GNOME (bureau par défaut de la vraie Kali) démarrait sur une console texte SANS AUCUN AVERTISSEMENT, parfois même sans "sudo" ni serveur SSH malgré "Activer SSH" coché. Corrigé en regroupant ces 5 distros sous "isDebianLike", cohérent avec DEBOOTSTRAP_TARGETS (raspbian bootstrape depuis le miroir Debian brut, linuxmint depuis le miroir Ubuntu brut — mêmes pools de paquets) et avec le bloc appArmorOrSELinux qui traitait déjà ces 5 distros ensemble. Kali vérifié séparément en direct (pkg.kali.org) : "gnome-core"/"gdm3"/"openssh-server" y sont bien de vrais paquets', () => {
+  it('Linux Mint + Cinnamon : installe le vrai paquet "cinnamon" avec LightDM (pas zéro paquet de bureau)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'linuxmint', outputFormat: 'iso_hybrid', desktop: 'cinnamon', displayManager: 'lightdm', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo']));
+  });
+
+  it('Kali + GNOME : installe le vrai paquet "gnome-core"/"gdm3" (bureau par défaut de la vraie Kali)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'kali', outputFormat: 'iso_hybrid', desktop: 'gnome', displayManager: 'gdm3', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['gnome-core', 'gdm3', 'nautilus']));
+  });
+
+  it('Raspberry Pi OS (format iso_hybrid, pas rpi_sd) + XFCE : installe le vrai paquet "xfce4"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'raspbian', outputFormat: 'iso_hybrid', arch: 'aarch64', desktop: 'xfce', displayManager: 'lightdm', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['xfce4', 'xfce4-goodies']));
+  });
+
+  it('Kali/Raspbian/Linux Mint : "sudo" et les utilitaires de base sont bien installés (bug distinct trouvé dans le même audit : la ligne des utilitaires de base avait le même trou)', () => {
+    for (const distro of ['kali', 'raspbian', 'linuxmint'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, outputFormat: 'iso_hybrid', arch: distro === 'raspbian' ? 'aarch64' : 'x86_64', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('sudo');
+      expect(pkgs).toContain('curl');
+    }
+  });
+
+  it('Kali/Raspbian/Linux Mint + Activer SSH : installent bien "openssh-server" (bug distinct trouvé dans le même audit : SSH activé sans le paquet serveur)', () => {
+    for (const distro of ['kali', 'raspbian', 'linuxmint'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, outputFormat: 'iso_hybrid', arch: distro === 'raspbian' ? 'aarch64' : 'x86_64', enableSSH: true, selectedPackages: [] }));
+      expect(pkgs).toContain('openssh-server');
+    }
+  });
+
+  it('Debian/Ubuntu : non-régression, comportement inchangé après le regroupement isDebianLike', () => {
+    const debianPkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'gnome', selectedPackages: [] }));
+    const ubuntuPkgs = resolvePackageList(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid', desktop: 'kde', selectedPackages: [] }));
+    expect(debianPkgs).toEqual(expect.arrayContaining(['gnome-core', 'gdm3', 'sudo']));
+    expect(ubuntuPkgs).toEqual(expect.arrayContaining(['plasma-desktop', 'sddm', 'sudo']));
+  });
+});

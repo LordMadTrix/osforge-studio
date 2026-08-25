@@ -400,10 +400,26 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // Familles pacman/dnf : cachyos suit les paquets Arch, rocky suit les paquets Fedora.
   const isArchLike = distroId === 'arch' || distroId === 'cachyos';
   const isFedoraLike = distroId === 'fedora' || distroId === 'rocky';
+  // Bug réel MAJEUR trouvé en auditant : TOUS les blocs de paquets de bureau ci-dessous (GNOME,
+  // KDE, XFCE, Cosmic, Hyprland, Sway, Cinnamon, LXQt, MATE, Budgie), ainsi que les utilitaires
+  // de base et le paquet openssh-server, ne testaient QUE "distroId === 'debian' || 'ubuntu'" —
+  // alors que Kali, Raspberry Pi OS (hors format rpi_sd) et Linux Mint passent bien par CE
+  // générateur (DEBOOTSTRAP_TARGETS ci-dessous les liste tous les trois) avec un distroId
+  // DIFFÉRENT ("kali"/"raspbian"/"linuxmint"), donc ne matchaient AUCUN de ces blocs : un système
+  // Linux Mint + bureau Cinnamon (combinaison pourtant emblématique de Mint) ou Kali + GNOME
+  // (bureau par défaut de la vraie Kali) démarrait sur une console texte SANS AUCUN AVERTISSEMENT,
+  // parfois même sans "sudo" ni serveur SSH installés malgré "Activer SSH" coché. Un bloc plus bas
+  // (appArmorOrSELinux, ligne ~767) traitait déjà correctement ces 5 distros ensemble, confirmant
+  // qu'il s'agit d'un oubli et non d'un choix délibéré. Regroupement légitime : DEBOOTSTRAP_TARGETS
+  // montre que raspbian bootstrape depuis le miroir Debian brut (deb.debian.org) et linuxmint depuis
+  // le miroir Ubuntu brut (archive.ubuntu.com) — mêmes pools de paquets, mêmes noms, aucune
+  // vérification supplémentaire nécessaire. Kali vérifié séparément en direct (pkg.kali.org) :
+  // "gnome-core", "gdm3" et "openssh-server" y sont bien de vrais paquets (dérivé Debian testing).
+  const isDebianLike = distroId === 'debian' || distroId === 'ubuntu' || distroId === 'kali' || distroId === 'raspbian' || distroId === 'linuxmint';
 
   // Desktop specific packages & Full Graphical Stack
   if (recipe.desktop === 'gnome') {
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push(
         'gnome-core', 'gdm3', 'gnome-terminal', 'nautilus', 'firefox-esr',
         'xorg', 'xserver-xorg-video-all', 'mesa-vulkan-drivers', 'mesa-va-drivers',
@@ -431,7 +447,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('patterns-gnome-gnome', 'gdm', 'MozillaFirefox', 'pipewire', 'wireplumber', 'NetworkManager');
     }
   } else if (recipe.desktop === 'kde') {
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push(
         'plasma-desktop', 'plasma-workspace', 'sddm', 'konsole', 'dolphin', 'firefox-esr',
         'xorg', 'xserver-xorg-video-all', 'mesa-vulkan-drivers',
@@ -469,7 +485,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // pour ce correctif, nécessiterait un choix de repli différent, pas juste "ly").
     if (isArchLike) {
       pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'dunst', 'xdg-desktop-portal-hyprland', 'polkit-kde-agent', 'thunar', 'firefox', 'pipewire', 'wireplumber', 'ly');
-    } else if (distroId === 'debian' || distroId === 'ubuntu') {
+    } else if (isDebianLike) {
       pkgs.push('hyprland', 'waybar', 'wofi', 'kitty', 'xdg-desktop-portal-hyprland', 'thunar', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (distroId === 'alpine') {
       // "hyprland" et "waybar" confirmés réels sur Alpine (pkgs.alpinelinux.org, community).
@@ -482,7 +498,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // aucun srcpkgs/hyprland ni srcpkgs/waybar) — honnêtement non câblé plutôt que d'installer
     // un paquet inexistant, contrairement à Alpine et openSUSE qui les ont réellement.
   } else if (recipe.desktop === 'xfce') {
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push(
         'xfce4', 'xfce4-goodies', 'lightdm', 'lightdm-gtk-greeter', 'thunar', 'firefox-esr',
         'xorg', 'xserver-xorg-video-all', 'mesa-vulkan-drivers',
@@ -506,7 +522,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('patterns-xfce-xfce', 'lightdm', 'MozillaFirefox', 'pipewire');
     }
   } else if (recipe.desktop === 'cosmic') {
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('cosmic-session', 'cosmic-greeter', 'cosmic-term', 'cosmic-files', 'firefox-esr', 'pipewire', 'mesa-vulkan-drivers');
     } else if (isArchLike) {
       pkgs.push('cosmic-session', 'cosmic-greeter', 'firefox', 'pipewire');
@@ -564,7 +580,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // packages.fedoraproject.org — mais PAS pour Rocky/EPEL9, absent d'EPEL9 vérifié via
     // dl.fedoraproject.org/pub/epel/9/.../l/ ; sans conséquence pratique ici puisque "sway"
     // lui-même n'est déjà installé nulle part pour Rocky, voir juste en dessous).
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('sway', 'swaylock', 'swaybg', 'swayidle', 'waybar', 'foot', 'firefox', 'pipewire', 'wireplumber', 'networkmanager', 'ly');
@@ -588,7 +604,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   } else if (recipe.desktop === 'cinnamon') {
     // "cinnamon" confirmé paquet réel : sources.debian.org/api/src/cinnamon (200) et
     // archlinux.org/packages/search/json (paquet "cinnamon" présent).
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
@@ -613,7 +629,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // vérifié via packages.fedoraproject.org) ; Rocky/EPEL9 n'a EN REVANCHE AUCUN paquet LXQt du
     // tout (vérifié en direct : dl.fedoraproject.org/pub/epel/9/.../l/ ne contient rien) — ne rien
     // installer plutôt que de prétendre à un paquet inexistant.
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('lxqt', 'sddm', 'pcmanfm-qt', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('lxqt-session', 'lxqt-panel', 'lxqt-config', 'pcmanfm-qt', 'openbox', 'sddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
@@ -642,7 +658,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // metapackage=yes). Alpine confirmé ABSENT (aucun paquet "mate*" pertinent trouvé sur
     // pkgs.alpinelinux.org, seuls des paquets de thème "materia" sans rapport) — honnêtement non
     // câblé plutôt que d'installer un paquet inexistant.
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('mate-desktop-environment', 'lightdm', 'lightdm-gtk-greeter', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('mate', 'mate-extra', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
@@ -667,7 +683,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     // confirmés réels sur les 4 familles câblées. Rocky/EPEL9 ET Alpine confirmés ABSENTS (aucun
     // paquet "budgie-desktop" ni dans dl.fedoraproject.org/pub/epel/9/.../b/ ni sur
     // pkgs.alpinelinux.org) — honnêtement non câblés plutôt que d'installer un paquet inexistant.
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('budgie-desktop-environment', 'lightdm', 'lightdm-gtk-greeter', 'nautilus', 'gnome-terminal', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('budgie-desktop', 'nautilus', 'gnome-terminal', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
@@ -711,7 +727,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   }
 
   // Base utilities & hardware drivers
-  if (distroId === 'debian' || distroId === 'ubuntu') {
+  if (isDebianLike) {
     pkgs.push(
       'sudo', 'curl', 'wget', 'locales', 'ca-certificates', 'systemd-sysv', 'initramfs-tools',
       'firmware-linux-free', 'pciutils', 'usbutils', 'iproute2', 'net-tools'
@@ -735,7 +751,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // raw.githubusercontent.com/void-linux/void-packages) : "openssh-server" existe partout SAUF
   // sur Arch/openSUSE/Void, où le paquet unique "openssh" fournit déjà le serveur.
   if (recipe.enableSSH) {
-    if (distroId === 'debian' || distroId === 'ubuntu') {
+    if (isDebianLike) {
       pkgs.push('openssh-server');
     } else if (isArchLike || distroId === 'opensuse' || distroId === 'void') {
       pkgs.push('openssh');
