@@ -167,6 +167,70 @@ function serviceEnableCmd(service: string, family: 'debian' | NonDebianFamily): 
   return `systemctl enable ${service} 2>/dev/null || true`;
 }
 
+// Bug réel MAJEUR trouvé en auditant, probablement le plus impactant de toute cette session :
+// "/root/firstboot.sh" est écrit et rendu exécutable (chmod +x) dans les 4 générateurs bash
+// (RootFS/WSL2/Docker non-Debian, image disque non-Debian, carte SD Raspberry Pi, ISO/RootFS/
+// image disque Debian), mais n'est RÉFÉRENCÉ NULLE PART ailleurs dans ce fichier — aucun service
+// systemd, aucun script OpenRC, aucun service runit, rien ne l'exécute jamais. Pourtant
+// PostInstallScripts.tsx promet explicitement à l'utilisateur : "Ce script s'exécutera
+// automatiquement avec les privilèges root lors du tout premier démarrage de la machine." La
+// fonctionnalité "First-Boot Hook", mise en avant dans l'UI comme une fonctionnalité clé, ne
+// s'exécutait donc JAMAIS sur aucun des formats de sortie générés par ces 4 générateurs (seul le
+// chemin cloud-init, via toRuncmdBashBlock(), exécute réellement le script saisi). Corrigé en
+// créant un vrai service "oneshot" qui exécute le script une seule fois puis se désactive lui-même
+// (conforme à la promesse UI), avec un mécanisme différent par famille d'init — systemd
+// (Type=oneshot + ExecStartPost qui se désactive), OpenRC (rc-update del après exécution),
+// runit (le service retire son propre symlink après exécution). Vérifié en direct pour la partie
+// systemd via "systemd-analyze verify" (paquet systemd, WSL Ubuntu de cette machine) — OpenRC et
+// runit suivent la syntaxe standard documentée de ces deux init (pas d'outil de vérification
+// syntaxique local disponible pour ceux-ci sur cette machine, contrairement à systemd/GRUB).
+function firstbootTriggerCmd(family: 'debian' | NonDebianFamily): string {
+  if (family === 'alpine') {
+    return `cat > /etc/init.d/firstboot << 'FBSVC_EOF'
+#!/sbin/openrc-run
+description="OSForge Studio - script de premier demarrage"
+depend() {
+    need net
+}
+start() {
+    ebegin "Execution du script de premier demarrage"
+    /root/firstboot.sh
+    rc-update del firstboot default 2>/dev/null || true
+    eend $?
+}
+FBSVC_EOF
+chmod +x /etc/init.d/firstboot
+${serviceEnableCmd('firstboot', family)}`;
+  }
+  if (family === 'void') {
+    return `mkdir -p /etc/sv/firstboot
+cat > /etc/sv/firstboot/run << 'FBSVC_EOF'
+#!/bin/sh
+exec 2>&1
+/root/firstboot.sh
+rm -f /etc/runit/runsvdir/default/firstboot
+exit 0
+FBSVC_EOF
+chmod +x /etc/sv/firstboot/run
+${serviceEnableCmd('firstboot', family)}`;
+  }
+  return `cat > /etc/systemd/system/firstboot.service << 'FBSVC_EOF'
+[Unit]
+Description=OSForge Studio - script de premier demarrage
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/root/firstboot.sh
+ExecStartPost=-/usr/bin/systemctl disable firstboot.service
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
+FBSVC_EOF
+${serviceEnableCmd('firstboot.service', family)}`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -1829,6 +1893,7 @@ cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
+${recipe.firstBootScript ? firstbootTriggerCmd(family) : ''}
 CHROOT_EOF
 
 echo -e "\${YELLOW}[4/4] 🧹 Démontage et archivage du RootFS...\${NC}"
@@ -2024,6 +2089,7 @@ cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
+${recipe.firstBootScript ? firstbootTriggerCmd(family) : ''}
 CHROOT_EOF
 
 umount -lf "\${ROOTFS_DIR}/sys" || true
@@ -2236,6 +2302,7 @@ cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
+${recipe.firstBootScript ? firstbootTriggerCmd('debian') : ''}
 CHROOT_EOF
 
 umount -lf "\${ROOTFS_DIR}/sys" || true
@@ -2813,6 +2880,7 @@ cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
+${recipe.firstBootScript ? firstbootTriggerCmd('debian') : ''}
 
 CHROOT_EOF
 

@@ -1126,8 +1126,8 @@ describe('generateBuildScript — "dotfilesGitUrl" et "customServices" réelleme
     expect(script).not.toContain('/etc/systemd/system/');
   });
 
-  it('customServices=[] ne génère rien', () => {
-    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', customServices: [] } as any));
+  it('customServices=[] ne génère aucune unité systemd de service personnalisé (le firstboot.service ci-dessous, désormais réellement câblé, est un mécanisme distinct et n\'est pas concerné par ce test)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', customServices: [], firstBootScript: '' } as any));
     expect(script).not.toContain('/etc/systemd/system/');
   });
 });
@@ -2714,6 +2714,65 @@ describe('generateBuildScript (ISO hybride) — bug réel MAJEUR trouvé en audi
     });
     const script = generateBuildScript(recipe);
     expect(script).toContain("-volid 'FORGEOS' \\");
+  });
+});
+
+describe('firstBootScript — bug réel MAJEUR trouvé en auditant, probablement le plus impactant de toute cette session : "/root/firstboot.sh" était écrit et rendu exécutable (chmod +x) dans les 4 générateurs bash, mais n\'était RÉFÉRENCÉ NULLE PART ailleurs — aucun service systemd, aucun script OpenRC, aucun service runit ne le déclenchait jamais, alors que PostInstallScripts.tsx promet explicitement à l\'utilisateur "Ce script s\'exécutera automatiquement avec les privilèges root lors du tout premier démarrage de la machine." La fonctionnalité "First-Boot Hook" (mise en avant dans l\'UI) ne s\'exécutait donc JAMAIS sur aucun format de sortie généré par ces 4 générateurs (seul le chemin cloud-init exécutait réellement le script). Corrigé avec firstbootTriggerCmd() : un service "oneshot" par famille d\'init (systemd Type=oneshot + auto-désactivation ; OpenRC avec rc-update del après exécution ; runit qui retire son propre symlink), vérifié pour la partie systemd via "systemd-analyze verify" (WSL Ubuntu, exit 0)', () => {
+  it('Debian ISO : crée firstboot.service (systemd Type=oneshot, auto-désactivation) et l\'active', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', firstBootScript: 'echo test',
+    }));
+    expect(script).toContain('/etc/systemd/system/firstboot.service');
+    expect(script).toContain('Type=oneshot');
+    expect(script).toContain('ExecStart=/root/firstboot.sh');
+    expect(script).toContain('systemctl disable firstboot.service');
+    expect(script).toContain('systemctl enable firstboot.service');
+  });
+
+  it('Arch qcow2 (image disque non-Debian) : crée et active firstboot.service (systemd)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'qcow2', firstBootScript: 'echo test',
+    }));
+    expect(script).toContain('/etc/systemd/system/firstboot.service');
+    expect(script).toContain('systemctl enable firstboot.service');
+  });
+
+  it('Alpine (RootFS non-Debian) : crée un script OpenRC /etc/init.d/firstboot et l\'active via rc-update, PAS de systemd', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'wsl2_tar', firstBootScript: 'echo test',
+    }));
+    expect(script).toContain('/etc/init.d/firstboot');
+    expect(script).toContain('#!/sbin/openrc-run');
+    expect(script).toContain('rc-update add firstboot default');
+    expect(script).toContain('rc-update del firstboot default');
+    expect(script).not.toContain('/etc/systemd/system/firstboot.service');
+  });
+
+  it('Void (image disque non-Debian) : crée un service runit /etc/sv/firstboot/run qui retire son propre symlink, PAS de systemd', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'void', outputFormat: 'raw_img', firstBootScript: 'echo test',
+    }));
+    expect(script).toContain('/etc/sv/firstboot/run');
+    expect(script).toContain('/root/firstboot.sh');
+    expect(script).toContain('rm -f /etc/runit/runsvdir/default/firstboot');
+    expect(script).not.toContain('/etc/systemd/system/firstboot.service');
+  });
+
+  it('Raspberry Pi SD : crée et active firstboot.service (systemd, comme Debian)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'raspbian', arch: 'aarch64', outputFormat: 'rpi_sd', firstBootScript: 'echo test',
+    }));
+    expect(script).toContain('/etc/systemd/system/firstboot.service');
+    expect(script).toContain('systemctl enable firstboot.service');
+  });
+
+  it('firstBootScript vide : aucun mécanisme de déclenchement créé (rien à exécuter, cohérent avec l\'absence de script)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', firstBootScript: '',
+    }));
+    expect(script).not.toContain('/etc/systemd/system/firstboot.service');
+    expect(script).not.toContain('/etc/init.d/firstboot');
+    expect(script).not.toContain('/etc/sv/firstboot');
   });
 });
 
