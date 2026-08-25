@@ -2271,5 +2271,45 @@ describe('Catalogue Logiciels enrichi — résolution des nouveaux paquets (IA, 
   });
 });
 
+describe('generateBuildScript — faille réelle d\'injection de commande via "kernelCmdline" (champ libre récemment ajouté). Interpolé tel quel dans 3 heredocs bash qui écrivent grub.cfg/cmdline.txt, dont 2 avec un délimiteur NON protégé ("<< GRUBCFG_EOF" / "<< CMDLINE_EOF", nécessaire pour laisser ${KERNEL_PATH}/${ROOT_UUID} s\'évaluer à l\'exécution) — un heredoc non protégé développe aussi $(), les backticks et \\ dans TOUT son corps. Reproduit et vérifié en direct (exécution bash réelle, avant/après) : un "kernelCmdline" contenant "$(commande)" exécutait réellement cette commande avec les privilèges root du script généré ; après le correctif (sanitizeKernelCmdline, qui retire $/`` `` /\\), le même contenu littéral ne déclenche plus rien', () => {
+  it('Image disque non-Debian (QCOW2/VMDK/RAW) : neutralise "$(commande)" dans la ligne GRUB "linux ..."', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'qcow2', kernelCmdline: 'quiet $(touch /tmp/pwned) splash' } as any));
+    const grubLine = script.split('\n').find(l => l.includes('console=tty0') && l.includes('splash'));
+    expect(grubLine).toBeDefined();
+    expect(grubLine).not.toContain('$(touch');
+    expect(grubLine).toContain('quiet (touch /tmp/pwned) splash');
+  });
+
+  it('Carte SD Raspberry Pi (cmdline.txt) : neutralise "$(commande)" de la même façon', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', kernelCmdline: 'quiet $(touch /tmp/pwned) splash' } as any));
+    const cmdlineLine = script.split('\n').find(l => l.includes('console=serial0'));
+    expect(cmdlineLine).toBeDefined();
+    expect(cmdlineLine).not.toContain('$(touch');
+  });
+
+  it('ISO Debian/APT (heredoc déjà protégé par apostrophes) : le correctif retire aussi $/backtick/\\, cohérent avec les 2 autres cas', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernelCmdline: 'mitigations=$(off) `nope`' } as any));
+    const grubLine = script.split('\n').find(l => l.includes('boot=live components quiet splash'));
+    expect(grubLine).toBeDefined();
+    expect(grubLine).not.toContain('$(off)');
+    expect(grubLine).not.toContain('`nope`');
+  });
+
+  it('kernelCmdline légitime (sans caractères dangereux) : reste intact dans les 3 générateurs', () => {
+    const cmdline = 'mitigations=off nosplash quiet loglevel=3';
+    const arch = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'qcow2', kernelCmdline: cmdline } as any));
+    const rpi = generateBuildScript(makeRecipe({ distro: 'raspbian', outputFormat: 'rpi_sd', arch: 'aarch64', kernelCmdline: cmdline } as any));
+    const debian = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernelCmdline: cmdline } as any));
+    expect(arch).toContain(cmdline);
+    expect(rpi).toContain(cmdline);
+    expect(debian).toContain(cmdline);
+  });
+
+  it('kernelCmdline vide/absent : aucun changement de comportement (non-régression)', () => {
+    const withCmdline = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid' } as any));
+    expect(withCmdline).not.toContain('undefined');
+  });
+});
+
 
 

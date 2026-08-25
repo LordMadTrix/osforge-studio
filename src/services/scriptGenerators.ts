@@ -36,6 +36,25 @@ function shellQuotePkgList(names: string[]): string {
   return names.map(shQuote).join(' ');
 }
 
+// Faille réelle trouvée et vérifiée en direct (fichier de preuve local créé, puis neutralisé) :
+// "kernelCmdline" (champ libre de l'UI, ajouté récemment) est interpolé tel quel dans le corps de
+// TROIS heredocs bash qui écrivent grub.cfg/cmdline.txt (lignes où "linux ... ${recipe.kernelCmdline}"
+// apparaît). Deux de ces trois heredocs utilisent un délimiteur NON protégé ("<< GRUBCFG_EOF" /
+// "<< CMDLINE_EOF", sans apostrophes) — nécessaire pour laisser \${KERNEL_PATH}/\${ROOT_UUID}
+// s'évaluer au moment de l'EXÉCUTION du script généré — mais cela signifie que bash développe
+// aussi $(), les backticks et les échappements \ dans TOUT le corps du heredoc, kernelCmdline
+// inclus. Reproduit localement : un heredoc non protégé contenant littéralement
+// "$(touch /tmp/preuve)" dans son corps exécute réellement la commande substituée pendant que le
+// script s'exécute — le fichier de preuve est bien créé. Un "kernelCmdline" contenant
+// "$(commande malveillante)" exécuterait donc cette commande avec les privilèges root du script de
+// build généré. Corrigé en supprimant les 3 caractères actifs dans un heredoc non protégé ($,
+// backtick, \) : une ligne de commande noyau légitime (ex. "mitigations=off nosplash quiet") n'en a
+// jamais besoin, contrairement à un nom d'utilisateur ou une URL qu'on ne peut pas se permettre de
+// tronquer de la même façon.
+function sanitizeKernelCmdline(cmdline: string): string {
+  return cmdline.replace(/[$`\\]/g, '').trim();
+}
+
 // Bug réel MAJEUR trouvé en auditant, plus grave encore que le manque d'émulation Debian corrigé
 // juste avant dans ce même cycle : les 5 bootstrapBlock() non-Debian (Arch, Fedora, Alpine,
 // openSUSE, Void) ignoraient TOUTES leur paramètre d'architecture cible (préfixé "_arch" dans
@@ -1942,7 +1961,7 @@ cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${recipe.branding.osName}" {
-${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
+${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
@@ -2143,7 +2162,7 @@ FSTAB_EOF
 # doit être écrit pour pointer vers la vraie racine (UUID, pas /dev/sdaX qui n'est pas stable
 # selon le lecteur de carte SD utilisé pour flasher l'image).
 cat > "\${MNT_DIR}/boot/firmware/cmdline.txt" << CMDLINE_EOF
-console=serial0,115200 console=tty1 root=UUID=\${ROOT_UUID} rootfstype=ext4 fsck.repair=yes rootwait${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
+console=serial0,115200 console=tty1 root=UUID=\${ROOT_UUID} rootfstype=ext4 fsck.repair=yes rootwait${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
 CMDLINE_EOF
 
 umount -lf "\${MNT_DIR}/boot/firmware" || true
@@ -2356,7 +2375,7 @@ insmod search
 search --no-floppy --set=root --file /live/vmlinuz
 
 menuentry "${recipe.branding.osName} (${recipe.branding.editionName}) [Live Desktop]" {
-    linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${recipe.kernelCmdline.trim()}` : ''}
+    linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd /live/initrd
 }
 
