@@ -2919,6 +2919,22 @@ function cloudInitServiceEnableLine(service: string, family: NonDebianFamily | u
 // AVANT retour à la ligne) : "kioskSetupCmd" contient par exemple un "\$TERM" littéral (backslash
 // réel dans le bash généré) qui serait corrompu si les retours à la ligne étaient convertis avant
 // les backslashes déjà présents.
+// Bug réel trouvé en auditant, même classe que le fix "firstBootScript" ci-dessus : plusieurs
+// champs LIBRES de l'utilisateur (hostname, nom d'utilisateur, nom complet/gecos, clé publique SSH
+// — tous de simples <input type="text"> sans validation dans SystemConfig.tsx) étaient insérés en
+// scalaires YAML BRUTS (sans guillemets) dans generateCloudInitYaml(). Reproduit en direct via
+// PyYAML : un nom complet aussi banal que "Bob: The Builder" (deux-points suivi d'un espace) rend
+// TOUT le fichier cloud-init invalide ("mapping values are not allowed here") — plus de création
+// d'utilisateur, plus de SSH, plus de durcissement, rien ne s'applique. Un commentaire de clé SSH
+// contenant un "#" (très réaliste : "yubikey #2 travail") tronque silencieusement la fin de la
+// ligne. Protège tout champ libre en l'entourant de guillemets doubles avec échappement JSON-
+// compatible (backslash puis guillemet), suffisant pour les scalaires YAML entre guillemets qui
+// ne contiennent jamais de retour à la ligne réel (hostname/username/fullName/clé SSH sont tous
+// des champs mono-ligne).
+function yamlDq(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
 function toRuncmdBashBlock(bashSnippet: string): string {
   if (!bashSnippet.trim()) return '';
   const escaped = bashSnippet
@@ -3138,18 +3154,18 @@ export function generateCloudInitYaml(recipe: OSRecipe): string {
 # OSForge Studio — Manifeste Cloud-Init
 # ==============================================================================
 
-hostname: ${recipe.hostname}
-fqdn: ${recipe.hostname}.local
+hostname: ${yamlDq(recipe.hostname)}
+fqdn: ${yamlDq(recipe.hostname + '.local')}
 manage_etc_hosts: true
 
 users:
-  - name: ${recipe.user.username}
-    gecos: ${recipe.user.fullName}
+  - name: ${yamlDq(recipe.user.username)}
+    gecos: ${yamlDq(recipe.user.fullName)}
     sudo: ${recipe.user.sudo ? 'ALL=(ALL) NOPASSWD:ALL' : 'false'}
     shell: ${recipe.user.shell}
     lock_passwd: false
     passwd: "$6$rounds=4096$salt$placeholderHashedPassword"
-    ${recipe.user.sshPublicKey ? `ssh_authorized_keys:\n      - ${recipe.user.sshPublicKey}` : ''}
+    ${recipe.user.sshPublicKey ? `ssh_authorized_keys:\n      - ${yamlDq(recipe.user.sshPublicKey)}` : ''}
 
 timezone: ${recipe.timezone}
 locale: ${recipe.locale}.UTF-8

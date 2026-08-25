@@ -2434,4 +2434,40 @@ describe('generateCloudInitYaml — bug réel trouvé en auditant, même classe 
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé en auditant, même classe que "firstBootScript" ci-dessus mais sur un site différent : hostname, nom d\'utilisateur, nom complet (gecos) et clé publique SSH sont tous de simples <input type="text"> sans validation dans SystemConfig.tsx, mais étaient insérés en scalaires YAML BRUTS (sans guillemets) dans generateCloudInitYaml(). Reproduit par un vrai round-trip PyYAML avant correctif : un nom complet aussi banal que "Bob: The Builder" (deux-points suivi d\'un espace) rendait TOUT le fichier cloud-init invalide ("mapping values are not allowed here" — plus de création d\'utilisateur, plus de SSH, plus de durcissement, rien ne s\'applique). Un commentaire de clé SSH contenant un "#" (réaliste : "yubikey #2 travail") tronquait silencieusement la fin de la ligne. Corrigé via le nouveau helper yamlDq() (guillemets + échappement backslash/guillemet, JSON-compatible)', () => {
+  it('nom complet (gecos) contenant un deux-points suivi d\'un espace : round-trip exact, ne casse plus le fichier (avant le fix, cette valeur rendait tout le YAML invalide)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      hostname: 'my:host',
+      user: { username: 'bob', fullName: 'Bob: The Builder', sudo: true, autologin: false, shell: '/bin/bash' },
+    }));
+    const hostnameMatch = yaml.match(/^hostname: "((?:[^"\\]|\\.)*)"$/m);
+    const gecosMatch = yaml.match(/^ {4}gecos: "((?:[^"\\]|\\.)*)"$/m);
+    expect(hostnameMatch, 'hostname doit être un scalaire YAML entre guillemets').not.toBeNull();
+    expect(gecosMatch, 'gecos doit être un scalaire YAML entre guillemets').not.toBeNull();
+    expect(JSON.parse('"' + hostnameMatch![1] + '"')).toBe('my:host');
+    expect(JSON.parse('"' + gecosMatch![1] + '"')).toBe('Bob: The Builder');
+  });
+
+  it('clé publique SSH avec un commentaire contenant un "#" : round-trip exact, plus de troncature silencieuse', () => {
+    const key = 'ssh-ed25519 AAAAtest yubikey #2 travail';
+    const yaml = generateCloudInitYaml(makeRecipe({
+      user: { username: 'bob', fullName: 'Bob', sudo: true, autologin: false, shell: '/bin/bash', sshPublicKey: key },
+    }));
+    const keyMatch = yaml.match(/ {6}- "((?:[^"\\]|\\.)*)"/);
+    expect(keyMatch, 'clé SSH doit être un scalaire YAML entre guillemets').not.toBeNull();
+    expect(JSON.parse('"' + keyMatch![1] + '"')).toBe(key);
+  });
+
+  it('hostname/username/fullName/sshPublicKey "normaux" (sans caractère spécial) : non-régression, contenu identique', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      hostname: 'forge-box',
+      user: { username: 'developer', fullName: 'Jean Dupont', sudo: true, autologin: false, shell: '/bin/bash', sshPublicKey: 'ssh-ed25519 AAAAnormal jean@host' },
+    }));
+    expect(yaml).toContain('hostname: "forge-box"');
+    expect(yaml).toContain('name: "developer"');
+    expect(yaml).toContain('gecos: "Jean Dupont"');
+    expect(yaml).toContain('- "ssh-ed25519 AAAAnormal jean@host"');
+  });
+});
+
 
