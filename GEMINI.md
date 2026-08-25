@@ -130,12 +130,13 @@ Avant de câbler quoi que ce soit :
    la non-exploitation APRÈS.
 5. Ajouter un test Vitest de non-régression dans `scriptGenerators.test.ts`, dans le style déjà
    établi : titre du `describe` = contexte complet du bug (ce qui a été trouvé, comment vérifié).
-6. `git add` des fichiers précis (jamais `git add -A`/`.`).
-7. Commit en français, détaillé, se terminant par `Co-Authored-By: <ton nom d'agent> <noreply@...>`.
-8. `git push origin main`.
-9. Poller `gh run list --repo LordMadTrix/osforge-studio --branch main --limit 5 --json
-   status,name,headSha -q '...'` jusqu'à ce que le workflow CI **et** le déploiement GitHub Pages
-   soient tous les deux `completed`/`success` séparément (ce sont deux workflows distincts).
+6. **Mettre systématiquement à jour `GEMINI.md`** (section « État au moment de la rédaction de ce fichier », total des tests, nouveaux pièges/dépôts identifiés) pour assurer une continuité parfaite entre sessions.
+7. `git add` des fichiers précis (jamais `git add -A`/`.`).
+8. Commit en français, détaillé, se terminant par `Co-Authored-By: <ton nom d'agent> <noreply@...>`.
+9. `git push origin main`.
+10. Poller `gh run list --repo LordMadTrix/osforge-studio --branch main --limit 5 --json
+    status,name,headSha -q '...'` jusqu'à ce que le workflow CI **et** le déploiement GitHub Pages
+    soient tous les deux `completed`/`success` séparément (ce sont deux workflows distincts).
 
 ## Piège d'environnement observé (peut ne pas s'appliquer à toi, mais si `git commit -m` échoue bizarrement)
 
