@@ -469,6 +469,75 @@ curl -LsSf https://astral.sh/uv/install.sh 2>/dev/null | sh 2>/dev/null \\
   || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation d'uv échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
 }
 
+// Bug réel trouvé en auditant : le catalogue "lutris_heroic" ("Lutris & Heroic Games Launcher")
+// promettait Heroic sur Debian ("heroic-games-launcher") et Arch ("heroic-games-launcher-bin"),
+// mais les DEUX sont fictifs — confirmé par contenu réel de page ("No such package" sur Debian
+// trixie) et par l'API JSON Arch (count:0, AUR uniquement, même principe que k3s-bin/xboxdrv/
+// jstest-gtk/vscodium-bin déjà documentés plus haut). Heroic ne publie AUCUN paquet natif dans les
+// dépôts officiels d'aucune distro — seulement des artefacts GitHub Releases réels (.deb/.rpm/
+// AppImage, vérifiés en direct) et Flatpak (hors périmètre ici : "enableFlatpak" est une case à
+// cocher distincte, pas garantie active). Corrigé en téléchargeant le vrai artefact officiel via
+// l'API GitHub "releases/latest" (résout toujours la dernière version, évite de figer un numéro
+// qui se périmerait) : le .deb pour Debian/Ubuntu (installé via "apt-get install ./fichier.deb",
+// qui résout les dépendances comme un vrai paquet de dépôt — vérifié EN DIRECT sous WSL Linux :
+// installation réussie, "/usr/bin/heroic" produit, "dpkg -l" confirme le paquet), le .rpm pour
+// Fedora (même mécanisme via dnf), et l'AppImage pour Arch (aucun paquet natif dpkg/rpm n'existe :
+// extrait via "--appimage-extract" — évite la dépendance à FUSE, absente d'un chroot de
+// compilation — vérifié EN DIRECT : l'AppImage réel s'extrait et fournit un vrai binaire ELF plus
+// un .desktop/icône déjà correctement formatés par le projet amont, réutilisés tels quels après
+// correction du chemin "Exec=").
+function heroicSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('lutris_heroic')) return '';
+  const apiUrl = 'https://api.github.com/repos/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest';
+  if (family === 'debian') {
+    return `curl -fsSL "${apiUrl}" 2>/dev/null | grep -oE '"browser_download_url": *"[^"]*\\.deb"' | grep -oE 'https://[^"]*' | head -1 > /tmp/heroic-deb-url.txt
+if [ -s /tmp/heroic-deb-url.txt ]; then
+  curl -fsSL "$(cat /tmp/heroic-deb-url.txt)" -o /tmp/heroic.deb 2>/dev/null \\
+  && apt-get install -y /tmp/heroic.deb 2>/dev/null \\
+  && rm -f /tmp/heroic.deb \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Heroic Games Launcher échouée (réseau indisponible pendant la compilation ?).\${NC:-}"
+fi
+rm -f /tmp/heroic-deb-url.txt`;
+  }
+  if (family === 'fedora') {
+    return `curl -fsSL "${apiUrl}" 2>/dev/null | grep -oE '"browser_download_url": *"[^"]*\\.rpm"' | grep -oE 'https://[^"]*' | head -1 > /tmp/heroic-rpm-url.txt
+if [ -s /tmp/heroic-rpm-url.txt ]; then
+  curl -fsSL "$(cat /tmp/heroic-rpm-url.txt)" -o /tmp/heroic.rpm 2>/dev/null \\
+  && dnf install -y /tmp/heroic.rpm 2>/dev/null \\
+  && rm -f /tmp/heroic.rpm \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Heroic Games Launcher échouée (réseau indisponible pendant la compilation ?).\${NC:-}"
+fi
+rm -f /tmp/heroic-rpm-url.txt`;
+  }
+  if (family !== 'arch') return '';
+  // Bug réel MAJEUR trouvé en EXÉCUTANT réellement cette branche sous WSL Linux (pas seulement
+  // "bash -n") : une première version tentait "mv squashfs-root/* /opt/heroic/ && rmdir
+  // squashfs-root" pour "aplatir" l'extraction — mais "mv dir/* dest/" ne déplace JAMAIS les
+  // fichiers cachés (motif "*" de bash, sans "dotglob"), et l'AppImage réel contient bien un
+  // fichier caché à la racine de son extraction ; "rmdir" échouait alors avec "Directory not
+  // empty" (répertoire non vide), ce qui arrêtait TOUTE la chaîne "&&" derrière lui — aucun des
+  // fichiers suivants (symlink, .desktop, icône) n'était jamais créé, silencieusement repris par
+  // le message d'avertissement de repli. Corrigé en référençant les chemins DIRECTEMENT DANS
+  // "squashfs-root" (pas besoin d'aplatir quoi que ce soit) — revérifié EN DIRECT après correction :
+  // la chaîne complète s'exécute sans erreur, "readlink -f" confirme le symlink pointant vers un
+  // vrai binaire, le .desktop et l'icône réels (déjà fournis par le projet amont dans l'archive)
+  // sont copiés correctement.
+  return `curl -fsSL "${apiUrl}" 2>/dev/null | grep -oE '"browser_download_url": *"[^"]*x86_64\\.AppImage"' | grep -oE 'https://[^"]*' | head -1 > /tmp/heroic-appimage-url.txt
+if [ -s /tmp/heroic-appimage-url.txt ]; then
+  curl -fsSL "$(cat /tmp/heroic-appimage-url.txt)" -o /tmp/heroic.AppImage 2>/dev/null \\
+  && chmod +x /tmp/heroic.AppImage \\
+  && mkdir -p /opt/heroic \\
+  && (cd /opt/heroic && /tmp/heroic.AppImage --appimage-extract >/dev/null 2>&1) \\
+  && ln -sf /opt/heroic/squashfs-root/AppRun /usr/local/bin/heroic \\
+  && mkdir -p /usr/share/applications /usr/share/pixmaps \\
+  && cp /opt/heroic/squashfs-root/heroic.png /usr/share/pixmaps/heroic.png \\
+  && sed 's|Exec=AppRun|Exec=/opt/heroic/squashfs-root/AppRun|' /opt/heroic/squashfs-root/heroic.desktop > /usr/share/applications/heroic.desktop \\
+  && rm -f /tmp/heroic.AppImage \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Heroic Games Launcher échouée (réseau indisponible pendant la compilation ?).\${NC:-}"
+fi
+rm -f /tmp/heroic-appimage-url.txt`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -2133,6 +2202,7 @@ ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
+${heroicSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2337,6 +2407,7 @@ ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
 ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
+${heroicSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2557,6 +2628,7 @@ ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
+${heroicSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -3140,6 +3212,7 @@ ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}
 ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
+${heroicSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

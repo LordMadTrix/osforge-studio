@@ -249,10 +249,16 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 220,
     icon: 'Flame',
     tags: ['GOG', 'Epic', 'Émulation'],
+    // Bug réel trouvé en auditant : "heroic-games-launcher" (Debian) et "heroic-games-launcher-bin"
+    // (Arch) sont TOUS DEUX fictifs (contenu réel "No such package" sur Debian trixie ; AUR
+    // uniquement sur Arch, API JSON count:0). Heroic ne publie AUCUN paquet natif dans les dépôts
+    // officiels d'aucune distro — retiré ici et installé à la place via les vrais artefacts GitHub
+    // Releases officiels (.deb/.rpm/AppImage, heroicSetupCmd dans scriptGenerators.ts). Lutris seul
+    // reste dans pkgNames (confirmé réel sur les 5 familles, inchangé).
     pkgNames: {
-      debian: 'lutris heroic-games-launcher',
+      debian: 'lutris',
       ubuntu: 'lutris',
-      arch: 'lutris heroic-games-launcher-bin',
+      arch: 'lutris',
       alpine: 'lutris',
       fedora: 'lutris',
     },

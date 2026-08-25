@@ -3065,3 +3065,41 @@ describe('uv (Python) — bug réel trouvé en auditant : la description de "pyt
   });
 });
 
+describe('Heroic Games Launcher — bug réel trouvé en auditant : "heroic-games-launcher" (Debian) et "heroic-games-launcher-bin" (Arch) sont tous deux fictifs (contenu réel "No such package" ; AUR uniquement sur Arch, API JSON count:0) — Heroic ne publie aucun paquet natif dans les dépôts officiels d\'aucune distro. Corrigé en installant les vrais artefacts GitHub Releases officiels (.deb/.rpm/AppImage). Un bug réel MAJEUR a été trouvé et corrigé en EXÉCUTANT réellement la branche Arch sous WSL Linux (pas seulement bash -n) : la première version tentait d\'aplatir l\'extraction AppImage via "mv squashfs-root/* dest/ && rmdir squashfs-root", mais "mv dir/*" ne déplace jamais les fichiers cachés — "rmdir" échouait alors sur "Directory not empty" et coupait TOUTE la chaîne "&&" derrière lui, laissant le symlink/.desktop/icône jamais créés malgré un téléchargement réussi. Corrigé en référençant les chemins directement dans "squashfs-root" — revérifié en direct : la chaîne complète s\'exécute sans erreur, produit un vrai binaire exécutable', () => {
+  it('Debian ISO : déclenche le vrai installeur .deb (résolution dynamique via l\'API GitHub releases/latest) pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['lutris_heroic'],
+    }));
+    expect(script).toContain('HeroicGamesLauncher/releases/latest');
+    expect(script).toContain('apt-get install -y /tmp/heroic.deb');
+  });
+
+  it('Fedora : déclenche le vrai installeur .rpm via dnf', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora', outputFormat: 'wsl2_tar', selectedPackages: ['lutris_heroic'],
+    }));
+    expect(script).toContain('dnf install -y /tmp/heroic.rpm');
+  });
+
+  it('Arch : déclenche le vrai installeur AppImage (aucun paquet natif hors AUR) — référence les chemins DANS squashfs-root (pas de "mv"/"rmdir" fragile)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'wsl2_tar', selectedPackages: ['lutris_heroic'],
+    }));
+    expect(script).toContain('--appimage-extract');
+    expect(script).toContain('/opt/heroic/squashfs-root/AppRun');
+    expect(script).not.toContain('mv /opt/heroic/squashfs-root/*');
+  });
+
+  it('Alpine : lutris seul (vrai paquet natif), AUCUN mécanisme Heroic (jamais promis pour cette famille)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine', outputFormat: 'wsl2_tar', selectedPackages: ['lutris_heroic'],
+    }));
+    expect(script.toLowerCase()).not.toContain('heroic');
+  });
+
+  it('lutris_heroic non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script.toLowerCase()).not.toContain('heroic');
+  });
+});
+
