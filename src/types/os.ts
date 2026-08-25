@@ -37,9 +37,10 @@ export type DesktopEnvironmentId =
   | 'lxqt'
   | 'mate'
   | 'budgie'
+  | 'deepin'
   | 'web_kiosk';
 
-export type DisplayManagerId = 'gdm3' | 'sddm' | 'lightdm' | 'ly' | 'cosmic-greeter' | 'none';
+export type DisplayManagerId = 'gdm3' | 'sddm' | 'lightdm' | 'ly' | 'cosmic-greeter' | 'ddm' | 'none';
 
 export type KernelType = 
   | 'generic'

@@ -658,6 +658,23 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'opensuse') {
       pkgs.push('patterns-budgie-budgie', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
+  } else if (recipe.desktop === 'deepin') {
+    // Nouvel environnement de bureau ajouté (Deepin/DDE, communauté linuxdeepin) — câblé pour Arch
+    // UNIQUEMENT cette itération : Debian a d'abord semblé disponible ("deepin-desktop-environment"
+    // renvoyait 200 sur sources.debian.org/api/src/...) mais une deuxième vérification directe sur
+    // packages.debian.org/{bookworm,trixie,sid}/deepin-desktop-environment a montré "No such
+    // package" sur les 3 — faux positif de la première vérification (probablement une réponse mise
+    // en cache), corrigé avant tout câblage. Fedora/openSUSE/Void non vérifiés avec une rigueur
+    // suffisante cette itération (portée volontairement restreinte à un seul système confirmé,
+    // "1 à 1"). Arch confirmé réel via l'API JSON officielle (pas du scraping HTML) :
+    // archlinux.org/packages/search/json/?name=ddm renvoie un vrai paquet "ddm" (0.3.7-2, dépôt
+    // "extra", "groups":["deepin"], mainteneur felixonmars — mainteneur Arch officiel très actif),
+    // construit le 2026-07-28 (récent). Service systemd confirmé "ddm.service" via le fichier
+    // source réel du projet (github.com/linuxdeepin/ddm, services/ddm.service.in) — passthrough
+    // générique de resolveDmServiceName() déjà correct, aucun cas spécial nécessaire.
+    if (isArchLike) {
+      pkgs.push('deepin', 'ddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    }
   } else if (recipe.desktop === 'web_kiosk') {
     // Bug réel trouvé en vérifiant : "chromium-browser" est un piège identique à celui déjà
     // corrigé pour Firefox sur Ubuntu (packages.ubuntu.com confirme : "Transitional package -

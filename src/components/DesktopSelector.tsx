@@ -41,6 +41,13 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
       tipEn: 'Modern memory-safe display manager written in Rust for COSMIC.',
     },
     {
+      id: 'ddm',
+      name: 'DDM (Deepin Display Manager)',
+      desc: 'Recommandé pour Deepin (DDE)',
+      tipFr: 'Gestionnaire de connexion natif de Deepin, basé sur Qt6 et le compositeur Wayland treeland.',
+      tipEn: 'Deepin\'s native display manager, built on Qt6 and the treeland Wayland compositor.',
+    },
+    {
       id: 'lightdm',
       name: 'LightDM (Léger & GTK)',
       desc: 'Recommandé pour XFCE, i3wm, Cinnamon',

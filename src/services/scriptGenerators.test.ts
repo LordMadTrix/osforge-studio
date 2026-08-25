@@ -1566,3 +1566,24 @@ describe('generateBuildScript — bureau graphique et personnalisation réelleme
     expect(script).not.toContain('systemctl enable sddm');
   });
 });
+
+describe('resolvePackageList/generateBuildScript — nouvel environnement de bureau Deepin (DDE) ajouté au catalogue, câblé pour Arch uniquement cette itération — un premier contrôle laissait croire "deepin-desktop-environment" disponible sur Debian (sources.debian.org/api/src/ renvoyait 200), mais une deuxième vérification directe sur packages.debian.org/{bookworm,trixie,sid}/deepin-desktop-environment a montré "No such package" sur les 3 (faux positif corrigé avant tout câblage). Arch confirmé réel via l\'API JSON officielle (pas du scraping HTML) : "ddm" existe bien (dépôt "extra", groups:["deepin"], mainteneur felixonmars, construit récemment) ; son service systemd réel "ddm.service" confirmé via le fichier source amont du projet (github.com/linuxdeepin/ddm)', () => {
+  it('Arch + desktop="deepin" : installe le vrai groupe "deepin" et le paquet "ddm"', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', desktop: 'deepin', selectedPackages: [] }));
+    expect(pkgs).toEqual(expect.arrayContaining(['deepin', 'ddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager']));
+  });
+
+  it('Arch + desktop="deepin" + displayManager="ddm" : le service "ddm.service" est réellement activé (passthrough générique déjà correct, vérifié plutôt que supposé)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'raw_img', desktop: 'deepin', displayManager: 'ddm', selectedPackages: [],
+    }));
+    expect(script).toContain('systemctl enable ddm 2>/dev/null || true');
+  });
+
+  it('Debian et Rocky : "deepin"/"ddm" restent honnêtement hors périmètre (Debian confirmé absent malgré un faux positif initial ; Rocky jamais vérifié cette itération)', () => {
+    const debianPkgs = resolvePackageList(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', desktop: 'deepin', selectedPackages: [] }));
+    const rockyPkgs = resolvePackageList(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', desktop: 'deepin', selectedPackages: [] }));
+    expect(debianPkgs.some(p => /deepin|ddm/.test(p))).toBe(false);
+    expect(rockyPkgs.some(p => /deepin|ddm/.test(p))).toBe(false);
+  });
+});
