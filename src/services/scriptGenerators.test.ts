@@ -591,6 +591,16 @@ describe('resolvePackageList — Void Linux : bureaux réellement câblés (aucu
     expect(pkgs).not.toContain('i3wm');
   });
 
+  it('bug réel trouvé en auditant : desktop=i3wm sur Fedora/Rocky tombait dans le "else" générique qui installe "i3-wm" (nom Debian/Arch) — confirmé ABSENT de Fedora/EPEL9 en direct (src.fedoraproject.org/rpms/i3-wm : 404). Le vrai paquet Fedora/Rocky s\'appelle "i3" (confirmé présent sur les deux). "alacritty" également confirmé absent de Fedora, remplacé par "kitty" (confirmé réel, déjà utilisé ailleurs dans ce fichier pour Hyprland/Arch)', () => {
+    for (const distro of ['fedora', 'rocky'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, desktop: 'i3wm', selectedPackages: [], customPackages: [] }));
+      expect(pkgs, distro).toContain('i3');
+      expect(pkgs, distro).not.toContain('i3-wm');
+      expect(pkgs, distro).toContain('kitty');
+      expect(pkgs, distro).not.toContain('alacritty');
+    }
+  });
+
   it('desktop=hyprland n\'installe rien sur Void (hyprland et waybar confirmés absents du dépôt officiel, contrairement à Alpine)', () => {
     const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'hyprland', selectedPackages: [], customPackages: [] }));
     expect(pkgs.some(p => p.includes('hyprland') || p === 'waybar')).toBe(false);

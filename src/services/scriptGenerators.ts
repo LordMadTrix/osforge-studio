@@ -794,6 +794,15 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       // Tous confirmés réels sur openSUSE Tumbleweed (rpmfind.net) : i3, i3status, i3lock, dmenu,
       // alacritty, lightdm.
       pkgs.push('i3', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'MozillaFirefox', 'pipewire', 'NetworkManager');
+    } else if (isFedoraLike) {
+      // Bug réel trouvé en auditant : Fedora/Rocky tombaient dans le "else" générique ci-dessous,
+      // qui installe "i3-wm" (nom Debian/Arch) — vérifié en direct sur src.fedoraproject.org/rpms/
+      // i3-wm : 404 "Project not found". Le vrai paquet Fedora s'appelle "i3" (src.fedoraproject.org/
+      // rpms/i3 : 200), confirmé aussi présent dans EPEL9 pour Rocky (dl.fedoraproject.org/pub/epel/
+      // 9/.../i/, "i3-4.20.1-3.el9.x86_64.rpm"). "alacritty" confirmé ABSENT de Fedora (src.
+      // fedoraproject.org/api/0/rpms/alacritty : "Project not found") ; remplacé par "kitty",
+      // confirmé réel sur Fedora ET EPEL9 (déjà utilisé ailleurs dans ce fichier, ex. Hyprland/Arch).
+      pkgs.push('i3', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'kitty', 'firefox', 'pipewire', 'NetworkManager');
     } else {
       pkgs.push('i3-wm', 'i3status', 'i3lock', 'dmenu', 'lightdm', 'alacritty', 'firefox-esr', 'xorg', 'pulseaudio', 'network-manager');
     }
