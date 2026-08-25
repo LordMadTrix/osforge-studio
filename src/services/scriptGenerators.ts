@@ -2478,8 +2478,59 @@ jobs:
 /**
  * Generates cloud-init YAML user-data
  */
+// Bug réel trouvé en comparant ce générateur aux 4 générateurs bash déjà audités : "fail2ban",
+// "disableRootSSH", "appArmorOrSELinux", "dotfilesGitUrl" et "customServices" ont chacun leur
+// PAQUET déjà ajouté par resolvePackageList() (aucun filtrage par format de sortie dans cette
+// fonction, donc "packages:" les liste déjà tous), mais aucune de leurs actions d'ACTIVATION
+// n'était présente dans "runcmd"/"write_files" — les paquets s'installaient sans jamais être
+// configurés ni démarrés sur une image cloud-init (qcow2/vmdk). Ce fichier assume déjà
+// implicitement systemd/Debian-Ubuntu (voir "systemctl enable --now ssh" plus bas, non filtré par
+// famille) : les ajouts ci-dessous suivent la même simplification déjà en place, cohérente avec
+// l'usage réel de cloud-init (mécanisme quasi exclusivement Debian/Ubuntu en pratique).
+function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd: string } {
+  const writeFiles: string[] = [];
+  const runcmd: string[] = [];
+  if (recipe.security.disableRootSSH) {
+    runcmd.push(`  - echo 'PermitRootLogin no' >> /etc/ssh/sshd_config`);
+  }
+  if (recipe.security.fail2ban) {
+    writeFiles.push(`  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true`);
+    runcmd.push(`  - systemctl enable --now fail2ban || true`);
+  }
+  if (recipe.security.appArmorOrSELinux) {
+    runcmd.push(`  - systemctl enable --now apparmor || true`);
+  }
+  if (recipe.dotfilesGitUrl) {
+    const safeUrl = recipe.dotfilesGitUrl.replace(/'/g, `'\\''`);
+    runcmd.push(`  - git clone --depth 1 '${safeUrl}' /home/${recipe.user.username}/.dotfiles || true`);
+  }
+  recipe.customServices.forEach(svc => {
+    const unitName = svc.name.replace(/\.service$/i, '').replace(/[^a-zA-Z0-9_.-]/g, '-') || 'osforge-custom';
+    writeFiles.push(`  - path: /etc/systemd/system/${unitName}.service
+    content: |
+      [Unit]
+      Description=${svc.description || unitName}
+      After=network.target
+
+      [Service]
+      ExecStart=${svc.execStart}
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target`);
+    if (svc.enabled) {
+      runcmd.push(`  - systemctl enable --now ${unitName} || true`);
+    }
+  });
+  return { writeFiles: writeFiles.join('\n'), runcmd: runcmd.join('\n') };
+}
+
 export function generateCloudInitYaml(recipe: OSRecipe): string {
   const pkgs = resolvePackageList(recipe);
+  const { writeFiles: hardeningWriteFiles, runcmd: hardeningRuncmd } = cloudInitHardeningYaml(recipe);
 
   return `#cloud-config
 # ==============================================================================
@@ -2504,7 +2555,6 @@ locale: ${recipe.locale}.UTF-8
 
 packages:
 ${pkgs.map(p => `  - ${p}`).join('\n')}
-${recipe.security.firewall === 'ufw' ? '  - ufw' : ''}${recipe.security.firewall === 'nftables' ? '  - nftables' : ''}
 
 package_update: true
 package_upgrade: ${recipe.security.autoSecurityUpdates ? 'true' : 'false'}
@@ -2531,12 +2581,12 @@ ${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
           chain forward { type filter hook forward priority 0; policy drop; }
           chain output { type filter hook output priority 0; policy accept; }
       }
-` : ''}
+` : ''}${hardeningWriteFiles ? hardeningWriteFiles + '\n' : ''}
 runcmd:
   - systemctl enable --now ssh || true
   ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
-  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
+${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
 `;
 }
 

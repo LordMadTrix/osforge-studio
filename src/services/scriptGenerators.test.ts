@@ -647,6 +647,70 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
     }));
     expect(yaml).toContain('- ufw');
   });
+
+  it('cloud-init : "nftables" n\'apparaît plus qu\'une seule fois dans "packages:" (doublon corrigé — le paquet est déjà ajouté par resolvePackageList(), la ligne dédiée à cloud-init était devenue redondante depuis le câblage du pare-feu pour toutes les familles)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'nftables', appArmorOrSELinux: false, autoSecurityUpdates: true } as any,
+    }));
+    const occurrences = (yaml.match(/^ {2}- nftables$/gm) || []).length;
+    expect(occurrences).toBe(1);
+  });
+});
+
+describe('generateCloudInitYaml — durcissement sécurité réellement câblé (bug réel trouvé en comparant ce générateur aux 4 générateurs bash déjà audités : "fail2ban"/"disableRootSSH"/"appArmorOrSELinux"/"dotfilesGitUrl"/"customServices" avaient chacun leur paquet déjà ajouté par resolvePackageList(), mais aucune action d\'activation dans runcmd/write_files — les paquets s\'installaient sans jamais être configurés ni démarrés sur une image cloud-init qcow2/vmdk)', () => {
+  it('fail2ban=true : écrit jail.local et active le service', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('path: /etc/fail2ban/jail.local');
+    expect(yaml).toContain('enabled = true');
+    expect(yaml).toContain('- systemctl enable --now fail2ban || true');
+  });
+
+  it('disableRootSSH=true : ajoute PermitRootLogin no à sshd_config', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, disableRootSSH: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain(`echo 'PermitRootLogin no' >> /etc/ssh/sshd_config`);
+  });
+
+  it('appArmorOrSELinux=true : active le service apparmor', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: true, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).toContain('- systemctl enable --now apparmor || true');
+  });
+
+  it('dotfilesGitUrl : clone réellement le dépôt (jamais câblé avant ce correctif)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2', dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
+    } as any));
+    expect(yaml).toContain(`git clone --depth 1 'https://github.com/example/dotfiles.git' /home/tester/.dotfiles || true`);
+  });
+
+  it('customServices : écrit le vrai fichier .service et l\'active si "enabled"', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      customServices: [{ name: 'my-app', description: 'My App', execStart: '/usr/local/bin/my-app', enabled: true }],
+    } as any));
+    expect(yaml).toContain('path: /etc/systemd/system/my-app.service');
+    expect(yaml).toContain('ExecStart=/usr/local/bin/my-app');
+    expect(yaml).toContain('- systemctl enable --now my-app || true');
+  });
+
+  it('tout désactivé : aucune trace de durcissement (comportement par défaut inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2',
+      security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, disableRootSSH: false, autoSecurityUpdates: true } as any,
+    }));
+    expect(yaml).not.toContain('fail2ban');
+    expect(yaml).not.toContain('PermitRootLogin');
+    expect(yaml).not.toContain('enable --now apparmor');
+  });
 });
 
 describe('generateBuildScript — pare-feu réellement câblé au-delà de Debian/Ubuntu (bug réel MAJEUR trouvé en auditant : "firewall" n\'était référencé QUE dans generateBuildScript(), jamais dans generateNonDebianBuildScript()/generateNonDebianDiskImageScript() — un système Arch, Fedora, Rocky, Alpine, Void ou openSUSE ne recevait ZÉRO pare-feu quel que soit le choix explicite de l\'utilisateur. Paquets "ufw"/"nftables" vérifiés réels en direct par famille, service activé explicitement via serviceEnableCmd() pour les 3 systèmes d\'init)', () => {
