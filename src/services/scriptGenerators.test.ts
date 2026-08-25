@@ -2873,4 +2873,26 @@ describe('Ollama Local AI — bug réel MAJEUR trouvé dans le même audit que K
   });
 });
 
+describe('OpenTofu — bug réel MAJEUR trouvé dans le même audit que K3s/Ollama, même piège (code HTTP 200 sur la page d\'erreur "No such package") : "opentofu" installait un paquet qui n\'existe PAS sur Debian/Ubuntu (packages.debian.org/packages.ubuntu.com : contenu réel confirmé "No such package"). Contrairement à K3s/Ollama (services, déclenchement au premier démarrage), OpenTofu est un simple CLI sans démon : installé directement PENDANT la compilation via le vrai installeur officiel (get.opentofu.org/install-opentofu.sh --install-method deb), vérifié via "bash -n" sur le snippet réel extrait', () => {
+  it('Debian ISO : déclenche le vrai installeur officiel OpenTofu pendant la compilation', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: ['opentofu_terraform'],
+    }));
+    expect(script).toContain('https://get.opentofu.org/install-opentofu.sh');
+    expect(script).toContain('--install-method deb');
+  });
+
+  it('Arch qcow2 : AUCUN installeur curl déclenché (vrai paquet natif "opentofu" déjà fonctionnel)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch', outputFormat: 'qcow2', selectedPackages: ['opentofu_terraform'],
+    }));
+    expect(script).not.toContain('install-opentofu.sh');
+  });
+
+  it('opentofu_terraform non sélectionné : aucun mécanisme créé (non-régression)', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', selectedPackages: [] }));
+    expect(script).not.toContain('install-opentofu.sh');
+  });
+});
+
 

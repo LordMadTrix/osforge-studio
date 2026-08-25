@@ -320,6 +320,27 @@ OLLAMASVC_EOF
 ${serviceEnableCmd('ollama-setup.service', family)}`;
 }
 
+// Bug réel MAJEUR trouvé dans le même audit que K3s/Ollama ci-dessus, même piège (code HTTP 200
+// sur la page d'erreur "No such package") : "opentofu_terraform" installait un paquet "opentofu"
+// sur Debian/Ubuntu qui n'existe PAS (packages.debian.org/bookworm/trixie, packages.ubuntu.com/
+// noble : contenu réel confirmé "No such package"). Confirmé RÉEL en revanche sur les 5 autres
+// familles (Arch via l'API JSON officielle, Alpine/openSUSE via listing direct des dépôts,
+// Fedora via packages.fedoraproject.org, Void via le dépôt source réel) — inchangées. Contrairement
+// à K3s/Ollama (qui nécessitent un service actif, donc un déclenchement différé au premier
+// démarrage), OpenTofu est un simple binaire CLI sans démon : installable directement PENDANT la
+// compilation via le vrai installeur officiel (get.opentofu.org/install-opentofu.sh
+// --install-method deb, qui ajoute le vrai dépôt APT officiel signé), au même titre que les autres
+// paquets APT déjà installés dans ce même chroot.
+function opentofuSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.selectedPackages.includes('opentofu_terraform')) return '';
+  if (family !== 'debian') return '';
+  return `curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o /tmp/install-opentofu.sh 2>/dev/null \\
+  && chmod +x /tmp/install-opentofu.sh \\
+  && /tmp/install-opentofu.sh --install-method deb 2>/dev/null \\
+  && rm -f /tmp/install-opentofu.sh \\
+  || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation d'OpenTofu échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
+}
+
 // Bug réel trouvé en auditant : "user.autologin" (case à cocher dans l'UI, distincte du mode
 // kiosque) n'était référencé nulle part — cochée ou non, aucune différence dans le système généré.
 // Contrairement au getty console utilisé pour le kiosque (session unique, sans DM), l'autologin
@@ -1979,6 +2000,7 @@ ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
+${opentofuSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2178,6 +2200,7 @@ ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
+${opentofuSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -2393,6 +2416,7 @@ ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
+${opentofuSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
@@ -2971,6 +2995,7 @@ ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
+${opentofuSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

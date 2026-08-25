@@ -579,9 +579,18 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     sizeMB: 75,
     icon: 'Layers',
     tags: ['IaC', 'Cloud', 'Infrastructure', 'Terraform'],
+    // Bug réel MAJEUR trouvé en auditant, même piège que K3s/Ollama ci-dessus (code HTTP 200 sur
+    // la page d'erreur "No such package" de packages.debian.org/packages.ubuntu.com) : "opentofu"
+    // confirmé ABSENT des dépôts Debian bookworm/trixie ET Ubuntu noble par CONTENU réel de page,
+    // pas juste le code HTTP. Retiré des deux (l'installation échouait déjà silencieusement via la
+    // boucle tolérante, "Info: opentofu omis ou non disponible") et remplacé par le vrai installeur
+    // officiel (get.opentofu.org/install-opentofu.sh --install-method deb) déclenché PENDANT la
+    // compilation (opentofuSetupCmd dans scriptGenerators.ts — OpenTofu est un simple CLI sans
+    // démon, contrairement à K3s/Ollama, donc installable directement dans le chroot). Confirmé
+    // RÉEL sur les 5 autres familles (Arch via l'API JSON officielle, Alpine/openSUSE via listing
+    // direct des dépôts, Fedora via packages.fedoraproject.org, Void via le dépôt source réel) —
+    // inchangées.
     pkgNames: {
-      debian: 'opentofu',
-      ubuntu: 'opentofu',
       arch: 'opentofu',
       alpine: 'opentofu',
       fedora: 'opentofu',
