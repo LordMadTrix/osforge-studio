@@ -2504,8 +2504,12 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
     runcmd.push(`  - systemctl enable --now apparmor || true`);
   }
   if (recipe.dotfilesGitUrl) {
-    const safeUrl = recipe.dotfilesGitUrl.replace(/'/g, `'\\''`);
-    runcmd.push(`  - git clone --depth 1 '${safeUrl}' /home/${recipe.user.username}/.dotfiles || true`);
+    // Faille réelle trouvée et vérifiée en direct (fichier de preuve créé localement) : cette
+    // ligne "runcmd" est exécutée via shell par cloud-init (chaîne unique -> "/bin/sh -c"), donc
+    // exactement la même classe d'injection déjà corrigée pour "username" dans les 4 générateurs
+    // bash — mais "shQuote" (single-quote + échappement) n'était appliqué qu'à l'URL, pas au nom
+    // d'utilisateur utilisé juste après comme segment de chemin.
+    runcmd.push(`  - git clone --depth 1 ${shQuote(recipe.dotfilesGitUrl)} /home/${shQuote(recipe.user.username)}/.dotfiles || true`);
   }
   recipe.customServices.forEach(svc => {
     const unitName = svc.name.replace(/\.service$/i, '').replace(/[^a-zA-Z0-9_.-]/g, '-') || 'osforge-custom';

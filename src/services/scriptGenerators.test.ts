@@ -689,7 +689,16 @@ describe('generateCloudInitYaml — durcissement sécurité réellement câblé 
     const yaml = generateCloudInitYaml(makeRecipe({
       distro: 'ubuntu', outputFormat: 'qcow2', dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
     } as any));
-    expect(yaml).toContain(`git clone --depth 1 'https://github.com/example/dotfiles.git' /home/tester/.dotfiles || true`);
+    expect(yaml).toContain(`git clone --depth 1 'https://github.com/example/dotfiles.git' /home/'tester'/.dotfiles || true`);
+  });
+
+  it('dotfilesGitUrl : injection de commande via "username" corrigée (faille RÉELLE trouvée et vérifiée en direct : ce "runcmd" est exécuté via shell par cloud-init, "username" était utilisé tel quel comme segment de chemin juste après l\'URL déjà protégée)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'ubuntu', outputFormat: 'qcow2', dotfilesGitUrl: 'https://github.com/example/dotfiles.git',
+      user: { username: `evil$(touch /tmp/pwned)`, fullName: 'Test', password: 'x', shell: '/bin/bash', sudo: true, autologin: false },
+    } as any));
+    expect(yaml).toContain(`/home/'evil$(touch /tmp/pwned)'/.dotfiles`);
+    expect(yaml).not.toMatch(/\/home\/evil\$\(touch/);
   });
 
   it('customServices : écrit le vrai fichier .service et l\'active si "enabled"', () => {
