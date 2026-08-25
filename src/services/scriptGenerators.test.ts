@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -2495,6 +2495,48 @@ describe('generateGitHubWorkflow — bug réel trouvé en auditant, même classe
     }));
     expect(wf).toContain('name: "🚀 Build & Release Custom Linux ISO (ForgeOS)"');
     expect(wf).toContain('name: "ForgeOS ${{ steps.autotag.outputs.tag }}"');
+  });
+});
+
+describe('generateWslInstallerBat / generateLiveWindowsBat / generateAutoBuildBat / generateUniversalLauncherBat — bug réel trouvé en auditant, quatrième domaine touché par le même défaut (échappement manquant sur "branding.osName") après cloud-init/workflow YAML : dans un script .bat Windows, le caractère "%" reste actif pour l\'expansion de variable même au milieu d\'une ligne "echo"/"title" sans aucun guillemet autour. Vérifié EMPIRIQUEMENT par une vraie exécution cmd.exe (pas une simple lecture de documentation) : "%HOMEDRIVE%" s\'est réellement substitué par le contenu réel de cette variable d\'environnement Windows, et "%VARIABLE_INEXISTANTE%" a silencieusement disparu du texte affiché, sans la moindre erreur. Corrigé via batEscapePercent() ("%" -> "%%", échappement standard .bat), appliqué aux 4 générateurs .bat du projet', () => {
+  it('generateWslInstallerBat : un osName contenant "%" produit "%%" (pourcent littéral protégé) dans les 4 lignes REM/echo concernées', () => {
+    const bat = generateWslInstallerBat(makeRecipe({
+      branding: { osName: 'Ubuntu %HOMEDRIVE% Test', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(bat).toContain('Ubuntu %%HOMEDRIVE%% Test');
+    expect(bat).not.toMatch(/[^%]%HOMEDRIVE%[^%]/);
+  });
+
+  it('generateLiveWindowsBat : un osName contenant "%" produit "%%" dans la ligne "title"', () => {
+    const bat = generateLiveWindowsBat(makeRecipe({
+      branding: { osName: 'Ubuntu %HOMEDRIVE% Test', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(bat).toContain('title Ubuntu %%HOMEDRIVE%% Test');
+  });
+
+  it('generateAutoBuildBat : un osName contenant "%" produit "%%" dans les lignes "title"/echo (non-régression sur le "100%%" déjà protégé, texte fixe)', () => {
+    const bat = generateAutoBuildBat(makeRecipe({
+      branding: { osName: 'Ubuntu %HOMEDRIVE% Test', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(bat).toContain('title Ubuntu %%HOMEDRIVE%% Test');
+    expect(bat).toContain('COMPILATION 100%% AUTOMATIQUE');
+  });
+
+  it('generateUniversalLauncherBat : un osName contenant "%" produit "%%" dans les lignes "title"/echo', () => {
+    const bat = generateUniversalLauncherBat(makeRecipe({
+      branding: { osName: 'Ubuntu %HOMEDRIVE% Test', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(bat).toContain('Lanceur Ubuntu %%HOMEDRIVE%% Test');
+  });
+
+  it('osName "normal" (sans "%") : non-régression, contenu identique sur les 4 générateurs', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'ForgeOS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    });
+    expect(generateWslInstallerBat(recipe)).toContain('Installation de ForgeOS sous Windows WSL2');
+    expect(generateLiveWindowsBat(recipe)).toContain('title ForgeOS - Machine Virtuelle QEMU');
+    expect(generateAutoBuildBat(recipe)).toContain('title ForgeOS - Compilation 100% Automatique');
+    expect(generateUniversalLauncherBat(recipe)).toContain('Lanceur ForgeOS');
   });
 });
 

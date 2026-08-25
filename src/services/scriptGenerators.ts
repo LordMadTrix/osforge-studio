@@ -2931,6 +2931,22 @@ function cloudInitServiceEnableLine(service: string, family: NonDebianFamily | u
 // compatible (backslash puis guillemet), suffisant pour les scalaires YAML entre guillemets qui
 // ne contiennent jamais de retour à la ligne réel (hostname/username/fullName/clé SSH sont tous
 // des champs mono-ligne).
+// Bug réel trouvé en auditant, même classe que les 3 fixes précédents (échappement manquant
+// avant insertion d'un champ libre dans un format structuré) mais sur un quatrième domaine :
+// les scripts .bat Windows (WSL2/QEMU/auto-build/lanceur universel) insèrent "branding.osName"
+// brut dans des lignes "echo"/"title" (et une ligne REM). Vérifié EMPIRIQUEMENT via une vraie
+// exécution cmd.exe (pas une simple lecture de documentation) : le caractère "%" reste actif
+// pour l'expansion de variable même à l'intérieur d'une ligne "echo" en dehors de tout guillemet
+// — "%HOMEDRIVE%" s'est réellement substitué par "C:" (fuite du contenu d'une variable
+// d'environnement Windows dans le texte affiché), et "%VARIABLE_INEXISTANTE%" a silencieusement
+// disparu (texte tronqué sans la moindre erreur). Le fichier connaît déjà ce piège ailleurs
+// (ligne ~3593 : "100%%" écrit avec le double pourcent standard pour un texte fixe), mais ne
+// l'appliquait jamais à "osName". Corrigé en doublant tout "%" ("%" -> "%%", échappement
+// standard et universel pour un pourcent littéral en script .bat).
+function batEscapePercent(value: string): string {
+  return value.replace(/%/g, '%%');
+}
+
 function yamlEscape(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
@@ -3229,12 +3245,12 @@ export function generateWslInstallerBat(recipe: OSRecipe): string {
 chcp 65001 >nul
 REM ==============================================================================
 REM OSForge Studio — Script d'installation 1-Click pour Windows WSL2
-REM Installe votre OS sur-mesure (${recipe.branding.osName}) directement sous Windows
+REM Installe votre OS sur-mesure (${batEscapePercent(recipe.branding.osName)}) directement sous Windows
 REM ==============================================================================
 
 echo.
 echo =====================================================================
-echo   🪟 Installation de ${recipe.branding.osName} sous Windows WSL2
+echo   🪟 Installation de ${batEscapePercent(recipe.branding.osName)} sous Windows WSL2
 echo =====================================================================
 echo.
 
@@ -3262,7 +3278,7 @@ if not exist "%TAR_FILE%" (
 echo [1/3] Création du dossier d'installation : %INSTALL_DIR%
 mkdir "%INSTALL_DIR%" 2>nul
 
-echo [2/3] Importation de ${recipe.branding.osName} dans Windows WSL2...
+echo [2/3] Importation de ${batEscapePercent(recipe.branding.osName)} dans Windows WSL2...
 wsl --import %DISTRO_NAME% "%INSTALL_DIR%" "%TAR_FILE%" --version 2
 
 if %ERRORLEVEL% NEQ 0 (
@@ -3274,7 +3290,7 @@ wsl -d %DISTRO_NAME% -u root bash -c "echo '[boot]\nsystemd=true\n[user]\ndefaul
 
 echo.
 echo =====================================================================
-echo   [SUCCES] ${recipe.branding.osName} est installe avec succes sous Windows !
+echo   [SUCCES] ${batEscapePercent(recipe.branding.osName)} est installe avec succes sous Windows !
 echo =====================================================================
 echo.
 echo Pour lancer votre distribution a tout moment dans le terminal Windows :
@@ -3325,7 +3341,7 @@ export function generateLiveWindowsBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
-title ${recipe.branding.osName} - Machine Virtuelle QEMU (Test & Nettoyage Automatique)
+title ${batEscapePercent(recipe.branding.osName)} - Machine Virtuelle QEMU (Test & Nettoyage Automatique)
 cls
 
 :MENU
@@ -3577,11 +3593,11 @@ export function generateAutoBuildBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
-title ${recipe.branding.osName} - Compilation 100% Automatique
+title ${batEscapePercent(recipe.branding.osName)} - Compilation 100% Automatique
 cls
 
 :: =============================================================================
-:: ${recipe.branding.osName} - Mode "1-Clic" 100% automatique
+:: ${batEscapePercent(recipe.branding.osName)} - Mode "1-Clic" 100% automatique
 :: Detecte WSL2, installe les dependances si besoin, compile l'ISO puis lance
 :: un test QEMU Live RAM automatiquement - aucune interaction requise.
 :: =============================================================================
@@ -3590,7 +3606,7 @@ set LOG_FILE=auto-build.log
 echo [%DATE% %TIME%] Debut de la compilation automatique > "%LOG_FILE%"
 
 echo ===============================================================================
-echo   ${recipe.branding.osName} - COMPILATION 100%% AUTOMATIQUE (1-CLIC)
+echo   ${batEscapePercent(recipe.branding.osName)} - COMPILATION 100%% AUTOMATIQUE (1-CLIC)
 echo   Toutes les etapes s'enchainent sans intervention. Logs : %LOG_FILE%
 echo ===============================================================================
 echo.
@@ -3832,13 +3848,13 @@ fi
 export function generateUniversalLauncherBat(recipe: OSRecipe): string {
   return `@echo off
 setlocal EnableDelayedExpansion
-title OSForge Studio - Lanceur ${recipe.branding.osName}
+title OSForge Studio - Lanceur ${batEscapePercent(recipe.branding.osName)}
 cls
 
 :MENU
 cls
 echo ===============================================================================
-echo   OSFORGE STUDIO - LANCEUR RAPIDE : ${recipe.branding.osName} (${recipe.distro.toUpperCase()})
+echo   OSFORGE STUDIO - LANCEUR RAPIDE : ${batEscapePercent(recipe.branding.osName)} (${recipe.distro.toUpperCase()})
 echo ===============================================================================
 echo.
 echo   [1] Installer et lancer dans Windows WSL2 (Recommande)
