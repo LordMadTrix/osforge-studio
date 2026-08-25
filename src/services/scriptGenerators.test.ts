@@ -3291,6 +3291,7 @@ describe('Chantier 2 : Pré-configuration réseau & Wi-Fi Headless OOB (NetworkC
       distro: 'arch',
       outputFormat: 'qcow2',
       network: {
+        ipMode: 'dhcp',
         enableWifi: true,
         wifiSsid: 'HomeMeshNetwork',
         wifiPassword: 'SuperSecretWpaPassword',
@@ -3308,6 +3309,7 @@ describe('Chantier 2 : Pré-configuration réseau & Wi-Fi Headless OOB (NetworkC
       outputFormat: 'iso_hybrid',
       network: {
         ipMode: 'static',
+        enableWifi: false,
         staticIp: '192.168.1.200/24',
         gateway: '192.168.1.1',
         dnsServers: ['1.1.1.1', '8.8.8.8'],
@@ -3323,10 +3325,10 @@ describe('Chantier 2 : Pré-configuration réseau & Wi-Fi Headless OOB (NetworkC
     const yaml = generateCloudInitYaml(makeRecipe({
       distro: 'debian',
       network: {
+        ipMode: 'static',
         enableWifi: true,
         wifiSsid: 'OfficeWifi',
         wifiPassword: 'Pass123',
-        ipMode: 'static',
         staticIp: '10.0.0.50/24',
         gateway: '10.0.0.1',
       },
@@ -3631,5 +3633,59 @@ describe('Chantier 12 : Optimisations Gaming, Mesa Vulkan & Économie d\'Énergi
   });
 });
 
+describe('Chantier 13 : Formats Cloud & Virtualisation Avancés (Proxmox VE, AWS AMI RAW, VirtualBox VDI)', () => {
+  it('Proxmox VE (proxmox_qcow2) installe qemu-guest-agent et cloud-init et génère deploy-proxmox.sh', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'proxmox_qcow2',
+    });
 
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('qemu-guest-agent');
+    expect(pkgs).toContain('cloud-init');
 
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('deploy-proxmox.sh');
+    expect(script).toContain('qm create');
+    expect(script).toContain('qm importdisk');
+  });
+
+  it('AWS AMI RAW (ami_raw) génère le script de téléversement et import upload-aws-ami.sh', () => {
+    const recipe = makeRecipe({
+      distro: 'arch',
+      outputFormat: 'ami_raw',
+    });
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('upload-aws-ami.sh');
+    expect(script).toContain('aws ec2 import-snapshot');
+  });
+
+  it('VirtualBox VDI (vdi) convertit l\'image au format VDI natif', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'vdi',
+    });
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('qemu-img convert -O vdi');
+  });
+
+  it('Résolution des nouveaux paquets logiciels réels (fastfetch, eza, btop, ffmpeg, obs)', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      selectedPackages: ['fastfetch', 'eza', 'bat_cat', 'zoxide', 'starship', 'fzf', 'btop_monitor', 'ffmpeg_suite', 'obs_studio'],
+    });
+
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('fastfetch');
+    expect(pkgs).toContain('eza');
+    expect(pkgs).toContain('bat');
+    expect(pkgs).toContain('zoxide');
+    expect(pkgs).toContain('starship');
+    expect(pkgs).toContain('fzf');
+    expect(pkgs).toContain('btop');
+    expect(pkgs).toContain('ffmpeg');
+    expect(pkgs).toContain('obs-studio');
+  });
+});

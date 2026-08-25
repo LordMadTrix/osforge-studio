@@ -1836,6 +1836,13 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Template Proxmox VE Cloud-Init (qemu-guest-agent + cloud-init)
+  if (recipe.outputFormat === 'proxmox_qcow2') {
+    if (isDebianLike || isFedoraLike || isArchLike || distroId === 'alpine' || distroId === 'opensuse' || distroId === 'void') {
+      pkgs.push('qemu-guest-agent', 'cloud-init');
+    }
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }
 
@@ -2308,7 +2315,10 @@ ln -sf /etc/sv/agetty-ttyS0 "\${ROOTFS_DIR}/etc/runit/runsvdir/default/agetty-tt
 // les convertit directement vers QCOW2/VMDK/RAW sans repartitionnement supplémentaire.
 const DISK_IMAGE_FORMATS: Record<string, { qemuFormat: string; ext: string; label: string }> = {
   qcow2: { qemuFormat: 'qcow2', ext: 'qcow2', label: 'Image Cloud QCOW2' },
-  vmdk: { qemuFormat: 'vmdk', ext: 'vmdk', label: 'Disque Virtuel VMDK' },
+  vmdk: { qemuFormat: 'vmdk', ext: 'vmdk', label: 'Disque Virtuel VMware (VMDK)' },
+  vdi: { qemuFormat: 'vdi', ext: 'vdi', label: 'Disque Virtuel VirtualBox (VDI)' },
+  proxmox_qcow2: { qemuFormat: 'qcow2', ext: 'qcow2', label: 'Template Proxmox VE (QCOW2 + Cloud-Init)' },
+  ami_raw: { qemuFormat: 'raw', ext: 'raw', label: 'Image Cloud AWS AMI / OpenStack (RAW Sparse)' },
   raw_img: { qemuFormat: 'raw', ext: 'img', label: 'Image Disque Brute (RAW)' },
 };
 
@@ -2811,7 +2821,58 @@ umount -lf "\${MNT_DIR}" || true
 ${recipe.security.luksEncryption ? `cryptsetup close cryptroot 2>/dev/null || true` : ''}
 losetup -d "\${LOOPDEV}" || true
 ${diskConversionStep}
+${recipe.outputFormat === 'proxmox_qcow2' ? `
+cat << 'PROXMOX_DEPLOY_EOF' > "\${OUTPUT_DIR}/deploy-proxmox.sh"
+#!/usr/bin/env bash
+# OSForge Studio — Script de Déploiement Template Proxmox VE
+set -euo pipefail
 
+VMID=\${1:-9000}
+VMNAME=\${2:-${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}}
+STORAGE=\${3:-local-lvm}
+IMAGE_PATH="\$(cd "\$(dirname "\$0")" && pwd)/${diskImageName}"
+
+echo "======================================================="
+echo "  🚀 Déploiement Template Proxmox VE (ID: \${VMID})"
+echo "  Nom     : \${VMNAME}"
+echo "  Image   : \${IMAGE_PATH}"
+echo "  Storage : \${STORAGE}"
+echo "======================================================="
+
+qm create "\${VMID}" --name "\${VMNAME}" --memory 4096 --cores 4 --net0 virtio,bridge=vmbr0
+qm importdisk "\${VMID}" "\${IMAGE_PATH}" "\${STORAGE}"
+qm set "\${VMID}" --scsihw virtio-scsi-pci --scsi0 "\${STORAGE}:vm-\${VMID}-disk-0"
+qm set "\${VMID}" --boot c --bootdisk scsi0
+qm set "\${VMID}" --ide2 "\${STORAGE}:cloudinit"
+qm set "\${VMID}" --serial0 socket --vga serial0
+qm set "\${VMID}" --agent enabled=1
+qm template "\${VMID}"
+
+echo "[OK] Template Proxmox VE \${VMID} créé avec succès !"
+PROXMOX_DEPLOY_EOF
+chmod +x "\${OUTPUT_DIR}/deploy-proxmox.sh"
+` : ''}${recipe.outputFormat === 'ami_raw' ? `
+cat << 'AWS_UPLOAD_EOF' > "\${OUTPUT_DIR}/upload-aws-ami.sh"
+#!/usr/bin/env bash
+# OSForge Studio — Script d'Import Snapshot AWS EC2
+set -euo pipefail
+
+S3_BUCKET=\${1:-my-os-images-bucket}
+IMAGE_PATH="\$(cd "\$(dirname "\$0")" && pwd)/${diskImageName}"
+
+echo "======================================================="
+echo "  ☁️ Import Image AWS EC2 Snapshot"
+echo "  Image  : \${IMAGE_PATH}"
+echo "  Bucket : s3://\${S3_BUCKET}/"
+echo "======================================================="
+
+aws s3 cp "\${IMAGE_PATH}" "s3://\${S3_BUCKET}/${diskImageName}"
+aws ec2 import-snapshot --description "${recipe.branding.osName} AWS RAW Image" --disk-container "Format=RAW,UserBucket={S3Bucket=\${S3_BUCKET},S3Key=${diskImageName}}"
+
+echo "[OK] Import snapshot AWS initié avec succès !"
+AWS_UPLOAD_EOF
+chmod +x "\${OUTPUT_DIR}/upload-aws-ami.sh"
+` : ''}
 echo -e "\${GREEN}=======================================================\${NC}"
 echo -e "\${GREEN}   ✅ ${diskTarget.label} générée avec succès : \${OUTPUT_DIR}/${diskImageName}\${NC}"
 echo -e "\${GREEN}   Taille du fichier : $(du -h "\${OUTPUT_DIR}/${diskImageName}" 2>/dev/null | cut -f1 || echo "OK")\${NC}"
@@ -3171,7 +3232,58 @@ which qemu-img >/dev/null 2>&1 || {
 
 echo -e "\${YELLOW}[8/8] 💽 Conversion vers ${diskTarget.label}...\${NC}"
 qemu-img convert -O ${diskTarget.qemuFormat}${diskTarget.qemuFormat === 'qcow2' ? ' -o compat=1.1' : ''} "\${OUTPUT_DIR}/${isoName}" "\${OUTPUT_DIR}/${diskImageName}"
+${recipe.outputFormat === 'proxmox_qcow2' ? `
+cat << 'PROXMOX_DEPLOY_EOF' > "\${OUTPUT_DIR}/deploy-proxmox.sh"
+#!/usr/bin/env bash
+# OSForge Studio — Script de Déploiement Template Proxmox VE
+set -euo pipefail
 
+VMID=\${1:-9000}
+VMNAME=\${2:-${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}}
+STORAGE=\${3:-local-lvm}
+IMAGE_PATH="\$(cd "\$(dirname "\$0")" && pwd)/${diskImageName}"
+
+echo "======================================================="
+echo "  🚀 Déploiement Template Proxmox VE (ID: \${VMID})"
+echo "  Nom     : \${VMNAME}"
+echo "  Image   : \${IMAGE_PATH}"
+echo "  Storage : \${STORAGE}"
+echo "======================================================="
+
+qm create "\${VMID}" --name "\${VMNAME}" --memory 4096 --cores 4 --net0 virtio,bridge=vmbr0
+qm importdisk "\${VMID}" "\${IMAGE_PATH}" "\${STORAGE}"
+qm set "\${VMID}" --scsihw virtio-scsi-pci --scsi0 "\${STORAGE}:vm-\${VMID}-disk-0"
+qm set "\${VMID}" --boot c --bootdisk scsi0
+qm set "\${VMID}" --ide2 "\${STORAGE}:cloudinit"
+qm set "\${VMID}" --serial0 socket --vga serial0
+qm set "\${VMID}" --agent enabled=1
+qm template "\${VMID}"
+
+echo "[OK] Template Proxmox VE \${VMID} créé avec succès !"
+PROXMOX_DEPLOY_EOF
+chmod +x "\${OUTPUT_DIR}/deploy-proxmox.sh"
+` : ''}${recipe.outputFormat === 'ami_raw' ? `
+cat << 'AWS_UPLOAD_EOF' > "\${OUTPUT_DIR}/upload-aws-ami.sh"
+#!/usr/bin/env bash
+# OSForge Studio — Script d'Import Snapshot AWS EC2
+set -euo pipefail
+
+S3_BUCKET=\${1:-my-os-images-bucket}
+IMAGE_PATH="\$(cd "\$(dirname "\$0")" && pwd)/${diskImageName}"
+
+echo "======================================================="
+echo "  ☁️ Import Image AWS EC2 Snapshot"
+echo "  Image  : \${IMAGE_PATH}"
+echo "  Bucket : s3://\${S3_BUCKET}/"
+echo "======================================================="
+
+aws s3 cp "\${IMAGE_PATH}" "s3://\${S3_BUCKET}/${diskImageName}"
+aws ec2 import-snapshot --description "${recipe.branding.osName} AWS RAW Image" --disk-container "Format=RAW,UserBucket={S3Bucket=\${S3_BUCKET},S3Key=${diskImageName}}"
+
+echo "[OK] Import snapshot AWS initié avec succès !"
+AWS_UPLOAD_EOF
+chmod +x "\${OUTPUT_DIR}/upload-aws-ami.sh"
+` : ''}
 echo -e "\${GREEN}=======================================================\${NC}"
 echo -e "\${GREEN}   ✅ ${diskTarget.label} générée avec succès : \${OUTPUT_DIR}/${diskImageName}\${NC}"
 echo -e "\${GREEN}   Taille du fichier : $(du -h "\${OUTPUT_DIR}/${diskImageName}" 2>/dev/null | cut -f1 || echo "OK")\${NC}"

@@ -109,16 +109,14 @@ Avant de câbler quoi que ce soit :
 - **Rocky 9 vs 10** : le générateur reste sur `releasever=9` délibérément (Rocky 9 supporté
   jusqu'en 2032, tout le travail de vérification EPEL9 déjà fait). Migrer vers EPEL10 nécessiterait
   de tout re-vérifier.
-- **`cisBenchmarkLevel`** et **`luksEncryption`** — champs présents dans `SecurityConfig` mais
-  jamais câblés. Identifiés comme nécessitant une recherche dédiée bien plus large, pas encore
-  commencée.
+- **`cisBenchmarkLevel`** — champ présent dans `SecurityConfig` mais jamais câblé. Identifié comme nécessitant une recherche dédiée bien plus large, pas encore commencée.
 - **Branding Plymouth** (`bootSplashTheme`, `wallpaperPreset`, `accentColor`) — pas vérifiable sans
   capacité de capture d'écran d'un vrai boot, laissé de côté.
 
 ## Workflow de vérification à suivre pour CHAQUE changement
 
 1. `npm run build` (tsc -b + vite build) — doit être propre.
-2. `npm run test` (vitest, ~365 tests actuellement) — tous verts.
+2. `npm run test` (vitest, ~577 tests actuellement) — tous verts.
 3. Écrire un script scratch TypeScript dans `scripts/dump-<feature>-test.ts` qui importe
    `generateBuildScript`/`resolvePackageList`/`generateCloudInitYaml` directement et affiche le
    résultat réel pour les cas concernés. L'exécuter avec `npx tsx scripts/dump-<feature>-test.ts`.
@@ -148,8 +146,8 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **571 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **12 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+- Suite de tests : **577 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **13 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
   3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
@@ -162,23 +160,11 @@ après.
   10. 🌐 **VPN Headless OOB (WireGuard & Tailscale)** : Profil `/etc/wireguard/wg0.conf` (permissions `0600`), service `wg-quick@wg0` et premier démarrage `tailscale up --authkey=...`.
   11. 📦 **Dépôts Communautaires & Helpers (`enableCommunityRepos`)** : Activation RPM Fusion Free/Non-Free (Fedora/Rocky), Packman (openSUSE), Alpine Community & Testing (`/etc/apk/repositories`), helpers AUR (Arch).
   12. 🎮 & 🔋 **Optimisations Gaming & Économie d'Énergie Laptop (`enableGamingOptimizations`, `enablePowerSaving`)** : `vm.max_map_count=2147483642`, `gamemode`, `mangohud`, Mesa Vulkan (`mesa-vulkan-drivers`, `vulkan-radeon`, `vulkan-intel`), `tlp`, `powertop`, et service `tlp`.
-- **Amélioration Démarrage Réel (v86 WebAssembly x86)** :
-  - **Support Multi-OS & Presets de Distributions Linux** :
-    - 🐧 **Buildroot Micro-Linux** (embarqué en local, boot instantané en 1s).
-    - 🏔️ **Alpine Linux Minimal (i686)** (noyau v3.19 + gestionnaire `apk add`).
-    - 🌀 **Debian GNU/Linux Installer (i386)** (noyau Bookworm + base Debian).
-    - ⚡ **Tiny Core Linux (x86)** (système RAM avec environnement graphique X11/FLWM).
-    - 💿 **Chargeur d'Image ISO Locale Personnalisée** (glisser-déposer ou sélection de n'importe quel fichier `.iso` ou `.img` compilé en local ou téléchargé).
-  - **Double Mode d'Affichage** :
-    - 📟 **Console Série (ttyS0)** : Terminal texte ANSI avec dock de commandes rapides, historique, touches spéciales, signaux et injecteur de scripts.
-    - 🖥️ **Écran Graphique VGA Canvas** : Rendu natif VGA pour visualiser le BIOS SeaBIOS, le menu GRUB en couleur et l'interface graphique de l'OS.
-  - **Allocation de RAM Dynamique** : Sélecteur de RAM WebAssembly (128 Mo, 256 Mo, 512 Mo).
-  - **Dock 1-Clic Intégré & Catégorisé (Zéro Scroll)** : 6 catégories d'actions rapides (🚀 Système, 💾 Mémoire/Disque, 🌐 Réseau/DHCP, 👥 Sécurité, ⚡ Benchmarks, 📜 Script Recette) intégrées directement sous la console.
-  - **Historique de Commandes au Clavier** : Navigation interactive Flèches Haut/Bas (⬆️ / ⬇️) dans la barre de saisie `$ ...`.
-  - **Mini-barre de Signaux & Contrôle 1-Clic** : Boutons rapides pour `Ctrl+C` (SIGINT), `Ctrl+L` (Clear), `Tab` (Autocomplétion), `Ctrl+D` (EOF), `Ctrl+Z` (SIGTSTP), et `Enter ↵`.
-  - **Glisser-Déposer / Injection de Fichiers** : Drag & drop de fichiers texte/scripts vers `/tmp/<nom>` dans la VM avec `cat << 'EOF' > ...` et notification visuelle.
-  - **Effet Rétro CRT Scanlines** : Filtre cathodique commutable avec lueur néon adaptée au thème actif.
-  - **Télémétrie RX/TX en direct & Contrôle VM** : Compteur d'octets échangés sur serial0, Pause/Reprendre (`emulator.pause()` / `unpause()`), badges LED haute visibilité.
+  13. ☁️ **Formats Cloud & Virtualisation Avancés & 20 Nouveaux Logiciels Réels (`proxmox_qcow2`, `ami_raw`, `vdi`)** :
+      - `proxmox_qcow2` : Template VM Proxmox VE avec Cloud-Init, `qemu-guest-agent`, et script d'import 1-clic `deploy-proxmox.sh` (`qm create`, `qm importdisk`, `qm set --agent enabled=1`, `qm template`).
+      - `ami_raw` : Image brute sparse pour AWS EC2 / OpenStack avec script `upload-aws-ami.sh` (`aws ec2 import-snapshot`).
+      - `vdi` : Conversion native `qemu-img convert -O vdi` pour Oracle VirtualBox.
+      - **Enrichissement de 20 nouveaux paquets réels** : CLI modernes Rust/C (`fastfetch`, `eza`, `bat_cat`, `zoxide`, `starship`, `fzf`, `btop_monitor`, `zellij`, `helix_editor`), Cybersécurité & Pentest (`trivy`, `masscan`, `sqlmap`, `gobuster`), Multimédia & Audio (`ffmpeg_suite`, `mpv_player`, `obs_studio`, `gimp_editor`, `inkscape_vector`, `audacity_audio`, `kdenlive_video`) vérifiés sur les 7 distributions du catalogue.
 - **Amélioration des Batchs de Démarrage Windows (`launch.bat`, `run-live-windows.bat`, `auto-build.bat`)** :
   - Activation native du mode VT100 / couleurs ANSI (`reg add HKCU\Console /v VirtualTerminalLevel ...`).
   - Détection automatique de l'accélération matérielle Windows Hypervisor Platform (WHPX / `-accel whpx -accel tcg`) pour un démarrage 10x plus rapide de QEMU.

@@ -20,6 +20,9 @@ export type OutputFormat =
   | 'wsl2_tar'
   | 'qcow2' 
   | 'vmdk' 
+  | 'vdi'
+  | 'proxmox_qcow2'
+  | 'ami_raw'
   | 'raw_img' 
   | 'docker_rootfs' 
   | 'rpi_sd';
