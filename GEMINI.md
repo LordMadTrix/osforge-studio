@@ -148,14 +148,20 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **561 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **6 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+- Suite de tests : **571 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **12 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
   3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
   4. 🔑 **Injection & Import GitHub de Clés SSH Publiques** : Clé publique libre `authorized_keys` (mode `0600`) et import direct GitHub (`curl -sSL https://github.com/<user>.keys`), miroir dans cloud-init (`ssh_authorized_keys` et `ssh_import_id: [gh:<user>]`).
   5. 🐳 **Exportateur `Containerfile` / `Dockerfile` Multi-Stage** : Nouveau générateur `generateContainerfile(recipe)` produisant une image OCI 100% exécutable sur Podman/Docker, avec mapping fidèle des bases distros (Debian, Arch, Fedora, Rocky, Alpine, openSUSE, Void).
   6. 📊 **Score de Posture de Sécurité & Conformité Interactif** : Calcul dynamique (0-100 pts), jauge visuelle colorée et checklist temps réel dans `SecurityConfig.tsx`.
+  7. 📜 **Générateur IaC Ansible Playbook (`generateAnsiblePlaybook`)** : Production de `playbook.yml` déclaratif et idempotent automatisant hostname, user, ssh, packages, systemd, et sysctl. Onglet dédié dans `RecipeInspector.tsx`.
+  8. 🏗️ **Générateur IaC Terraform / OpenTofu (`generateTerraformTf`)** : Production de `main.tf` avec provisioning cloud-init user-data et sortie structurée. Onglet dédié dans `RecipeInspector.tsx`.
+  9. 🧰 **Profil Live Rescue & Forensics (RAM Boot `toram`)** : Entrée GRUB Live Rescue avec argument `toram` (chargement 100% SquashFS en RAM pour éjecter la clé USB) et paquets réels (`testdisk`, `ddrescue`/`gddrescue`, `smartmontools`, `chntpw`).
+  10. 🌐 **VPN Headless OOB (WireGuard & Tailscale)** : Profil `/etc/wireguard/wg0.conf` (permissions `0600`), service `wg-quick@wg0` et premier démarrage `tailscale up --authkey=...`.
+  11. 📦 **Dépôts Communautaires & Helpers (`enableCommunityRepos`)** : Activation RPM Fusion Free/Non-Free (Fedora/Rocky), Packman (openSUSE), Alpine Community & Testing (`/etc/apk/repositories`), helpers AUR (Arch).
+  12. 🎮 & 🔋 **Optimisations Gaming & Économie d'Énergie Laptop (`enableGamingOptimizations`, `enablePowerSaving`)** : `vm.max_map_count=2147483642`, `gamemode`, `mangohud`, Mesa Vulkan (`mesa-vulkan-drivers`, `vulkan-radeon`, `vulkan-intel`), `tlp`, `powertop`, et service `tlp`.
 - **Amélioration Démarrage Réel (v86 WebAssembly x86)** :
   - Terminal ANSI complet avec séquences d'échappement pour flèches directionnelles (`\x1b[A/B/C/D`), Home/End, PageUp/Down, Delete, combinaisons `Ctrl+<key>`, et support du collage (`onPaste`).
   - Barre de commandes rapides 1-clic (`uname -a`, `ls -la /`, `free -m`, `df -h`, `cat /etc/os-release`, `udhcpc`, `ps aux`, `uptime`, test I/O).

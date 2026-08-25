@@ -2,7 +2,7 @@ import React from 'react';
 import { OSRecipe, NetworkConfig as NetworkConfigType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { User, Key, Globe, TerminalSquare, Wifi, Network } from 'lucide-react';
+import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, HardDrive, Shield, Layers } from 'lucide-react';
 
 interface SystemConfigProps {
   recipe: OSRecipe;
@@ -281,15 +281,15 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         )}
       </div>
 
-      {/* 4. Headless Network & Wi-Fi Pre-configuration */}
+      {/* 4. Headless Network, Wi-Fi & VPN Pre-configuration */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Network size={16} color="var(--emerald)" />
-          {lang === 'fr' ? 'Pré-configuration Réseau & Wi-Fi Headless OOB' : 'Headless Network & Wi-Fi Pre-configuration'}
+          {lang === 'fr' ? 'Pré-configuration Réseau, Wi-Fi & VPN Headless OOB' : 'Headless Network, Wi-Fi & VPN Pre-configuration'}
           <InfoTooltip
             text={lang === 'fr'
-              ? 'Configure automatiquement le Wi-Fi (NetworkManager/wpa_supplicant) et l’adresse IP sans écran ni clavier.'
-              : 'Pre-configures Wi-Fi credentials and IP settings for headless out-of-the-box networking.'}
+              ? 'Configure automatiquement le Wi-Fi, l’adresse IP et les tunnels VPN WireGuard / Tailscale sans écran ni clavier.'
+              : 'Pre-configures Wi-Fi credentials, IP settings and WireGuard / Tailscale VPNs for headless out-of-the-box networking.'}
           />
         </h3>
 
@@ -350,6 +350,103 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
             )}
           </div>
 
+          {/* WireGuard VPN Toggle & Config */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={16} color="var(--violet)" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                    {lang === 'fr' ? 'Activer Tunnel VPN WireGuard (wg0)' : 'Enable WireGuard VPN Tunnel (wg0)'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {lang === 'fr' ? 'Génère /etc/wireguard/wg0.conf et active le service systemd' : 'Generates /etc/wireguard/wg0.conf and enables systemd service'}
+                  </div>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={recipe.network?.enableWireguard || false}
+                  onChange={(e) => updateNet({ enableWireguard: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            {recipe.network?.enableWireguard && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Adresse IP Client :' : 'Client IP Address:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.wireguardAddress || ''}
+                    onChange={(e) => updateNet({ wireguardAddress: e.target.value })}
+                    placeholder="10.10.0.2/24"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Serveur Distant (Endpoint) :' : 'Server Endpoint:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.wireguardEndpoint || ''}
+                    onChange={(e) => updateNet({ wireguardEndpoint: e.target.value })}
+                    placeholder="vpn.example.com:51820"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tailscale VPN Toggle */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Network size={16} color="#3b82f6" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                    {lang === 'fr' ? 'Activer VPN Mesh Tailscale OOB' : 'Enable Tailscale Mesh VPN OOB'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {lang === 'fr' ? 'Active le démon tailscaled et connecte le nœud au réseau privé' : 'Enables tailscaled daemon and auto-joins network'}
+                  </div>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={recipe.network?.enableTailscale || false}
+                  onChange={(e) => updateNet({ enableTailscale: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            {recipe.network?.enableTailscale && (
+              <div style={{ marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  {lang === 'fr' ? 'Clé d’authentification (Auth Key optionnelle) :' : 'Tailscale Auth Key (optional):'}
+                </label>
+                <input
+                  type="password"
+                  className="input-text font-mono"
+                  style={{ fontSize: '0.78rem' }}
+                  value={recipe.network?.tailscaleAuthKey || ''}
+                  onChange={(e) => updateNet({ tailscaleAuthKey: e.target.value })}
+                  placeholder="tskey-auth-kXXXXX..."
+                />
+              </div>
+            )}
+          </div>
+
           {/* IP Mode (DHCP vs Static) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div>
@@ -400,7 +497,102 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </div>
       </div>
 
-      {/* 5. Timezone, Locale & Keyboard */}
+      {/* 5. Advanced System Profiles (Rescue, Gaming, Battery, Community Repos) */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Zap size={16} color="#f59e0b" />
+          {lang === 'fr' ? 'Profils Système Avancés & Optimisations' : 'Advanced System Profiles & Optimizations'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Active des optimisations réelles du noyau, des profils d’alimentation ou des dépôts communautaires.'
+              : 'Enables kernel optimizations, power profiles, or community package repositories.'}
+          />
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+          {/* Gaming Optimizations */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? '🎮 Profil Gaming & Mesa Vulkan' : '🎮 Gaming Profile & Vulkan'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Gamemode, MangoHud, sysctl vm.max_map_count' : 'Gamemode, MangoHud, sysctl vm.max_map_count'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableGamingOptimizations ?? false}
+                onChange={(e) => onChange({ enableGamingOptimizations: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Laptop Power Saving */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? '🔋 Profil Énergie Laptop (TLP)' : '🔋 Laptop Power Saving (TLP)'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Optimisation de la batterie et gestion thermique' : 'Battery optimization & thermal management'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enablePowerSaving ?? false}
+                onChange={(e) => onChange({ enablePowerSaving: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Community Repos */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? '📦 Dépôts Communautaires' : '📦 Community Repositories'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'RPM Fusion, Packman, Alpine Community, AUR' : 'RPM Fusion, Packman, Alpine Community, AUR'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableCommunityRepos ?? false}
+                onChange={(e) => onChange({ enableCommunityRepos: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Live Rescue RAM Boot */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? '🧰 Mode Live Rescue (RAM toram)' : '🧰 Live Rescue Mode (toram)'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Entrée GRUB dédiée pour charger 100% en RAM' : 'Dedicated GRUB entry to load 100% into RAM'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableLiveRescue ?? false}
+                onChange={(e) => onChange({ enableLiveRescue: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Timezone, Locale & Keyboard */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Globe size={16} color="#f59e0b" />
@@ -417,7 +609,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
               value={recipe.keyboardLayout}
               onChange={(e) => onChange({ keyboardLayout: e.target.value })}
             >
-              {keyboardLayouts.map(k => (
+              {keyboardLayouts.map((k) => (
                 <option key={k.id} value={k.id}>{k.name}</option>
               ))}
             </select>
@@ -432,7 +624,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
               value={recipe.timezone}
               onChange={(e) => onChange({ timezone: e.target.value })}
             >
-              {timezones.map(tz => (
+              {timezones.map((tz) => (
                 <option key={tz} value={tz}>{tz}</option>
               ))}
             </select>
@@ -457,7 +649,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </div>
       </div>
 
-      {/* 6. Kernel Boot Parameters & Flatpak App Store */}
+      {/* 7. Kernel Boot Parameters & Flatpak App Store */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <TerminalSquare size={16} color="var(--purple)" />

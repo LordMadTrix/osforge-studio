@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateContainerfile, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat, generateUniversalLauncherSh } from './scriptGenerators';
+import {
+  generateBuildScript,
+  resolvePackageList,
+  generateCloudInitYaml,
+  generateContainerfile,
+  generateAnsiblePlaybook,
+  generateTerraformTf,
+  generateGitHubWorkflow,
+  generateAutoBuildSh,
+  generateWslInstallerBat,
+  generateLiveWindowsBat,
+  generateAutoBuildBat,
+  generateUniversalLauncherBat,
+  generateUniversalLauncherSh
+} from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -3381,5 +3395,194 @@ describe('Chantier 5 : Exportateur OCI Containerfile / Dockerfile', () => {
     expect(content).toContain('dnf install -y');
   });
 });
+
+describe('Chantier 7 : Générateur IaC Ansible Playbook (playbook.yml)', () => {
+  it('Génère un playbook Ansible valide avec user, sshd, firewall et packages', () => {
+    const playbook = generateAnsiblePlaybook(makeRecipe({
+      branding: { osName: 'CyberForge', editionName: 'Sec', version: '2.0', accentColor: '#ff0000', wallpaperPreset: 'dark', bootSplashTheme: 'minimal' },
+      hostname: 'cyber-node',
+      enableSSH: true,
+      enableGamingOptimizations: true,
+      enablePowerSaving: true,
+      user: {
+        username: 'operator',
+        fullName: 'Operator',
+        password: 'pass',
+        sudo: true,
+        autologin: false,
+        shell: '/bin/zsh',
+        sshPublicKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...',
+      },
+      security: {
+        firewall: 'ufw',
+        allowedPorts: [22, 80],
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        luksEncryption: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+
+    expect(playbook).toContain('name: Provisioning et Configuration de CyberForge');
+    expect(playbook).toContain('os_user: "operator"');
+    expect(playbook).toContain('os_hostname: "cyber-node"');
+    expect(playbook).toContain('ansible.builtin.hostname');
+    expect(playbook).toContain('ansible.builtin.user');
+    expect(playbook).toContain('ansible.posix.authorized_key');
+    expect(playbook).toContain('ansible.builtin.package');
+    expect(playbook).toContain('ansible.builtin.systemd');
+    expect(playbook).toContain('name: ufw');
+    expect(playbook).toContain('name: tlp');
+    expect(playbook).toContain('ansible.posix.sysctl');
+    expect(playbook).toContain('name: vm.max_map_count');
+  });
+});
+
+describe('Chantier 8 : Générateur IaC Terraform / OpenTofu (main.tf)', () => {
+  it('Génère un manifeste Terraform structuré avec local_file et cloud-init', () => {
+    const tf = generateTerraformTf(makeRecipe({
+      distro: 'debian',
+      branding: { osName: 'CloudNode', editionName: 'Cloud', version: '1.0', accentColor: '#00ff00', wallpaperPreset: 'cloud', bootSplashTheme: 'minimal' },
+      hostname: 'cloud-server',
+    }));
+
+    expect(tf).toContain('terraform {');
+    expect(tf).toContain('resource "local_file" "cloud_init"');
+    expect(tf).toContain('output "osforge_vm_spec"');
+    expect(tf).toContain('os_name       = "CloudNode"');
+    expect(tf).toContain('hostname      = "cloud-server"');
+  });
+});
+
+describe('Chantier 9 : Profil Live Rescue & Forensics (RAM Boot toram)', () => {
+  it('Ajoute une entrée GRUB Live Rescue avec l\'argument toram', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      enableLiveRescue: true,
+      branding: { osName: 'RescueOS', editionName: 'Rescue', version: '1.0', accentColor: '#ff0000', wallpaperPreset: 'dark', bootSplashTheme: 'minimal' },
+    }));
+
+    expect(script).toContain('menuentry "RescueOS (Mode Live Rescue & RAM Boot / toram)"');
+    expect(script).toContain('boot=live components toram quiet splash');
+  });
+});
+
+describe('Chantier 10 : VPN Headless OOB (WireGuard & Tailscale)', () => {
+  it('WireGuard génère /etc/wireguard/wg0.conf en 0600 et active le service systemd', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      network: {
+        ipMode: 'dhcp',
+        enableWifi: false,
+        enableWireguard: true,
+        wireguardPrivateKey: 'aW52YWxpZF9rZXk=',
+        wireguardAddress: '10.200.0.2/24',
+        wireguardEndpoint: 'vpn.mycorp.com:51820',
+        wireguardPublicKey: 'cGVlcl9wdWJsaWNfa2V5',
+        wireguardAllowedIps: '0.0.0.0/0',
+        dnsServers: ['1.1.1.1'],
+      },
+    });
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('cat > /etc/wireguard/wg0.conf << \'WG_EOF\'');
+    expect(script).toContain('PrivateKey = aW52YWxpZF9rZXk=');
+    expect(script).toContain('Address = 10.200.0.2/24');
+    expect(script).toContain('Endpoint = vpn.mycorp.com:51820');
+    expect(script).toContain('chmod 600 /etc/wireguard/wg0.conf');
+    expect(script).toContain('systemctl enable wg-quick@wg0');
+
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('wireguard-tools');
+  });
+
+  it('Tailscale active le service et lance tailscale up au premier boot', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      network: {
+        ipMode: 'dhcp',
+        enableWifi: false,
+        enableTailscale: true,
+        tailscaleAuthKey: 'tskey-auth-test12345',
+      },
+    }));
+
+    expect(script).toContain('systemctl enable tailscaled');
+    expect(script).toContain('tailscale up --authkey="tskey-auth-test12345"');
+  });
+});
+
+describe('Chantier 11 : Dépôts Communautaires (RPM Fusion, Packman, Alpine Community, AUR)', () => {
+  it('Fedora active les miroirs RPM Fusion Free & Non-Free', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora',
+      outputFormat: 'raw_img',
+      enableCommunityRepos: true,
+    }));
+
+    expect(script).toContain('rpmfusion-free-release');
+    expect(script).toContain('rpmfusion-nonfree-release');
+  });
+
+  it('openSUSE active le dépôt Packman', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'opensuse',
+      outputFormat: 'raw_img',
+      enableCommunityRepos: true,
+    }));
+
+    expect(script).toContain('zypper addrepo -f -c https://ftp.gwdg.de/pub/linux/misc/packman/suse/openSUSE_Tumbleweed/ packman');
+  });
+
+  it('Alpine active community et testing dans /etc/apk/repositories', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'alpine',
+      outputFormat: 'raw_img',
+      enableCommunityRepos: true,
+    }));
+
+    expect(script).toContain('sed -i \'s/^#//g\' /etc/apk/repositories');
+  });
+});
+
+describe('Chantier 12 : Optimisations Gaming, Mesa Vulkan & Économie d\'Énergie TLP', () => {
+  it('Gaming installe gamemode, mangohud, Mesa Vulkan et applique vm.max_map_count', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      enableGamingOptimizations: true,
+    });
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('vm.max_map_count = 2147483642');
+    expect(script).toContain('sysctl -p /etc/sysctl.d/99-gaming.conf');
+
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('gamemode');
+    expect(pkgs).toContain('mangohud');
+    expect(pkgs).toContain('mesa-vulkan-drivers');
+  });
+
+  it('TLP power saving installe tlp, powertop et active le service tlp', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      enablePowerSaving: true,
+    });
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('systemctl enable tlp');
+
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('tlp');
+    expect(pkgs).toContain('powertop');
+  });
+});
+
 
 

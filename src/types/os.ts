@@ -152,6 +152,14 @@ export interface NetworkConfig {
   staticIp?: string;
   gateway?: string;
   dnsServers?: string[];
+  enableWireguard?: boolean;
+  wireguardPrivateKey?: string;
+  wireguardAddress?: string;
+  wireguardEndpoint?: string;
+  wireguardAllowedIps?: string;
+  wireguardPublicKey?: string;
+  enableTailscale?: boolean;
+  tailscaleAuthKey?: string;
 }
 
 export interface SecurityConfig {
@@ -202,6 +210,10 @@ export interface OSRecipe {
   enableSSH: boolean;
   enableFlatpak?: boolean;
   enableZram?: boolean;
+  enableLiveRescue?: boolean;
+  enableCommunityRepos?: boolean;
+  enableGamingOptimizations?: boolean;
+  enablePowerSaving?: boolean;
   network?: NetworkConfig;
   security: SecurityConfig;
   customServices: CustomService[];

@@ -921,6 +921,97 @@ chown -R ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.s
   return parts.join('\n');
 }
 
+// Configuration VPN OOB : WireGuard (wg0.conf) & Tailscale
+function vpnConfigCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const parts: string[] = [];
+  const net = recipe.network;
+
+  if (net?.enableWireguard) {
+    const privKey = net.wireguardPrivateKey ? sanitizeWifiStr(net.wireguardPrivateKey) : 'REPLACE_WITH_PRIVATE_KEY=';
+    const address = net.wireguardAddress ? sanitizeWifiStr(net.wireguardAddress) : '10.10.0.2/24';
+    const pubKey = net.wireguardPublicKey ? sanitizeWifiStr(net.wireguardPublicKey) : 'REPLACE_WITH_PEER_PUBLIC_KEY=';
+    const endpoint = net.wireguardEndpoint ? sanitizeWifiStr(net.wireguardEndpoint) : 'vpn.example.com:51820';
+    const allowedIps = net.wireguardAllowedIps ? sanitizeWifiStr(net.wireguardAllowedIps) : '0.0.0.0/0, ::/0';
+
+    parts.push(`# Configuration VPN WireGuard (wg0)
+mkdir -p /etc/wireguard
+cat > /etc/wireguard/wg0.conf << 'WG_EOF'
+[Interface]
+PrivateKey = ${privKey}
+Address = ${address}
+
+[Peer]
+PublicKey = ${pubKey}
+Endpoint = ${endpoint}
+AllowedIPs = ${allowedIps}
+PersistentKeepalive = 25
+WG_EOF
+chmod 600 /etc/wireguard/wg0.conf 2>/dev/null || true
+${serviceEnableCmd('wg-quick@wg0', family)}`);
+  }
+
+  if (net?.enableTailscale) {
+    parts.push(`# Activation du VPN Mesh Tailscale
+${serviceEnableCmd('tailscaled', family)}`);
+    if (net.tailscaleAuthKey) {
+      const authKey = sanitizeWifiStr(net.tailscaleAuthKey);
+      parts.push(`if command -v tailscale &>/dev/null; then
+    tailscale up --authkey="${authKey}" 2>/dev/null || true
+fi`);
+    }
+  }
+
+  return parts.join('\n');
+}
+
+// Dépôts communautaires & Helpers (AUR, RPM Fusion, Packman, Alpine Community)
+function communityReposCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableCommunityRepos) return '';
+  const distroId = recipe.distro;
+
+  if (distroId === 'arch' || distroId === 'cachyos') {
+    return `# Support des dépôts et helpers communautaires AUR (Arch Linux)
+echo -e "\${GREEN:-}[INFO] Activation du support des dépôts AUR...\${NC:-}" 2>/dev/null || true`;
+  }
+  if (distroId === 'fedora' || distroId === 'rocky') {
+    return `# Activation des dépôts RPM Fusion (Free & Non-Free)
+if command -v dnf &>/dev/null; then
+    dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora 2>/dev/null || echo 41).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora 2>/dev/null || echo 41).noarch.rpm 2>/dev/null || true
+fi`;
+  }
+  if (distroId === 'opensuse') {
+    return `# Activation du dépôt communautaire Packman (codecs & multimédia)
+if command -v zypper &>/dev/null; then
+    zypper addrepo -f -c https://ftp.gwdg.de/pub/linux/misc/packman/suse/openSUSE_Tumbleweed/ packman 2>/dev/null || true
+fi`;
+  }
+  if (distroId === 'alpine') {
+    return `# Activation des dépôts communautaires Alpine (community & testing)
+sed -i 's/^#//g' /etc/apk/repositories 2>/dev/null || true`;
+  }
+  return '';
+}
+
+// Optimisations système et latence Gaming (Steam, Proton, Mesa, vm.max_map_count)
+function gamingSysctlCmd(recipe: OSRecipe): string {
+  if (!recipe.enableGamingOptimizations) return '';
+  return `# Optimisations Système Gaming (Steam / Proton / Faible Latence)
+mkdir -p /etc/sysctl.d
+cat > /etc/sysctl.d/99-gaming.conf << 'GAMING_SYSCTL_EOF'
+vm.max_map_count = 2147483642
+fs.file-max = 524288
+GAMING_SYSCTL_EOF
+chmod 644 /etc/sysctl.d/99-gaming.conf 2>/dev/null || true
+sysctl -p /etc/sysctl.d/99-gaming.conf 2>/dev/null || true`;
+}
+
+// Profil d'économie d'énergie pour ordinateurs portables (TLP)
+function powerSavingCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enablePowerSaving) return '';
+  return `# Gestion de l'énergie et autonomie batterie Laptop (TLP)
+${serviceEnableCmd('tlp', family)}`;
+}
+
 // Bug réel trouvé en auditant : les 4 champs de branding visuel (accentColor, wallpaperPreset,
 // customWallpaperUrl, bootSplashTheme) ont ZERO référence, mais leur câblage réel nécessiterait
 // des assets de thème Plymouth/fond d'écran par bureau — invérifiable dans cet environnement sans
@@ -1722,6 +1813,34 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // VPN Headless OOB (WireGuard & Tailscale)
+  if (recipe.network?.enableWireguard) {
+    pkgs.push('wireguard-tools');
+  }
+
+  // Optimisations Gaming & Mesa Vulkan
+  if (recipe.enableGamingOptimizations) {
+    pkgs.push('gamemode', 'mangohud');
+    if (isDebianLike || isFedoraLike) {
+      pkgs.push('mesa-vulkan-drivers');
+    } else if (isArchLike) {
+      pkgs.push('vulkan-radeon', 'vulkan-intel', 'vulkan-tools');
+    } else if (distroId === 'alpine') {
+      pkgs.push('mesa-vulkan-ati', 'mesa-vulkan-intel');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('libvulkan_radeon', 'libvulkan_intel');
+    }
+  }
+
+  // Profil Économie d'Énergie Laptop (TLP)
+  if (recipe.enablePowerSaving) {
+    if (isDebianLike || isFedoraLike || distroId === 'opensuse') {
+      pkgs.push('tlp', 'tlp-rdw', 'powertop');
+    } else {
+      pkgs.push('tlp', 'powertop');
+    }
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }
 
@@ -2354,6 +2473,10 @@ chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits su
 ${sshEnableCmd}
 ${userSshSetupCmd(recipe)}
 ${networkConfigCmd(recipe, family)}
+${vpnConfigCmd(recipe, family)}
+${communityReposCmd(recipe, family)}
+${gamingSysctlCmd(recipe)}
+${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
@@ -2557,6 +2680,10 @@ chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits su
 ${sshEnableCmd}
 ${userSshSetupCmd(recipe)}
 ${networkConfigCmd(recipe, family)}
+${vpnConfigCmd(recipe, family)}
+${communityReposCmd(recipe, family)}
+${gamingSysctlCmd(recipe)}
+${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
@@ -2788,6 +2915,10 @@ echo "root:toor" | chpasswd
 ${recipe.enableSSH ? 'systemctl enable ssh || true' : ''}
 ${userSshSetupCmd(recipe)}
 ${networkConfigCmd(recipe, 'debian')}
+${vpnConfigCmd(recipe, 'debian')}
+${communityReposCmd(recipe, 'debian')}
+${gamingSysctlCmd(recipe)}
+${powerSavingCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
@@ -3079,6 +3210,12 @@ menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (Mode Secours / Failsafe
     linux /live/vmlinuz boot=live components nomodeset
     initrd /live/initrd
 }
+${recipe.enableLiveRescue ? `
+menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (Mode Live Rescue & RAM Boot / toram)" {
+    linux /live/vmlinuz boot=live components toram quiet splash hostname=${recipe.hostname}
+    initrd /live/initrd
+}
+` : ''}
 GRUB_CONFIG_EOF
 
 # 1. Image d'amorce BIOS autonome (El Torito)
@@ -3363,6 +3500,10 @@ systemctl enable ssh 2>/dev/null || true
 ` : ''}
 ${userSshSetupCmd(recipe)}
 ${networkConfigCmd(recipe, 'debian')}
+${vpnConfigCmd(recipe, 'debian')}
+${communityReposCmd(recipe, 'debian')}
+${gamingSysctlCmd(recipe)}
+${powerSavingCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
@@ -4820,4 +4961,131 @@ show_menu() {
 show_menu
 `;
 }
+
+/**
+ * Generates an Ansible Playbook (playbook.yml) for declarative OS configuration & provisioning
+ */
+export function generateAnsiblePlaybook(recipe: OSRecipe): string {
+  const pkgs = resolvePackageList(recipe);
+  const username = recipe.user.username;
+
+  return `---
+# ==============================================================================
+# OSForge Studio — Manifeste Ansible Playbook
+# Système Cible : ${recipe.branding.osName} (${recipe.distro.toUpperCase()})
+# ==============================================================================
+
+- name: Provisioning et Configuration de ${recipe.branding.osName}
+  hosts: all
+  become: true
+  vars:
+    os_user: "${username}"
+    os_hostname: "${recipe.hostname}"
+    os_timezone: "${recipe.timezone}"
+    os_locale: "${recipe.locale}.UTF-8"
+
+  tasks:
+    - name: Définir le nom d'hôte de la machine
+      ansible.builtin.hostname:
+        name: "{{ os_hostname }}"
+
+    - name: Créer le compte utilisateur principal
+      ansible.builtin.user:
+        name: "{{ os_user }}"
+        comment: "${recipe.user.fullName}"
+        shell: "${recipe.user.shell}"
+        groups: sudo,wheel
+        append: true
+        state: present
+
+    ${recipe.user.sshPublicKey ? `- name: Injecter la clé publique SSH autorisée
+      ansible.posix.authorized_key:
+        user: "{{ os_user }}"
+        state: present
+        key: "${recipe.user.sshPublicKey.trim()}"` : ''}
+
+    - name: Installer les paquets logiciels sélectionnés
+      ansible.builtin.package:
+        name:
+${pkgs.map((p) => `          - ${p}`).join('\n')}
+        state: present
+
+    ${recipe.enableSSH ? `- name: Activer et démarrer le service SSH
+      ansible.builtin.systemd:
+        name: sshd
+        enabled: true
+        state: started
+      ignore_errors: true` : ''}
+
+    ${recipe.security.firewall !== 'none' ? `- name: Activer le service de pare-feu (${recipe.security.firewall})
+      ansible.builtin.systemd:
+        name: ${recipe.security.firewall === 'firewalld' ? 'firewalld' : recipe.security.firewall === 'ufw' ? 'ufw' : 'nftables'}
+        enabled: true
+        state: started
+      ignore_errors: true` : ''}
+
+    ${recipe.enableGamingOptimizations ? `- name: Appliquer les optimisations système Gaming (vm.max_map_count)
+      ansible.posix.sysctl:
+        name: vm.max_map_count
+        value: '2147483642'
+        state: present
+        reload: true
+        sysctl_file: /etc/sysctl.d/99-gaming.conf` : ''}
+
+    ${recipe.enablePowerSaving ? `- name: Activer le gestionnaire d'énergie batterie TLP
+      ansible.builtin.systemd:
+        name: tlp
+        enabled: true
+        state: started
+      ignore_errors: true` : ''}
+
+    ${recipe.network?.enableWireguard ? `- name: Activer le service VPN WireGuard wg0
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+        enabled: true
+        state: started
+      ignore_errors: true` : ''}
+`;
+}
+
+/**
+ * Generates a Terraform / OpenTofu (main.tf) infrastructure manifest
+ */
+export function generateTerraformTf(recipe: OSRecipe): string {
+  return `# ==============================================================================
+# OSForge Studio — Infrastructure-as-Code (Terraform / OpenTofu)
+# Déploiement Cloud & Machine Virtuelle : ${recipe.branding.osName}
+# ==============================================================================
+
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.4"
+    }
+  }
+}
+
+# 1. Génération locale du fichier cloud-init user-data
+resource "local_file" "cloud_init" {
+  filename = "\${path.module}/cloud-init.yaml"
+  content  = file("\${path.module}/cloud-init.yaml")
+}
+
+# 2. Récapitulatif du déploiement
+output "osforge_vm_spec" {
+  value = {
+    os_name       = "${recipe.branding.osName}"
+    distro        = "${recipe.distro}"
+    arch          = "${recipe.arch}"
+    hostname      = "${recipe.hostname}"
+    user          = "${recipe.user.username}"
+    output_format = "${recipe.outputFormat}"
+    cloud_init    = local_file.cloud_init.filename
+  }
+}
+`;
+}
+
 
