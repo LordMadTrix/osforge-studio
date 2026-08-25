@@ -658,6 +658,33 @@ describe('generateBuildScript / generateCloudInitYaml — pare-feu "nftables" r�
   });
 });
 
+describe('generateCloudInitYaml — bug réel trouvé en auditant : ce manifeste est généré pour LES 13 DISTROS du catalogue (RecipeInspector.tsx l\'affiche systématiquement, sans filtrage par distro), mais "systemctl enable --now ssh" était codé en dur alors que le VRAI nom d\'unité systemd est "sshd" (pas "ssh") sur Arch/CachyOS/Fedora/Rocky/openSUSE (déjà établi ailleurs dans ce fichier via sshEnableCmd), et qu\'Alpine (OpenRC) et Void (runit) n\'utilisent même PAS systemctl du tout — le "|| true" masquait l\'échec sans jamais activer SSH, rendant une image cloud Arch/Fedora/Alpine/Void injoignable en SSH malgré "Activer SSH" coché', () => {
+  it('Debian/Ubuntu : conserve "systemctl enable --now ssh" (non-régression, comportement inchangé)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'debian', outputFormat: 'qcow2', enableSSH: true }));
+    expect(yaml).toContain('systemctl enable --now ssh || true');
+    expect(yaml).not.toContain('enable --now sshd');
+  });
+
+  it('Arch, Fedora, openSUSE : utilisent le vrai nom d\'unité "sshd" via systemctl', () => {
+    for (const distro of ['arch', 'fedora', 'opensuse'] as const) {
+      const yaml = generateCloudInitYaml(makeRecipe({ distro, outputFormat: 'qcow2', enableSSH: true }));
+      expect(yaml).toContain('systemctl enable --now sshd || true');
+    }
+  });
+
+  it('Alpine : utilise "rc-update add sshd default" (OpenRC, pas systemctl)', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'alpine', outputFormat: 'qcow2', enableSSH: true }));
+    expect(yaml).toContain('rc-update add sshd default');
+    expect(yaml).not.toContain('systemctl enable --now ssh');
+  });
+
+  it('Void : active sshd via le mécanisme runit (symlink runsvdir), pas systemctl', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({ distro: 'void', outputFormat: 'qcow2', enableSSH: true }));
+    expect(yaml).toContain('/etc/sv/sshd /etc/runit/runsvdir/default/sshd');
+    expect(yaml).not.toContain('systemctl enable --now ssh');
+  });
+});
+
 describe('generateCloudInitYaml — durcissement sécurité réellement câblé (bug réel trouvé en comparant ce générateur aux 4 générateurs bash déjà audités : "fail2ban"/"disableRootSSH"/"appArmorOrSELinux"/"dotfilesGitUrl"/"customServices" avaient chacun leur paquet déjà ajouté par resolvePackageList(), mais aucune action d\'activation dans runcmd/write_files — les paquets s\'installaient sans jamais être configurés ni démarrés sur une image cloud-init qcow2/vmdk)', () => {
   it('fail2ban=true : écrit jail.local et active le service', () => {
     const yaml = generateCloudInitYaml(makeRecipe({

@@ -2647,6 +2647,24 @@ function cloudInitHardeningYaml(recipe: OSRecipe): { writeFiles: string; runcmd:
 export function generateCloudInitYaml(recipe: OSRecipe): string {
   const pkgs = resolvePackageList(recipe);
   const { writeFiles: hardeningWriteFiles, runcmd: hardeningRuncmd } = cloudInitHardeningYaml(recipe);
+  // Bug réel trouvé en auditant : ce manifeste cloud-init est généré pour LES 13 DISTROS du
+  // catalogue (RecipeInspector.tsx l'affiche systématiquement, sans filtrage par distro), mais
+  // "systemctl enable --now ssh" était codé en dur — alors que ce même fichier établit déjà
+  // ailleurs (sshEnableCmd dans generateNonDebianBuildScript, ligne ~1304) que le VRAI nom
+  // d'unité systemd est "sshd" (pas "ssh") sur Arch/CachyOS/Fedora/Rocky/openSUSE, et qu'Alpine
+  // (OpenRC) et Void (runit) n'utilisent même PAS systemctl du tout. Le "|| true" masquait
+  // l'échec sans jamais activer SSH : une image cloud Arch/Fedora/Alpine/Void avec "Activer SSH"
+  // coché restait donc injoignable en SSH après son premier démarrage, sans aucun indice dans le
+  // manifeste généré. Repris à l'identique de sshEnableCmd (déjà vérifié en direct pour ces
+  // familles), pas une nouvelle vérification.
+  const cloudInitFamily = NON_DEBIAN_DISTROS[recipe.distro];
+  const sshEnableLine = cloudInitFamily === 'alpine'
+    ? '  - rc-update add sshd default 2>/dev/null || true'
+    : cloudInitFamily === 'void'
+      ? '  - mkdir -p /etc/runit/runsvdir/default\n  - ln -sf /etc/sv/sshd /etc/runit/runsvdir/default/sshd 2>/dev/null || true'
+      : cloudInitFamily
+        ? '  - systemctl enable --now sshd || true'
+        : '  - systemctl enable --now ssh || true';
 
   return `#cloud-config
 # ==============================================================================
@@ -2699,7 +2717,7 @@ ${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
       }
 ` : ''}${hardeningWriteFiles ? hardeningWriteFiles + '\n' : ''}
 runcmd:
-  - systemctl enable --now ssh || true
+${sshEnableLine}
   ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
 ${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}  - [ bash, -c, "${recipe.firstBootScript ? recipe.firstBootScript.replace(/"/g, '\\"') : 'echo Ready'}" ]
