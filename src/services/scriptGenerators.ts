@@ -745,33 +745,74 @@ SELINUX_EOF`;
   return '';
 }
 
-// Bug réel MAJEUR trouvé en auditant : "firewall" (ufw/nftables, panneau Sécurité) n'était câblé
-// QUE dans generateBuildScript() (famille "debian" — Debian/Ubuntu/Kali/Mint), jamais dans
-// generateNonDebianBuildScript()/generateNonDebianDiskImageScript() — un système Arch, Fedora,
-// Rocky, Alpine, Void ou openSUSE ne recevait ZÉRO pare-feu, quel que soit le choix explicite de
-// l'utilisateur dans l'UI. Paquets vérifiés réels en direct avant extension : "ufw" présent sur
-// Arch (archlinux.org/packages/extra), Fedora ET Rocky/EPEL9, Alpine, Void — mais confirmé ABSENT
-// du dépôt officiel openSUSE Tumbleweed (download.opensuse.org/tumbleweed/repo/oss/x86_64/, testé
-// en direct) : avertissement honnête plutôt qu'un paquet inexistant. "nftables" présent partout,
-// y compris Rocky (déjà dans BaseOS, pas besoin d'EPEL) et openSUSE. Contrairement à l'implémentation
-// Debian d'origine (qui ne faisait que "ufw --force enable"/"nft -f" sans activer explicitement le
-// service), le service est maintenant activé explicitement via serviceEnableCmd() pour les 3
-// systèmes d'init (systemd/OpenRC/runit — noms de service confirmés identiques au nom du paquet sur
-// les 3, vérifié via les APKBUILD/templates sources Alpine et Void).
+function sanitizeWifiStr(value: string): string {
+  return value.replace(/[\0\r\n\\"$`]/g, '').trim();
+}
+
+function sanitizePositiveInt(value: any): number | null {
+  const n = parseInt(value, 10);
+  if (!isNaN(n) && n > 0 && n <= 65535) return n;
+  return null;
+}
+
+function parseAllowedPorts(recipe: OSRecipe): number[] {
+  const ports = new Set<number>();
+  if (recipe.enableSSH) ports.add(22);
+  if (recipe.security.allowedPorts) {
+    recipe.security.allowedPorts.forEach(p => {
+      const sp = sanitizePositiveInt(p);
+      if (sp) ports.add(sp);
+    });
+  }
+  if (recipe.security.customAllowedPorts) {
+    const raw = recipe.security.customAllowedPorts.split(/[\s,;]+/);
+    raw.forEach(r => {
+      const sp = sanitizePositiveInt(r);
+      if (sp) ports.add(sp);
+    });
+  }
+  return Array.from(ports).sort((a, b) => a - b);
+}
+
+function sanitizeLuksPassword(pwd?: string): string {
+  if (!pwd) return 'osforge-luks-pass';
+  return pwd.replace(/[\0\r\n\\"$`]/g, '');
+}
+
+function sanitizeGithubUser(user?: string): string {
+  if (!user) return '';
+  return user.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+// Pare-feu granulaire (UFW / Firewalld / NFTables) avec ouverture des ports nécessaires
 function firewallCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const ports = parseAllowedPorts(recipe);
+  const portsListStr = ports.join(' ');
+  const portsArrayStr = ports.length > 0 ? ports.join(', ') : '22';
+
   if (recipe.security.firewall === 'ufw') {
     if (family === 'suse') {
-      return `echo -e "\${YELLOW:-}[INFO] UFW n'a pas de paquet officiel pour openSUSE Tumbleweed : pare-feu non configuré. Choisissez \\"nftables\\" pour cette distribution.\${NC:-}" 2>/dev/null || true`;
+      return `echo -e "\${YELLOW:-}[INFO] UFW n'a pas de paquet officiel pour openSUSE Tumbleweed : pare-feu non configuré. Choisissez \\"nftables\\" ou \\"firewalld\\" pour cette distribution.\${NC:-}" 2>/dev/null || true`;
     }
     return `if command -v ufw &>/dev/null; then
     ufw default deny incoming || true
     ufw default allow outgoing || true
-    ${recipe.enableSSH ? 'ufw allow 22/tcp || true' : ''}
+    ${ports.length > 0 ? `for port in ${portsListStr}; do ufw allow "\${port}"/tcp || true; done` : ''}
     ufw --force enable || true
 fi
 ${serviceEnableCmd('ufw', family)}`;
   }
+
+  if (recipe.security.firewall === 'firewalld') {
+    return `if command -v firewall-cmd &>/dev/null; then
+    ${serviceEnableCmd('firewalld', family)}
+    ${ports.length > 0 ? `for port in ${portsListStr}; do firewall-cmd --permanent --add-port="\${port}"/tcp 2>/dev/null || true; done` : ''}
+    firewall-cmd --reload 2>/dev/null || true
+fi`;
+  }
+
   if (recipe.security.firewall === 'nftables') {
+    const nftPortsRule = ports.length === 1 ? `tcp dport ${ports[0]} accept` : ports.length > 1 ? `tcp dport { ${ports.join(', ')} } accept` : '';
     return `if command -v nft &>/dev/null; then
     cat > /etc/nftables.conf << 'NFT_EOF'
 #!/usr/sbin/nft -f
@@ -783,7 +824,7 @@ table inet filter {
         iif lo accept
         icmp type echo-request accept
         icmpv6 type { echo-request, nd-neighbor-solicit, nd-neighbor-advert, nd-router-advert } accept
-${recipe.enableSSH ? '        tcp dport 22 accept' : ''}
+        ${nftPortsRule}
     }
     chain forward { type filter hook forward priority 0; policy drop; }
     chain output { type filter hook output priority 0; policy accept; }
@@ -794,6 +835,90 @@ fi
 ${serviceEnableCmd('nftables', family)}`;
   }
   return '';
+}
+
+// Pré-configuration réseau native : Wi-Fi OOB (SSID/WPA) et IP statique
+function networkConfigCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  const parts: string[] = [];
+  const net = recipe.network;
+
+  if (net?.enableWifi && net.wifiSsid) {
+    const ssid = sanitizeWifiStr(net.wifiSsid);
+    const pass = sanitizeWifiStr(net.wifiPassword || '');
+    parts.push(`# Configuration Wi-Fi Headless OOB
+mkdir -p /etc/NetworkManager/system-connections
+cat > /etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection << 'WIFI_EOF'
+[connection]
+id=Preconfigured-Wifi
+type=wifi
+autoconnect=true
+
+[wifi]
+mode=infrastructure
+ssid=${ssid}
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=${pass}
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
+WIFI_EOF
+chmod 600 /etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection 2>/dev/null || true`);
+  }
+
+  if (net?.ipMode === 'static' && net.staticIp) {
+    const ip = sanitizeWifiStr(net.staticIp);
+    const gw = net.gateway ? sanitizeWifiStr(net.gateway) : '';
+    const dns = (net.dnsServers && net.dnsServers.length > 0) ? net.dnsServers.map(sanitizeWifiStr).join(' ') : '1.1.1.1 8.8.8.8';
+    parts.push(`# Configuration IP Statique
+mkdir -p /etc/systemd/network
+cat > /etc/systemd/network/10-static-eth0.network << 'NET_EOF'
+[Match]
+Name=eth* en*
+
+[Network]
+Address=${ip}
+${gw ? `Gateway=${gw}` : ''}
+DNS=${dns}
+NET_EOF
+chmod 644 /etc/systemd/network/10-static-eth0.network 2>/dev/null || true`);
+  }
+
+  return parts.join('\n');
+}
+
+// Injection des clés publiques SSH de l'utilisateur (clé libre ou import GitHub)
+function userSshSetupCmd(recipe: OSRecipe): string {
+  const username = recipe.user.username;
+  const parts: string[] = [];
+
+  if (recipe.user.sshPublicKey || recipe.user.sshImportGithubUser) {
+    parts.push(`mkdir -p /home/${shQuote(username)}/.ssh
+chmod 700 /home/${shQuote(username)}/.ssh`);
+
+    if (recipe.user.sshPublicKey) {
+      const pubKey = recipe.user.sshPublicKey.trim().replace(/'/g, `'\\''`);
+      parts.push(`echo '${pubKey}' > /home/${shQuote(username)}/.ssh/authorized_keys`);
+    }
+
+    if (recipe.user.sshImportGithubUser) {
+      const ghUser = sanitizeGithubUser(recipe.user.sshImportGithubUser);
+      if (ghUser) {
+        parts.push(`if command -v curl &>/dev/null; then
+    curl -sSL "https://github.com/${ghUser}.keys" >> /home/${shQuote(username)}/.ssh/authorized_keys 2>/dev/null || true
+fi`);
+      }
+    }
+
+    parts.push(`chmod 600 /home/${shQuote(username)}/.ssh/authorized_keys 2>/dev/null || true
+chown -R ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.ssh 2>/dev/null || true`);
+  }
+
+  return parts.join('\n');
 }
 
 // Bug réel trouvé en auditant : les 4 champs de branding visuel (accentColor, wallpaperPreset,
@@ -1529,15 +1654,34 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
-  // "firewall" (ufw/nftables) — voir firewallCmd (activation du service/écriture de la config)
-  // pour le détail de la vérification. "ufw" confirmé réel partout SAUF openSUSE Tumbleweed
-  // (absent du dépôt officiel OSS, vérifié en direct sur download.opensuse.org) — avertissement
-  // honnête à la place plutôt qu'un paquet inexistant. "nftables" confirmé réel sur toutes les
-  // familles, y compris Rocky (déjà dans BaseOS, sans besoin d'EPEL).
+  // "firewall" (ufw/firewalld/nftables)
   if (recipe.security.firewall === 'ufw' && distroId !== 'opensuse') {
     pkgs.push('ufw');
+  } else if (recipe.security.firewall === 'firewalld') {
+    pkgs.push('firewalld');
   } else if (recipe.security.firewall === 'nftables') {
     pkgs.push('nftables');
+  }
+
+  // Chiffrement LUKS2 (paquet cryptsetup présent sur toutes les distributions)
+  if (recipe.security.luksEncryption) {
+    pkgs.push('cryptsetup');
+  }
+
+  // Support Wi-Fi autonome
+  if (recipe.network?.enableWifi) {
+    if (isDebianLike) {
+      pkgs.push('wpasupplicant', 'wireless-tools');
+    } else if (distroId === 'alpine') {
+      pkgs.push('wpa_supplicant');
+    } else if (isArchLike || isFedoraLike || distroId === 'opensuse' || distroId === 'void') {
+      pkgs.push('wpa_supplicant');
+    }
+  }
+
+  // Import de clés SSH via GitHub
+  if (recipe.user.sshImportGithubUser) {
+    pkgs.push('curl');
   }
 
   // "autoSecurityUpdates" — voir autoSecurityUpdatesCmd pour le détail. Paquets confirmés réels :
@@ -2207,12 +2351,9 @@ ${recipe.user.sudo ? `mkdir -p /etc/sudoers.d
 echo ${shQuote(recipe.user.username)}' ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-osforge-user
 chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits sudo (non demandé dans la recette)'}
 
-${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
-echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
-chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
+${userSshSetupCmd(recipe)}
+${networkConfigCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
@@ -2349,9 +2490,9 @@ OUTPUT_DIR="$(pwd)/dist"
 mkdir -p "\${ROOTFS_DIR}" "\${MNT_DIR}" "\${OUTPUT_DIR}"
 
 echo -e "\${YELLOW}[1/6] 📦 Installation des dépendances de bootstrap sur l'hôte...\${NC}"
-which ${config.hostCheckCmd} parted qemu-img >/dev/null 2>&1 || {
+which ${config.hostCheckCmd} parted qemu-img ${recipe.security.luksEncryption ? 'cryptsetup' : ''} >/dev/null 2>&1 || {
     echo -e "\${YELLOW}Installation des outils requis sur l'hôte...\${NC}"
-    apt-get update -y && apt-get install -y curl tar xz-utils parted qemu-utils ${config.hostDeps}
+    apt-get update -y && apt-get install -y curl tar xz-utils parted qemu-utils ${config.hostDeps} ${recipe.security.luksEncryption ? 'cryptsetup' : ''}
 }
 
 echo -e "\${YELLOW}[2/6] 🏗️ Initialisation du RootFS ${label} (avec noyau + GRUB)...\${NC}"
@@ -2413,12 +2554,9 @@ ${recipe.user.sudo ? `mkdir -p /etc/sudoers.d
 echo ${shQuote(recipe.user.username)}' ALL=(ALL:ALL) NOPASSWD:ALL' > /etc/sudoers.d/90-osforge-user
 chmod 440 /etc/sudoers.d/90-osforge-user` : '# Compte utilisateur sans droits sudo (non demandé dans la recette)'}
 
-${recipe.enableSSH && recipe.user.sshPublicKey ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
-echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
-chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
 ${sshEnableCmd}
+${userSshSetupCmd(recipe)}
+${networkConfigCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
@@ -2464,8 +2602,14 @@ parted -s "\${RAW_IMG}" set 1 boot on
 
 LOOPDEV=$(losetup -f)
 losetup -P "\${LOOPDEV}" "\${RAW_IMG}"
-mkfs.ext4 -F "\${LOOPDEV}p1"
-mount "\${LOOPDEV}p1" "\${MNT_DIR}"
+${recipe.security.luksEncryption ? `
+# Chiffrement intégral LUKS2 de la partition racine
+echo -n "${sanitizeLuksPassword(recipe.security.luksPassword)}" | cryptsetup luksFormat --type luks2 --batch-mode -d - "\${LOOPDEV}p1"
+echo -n "${sanitizeLuksPassword(recipe.security.luksPassword)}" | cryptsetup open --type luks2 -d - "\${LOOPDEV}p1" cryptroot
+mkfs.ext4 -F "/dev/mapper/cryptroot"
+mount "/dev/mapper/cryptroot" "\${MNT_DIR}"
+` : `mkfs.ext4 -F "\${LOOPDEV}p1"
+mount "\${LOOPDEV}p1" "\${MNT_DIR}"`}
 
 echo -e "\${YELLOW}[5/6] 🖲️ Copie du système et installation de GRUB (BIOS)...\${NC}"
 cp -a "\${ROOTFS_DIR}"/. "\${MNT_DIR}"/
@@ -2480,9 +2624,14 @@ ROOT_UUID=$(blkid -s UUID -o value "\${LOOPDEV}p1")
 
 chroot "\${MNT_DIR}" ${grubBin} --target=i386-pc --boot-directory=/boot "\${LOOPDEV}"
 
+${recipe.security.luksEncryption ? `cat > "\${MNT_DIR}/etc/crypttab" << CRYPT_EOF
+cryptroot UUID=\${ROOT_UUID} none luks,discard
+CRYPT_EOF
 cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
+/dev/mapper/cryptroot / ext4 defaults 0 1
+FSTAB_EOF` : `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
 UUID=\${ROOT_UUID} / ext4 defaults 0 1
-FSTAB_EOF
+FSTAB_EOF`}
 
 ${typeof config.diskImageKernelDetectCmd === 'function' ? config.diskImageKernelDetectCmd(recipe.kernel) : config.diskImageKernelDetectCmd}
 
@@ -2499,7 +2648,7 @@ cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)}" {
-${grubSearchLine}    linux \${KERNEL_PATH} root=${rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
+${grubSearchLine}    linux \${KERNEL_PATH} root=${recipe.security.luksEncryption ? '/dev/mapper/cryptroot cryptdevice=UUID=${ROOT_UUID}:cryptroot rd.luks.name=${ROOT_UUID}=cryptroot' : rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
@@ -2509,6 +2658,7 @@ umount -lf "\${MNT_DIR}/proc" || true
 umount -lf "\${MNT_DIR}/dev/pts" || true
 umount -lf "\${MNT_DIR}/dev" || true
 umount -lf "\${MNT_DIR}" || true
+${recipe.security.luksEncryption ? `cryptsetup close cryptroot 2>/dev/null || true` : ''}
 losetup -d "\${LOOPDEV}" || true
 ${diskConversionStep}
 
@@ -2635,12 +2785,9 @@ if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
 fi
 echo "root:toor" | chpasswd
 
-${recipe.enableSSH ? `mkdir -p /home/${shQuote(recipe.user.username)}/.ssh
-chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
-${recipe.user.sshPublicKey ? `echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
-systemctl enable ssh || true` : ''}
+${recipe.enableSSH ? 'systemctl enable ssh || true' : ''}
+${userSshSetupCmd(recipe)}
+${networkConfigCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
@@ -3210,19 +3357,12 @@ fi
 # Mot de passe Root
 echo "root:toor" | chpasswd
 
-# Configuration SSH
+# Configuration SSH & Clés d'accès
 ${recipe.enableSSH ? `
-mkdir -p /etc/ssh /home/${shQuote(recipe.user.username)}/.ssh
-chmod 700 /home/${shQuote(recipe.user.username)}/.ssh
-${recipe.user.sshPublicKey ? `echo ${shQuote(recipe.user.sshPublicKey || '')} > /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chmod 600 /home/${shQuote(recipe.user.username)}/.ssh/authorized_keys
-chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} /home/${shQuote(recipe.user.username)}/.ssh` : ''}
-# Bug réel trouvé en auditant : le paquet openssh-server (ajouté par resolvePackageList quand
-# enableSSH est coché) n'était jamais démarré au premier boot sans cette activation explicite —
-# seul le fichier authorized_keys était écrit, inutile sans le service "ssh" (nom Debian/Ubuntu,
-# différent de "sshd" utilisé par les autres familles) réellement actif.
 systemctl enable ssh 2>/dev/null || true
 ` : ''}
+${userSshSetupCmd(recipe)}
+${networkConfigCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
@@ -3733,10 +3873,27 @@ users:
     lock_passwd: false
     passwd: "$6$rounds=4096$salt$placeholderHashedPassword"
     ${recipe.user.sshPublicKey ? `ssh_authorized_keys:\n      - ${yamlDq(recipe.user.sshPublicKey)}` : ''}
+    ${recipe.user.sshImportGithubUser ? `ssh_import_id:\n      - gh:${yamlDq(sanitizeGithubUser(recipe.user.sshImportGithubUser))}` : ''}
 
 timezone: ${recipe.timezone}
 locale: ${recipe.locale}.UTF-8
 
+${recipe.network?.enableWifi || recipe.network?.ipMode === 'static' ? `network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: ${recipe.network?.ipMode === 'static' ? 'false' : 'true'}
+      ${recipe.network?.ipMode === 'static' && recipe.network?.staticIp ? `addresses: [${yamlDq(recipe.network.staticIp)}]
+      ${recipe.network.gateway ? `gateway4: ${yamlDq(recipe.network.gateway)}` : ''}
+      nameservers:
+        addresses: [${(recipe.network.dnsServers && recipe.network.dnsServers.length > 0 ? recipe.network.dnsServers : ['1.1.1.1', '8.8.8.8']).map(s => yamlDq(s)).join(', ')}]` : ''}
+  ${recipe.network?.enableWifi && recipe.network?.wifiSsid ? `wifis:
+    wlan0:
+      dhcp4: true
+      access-points:
+        ${yamlDq(recipe.network.wifiSsid)}:
+          password: ${yamlDq(recipe.network.wifiPassword || '')}` : ''}
+` : ''}
 packages:
 ${pkgs.map(p => `  - ${p}`).join('\n')}
 
@@ -3760,7 +3917,7 @@ ${recipe.security.firewall === 'nftables' ? `  - path: /etc/nftables.conf
               ct state established,related accept
               iif lo accept
               icmp type echo-request accept
-${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
+              ${parseAllowedPorts(recipe).length > 0 ? `tcp dport { ${parseAllowedPorts(recipe).join(', ')} } accept` : ''}
           }
           chain forward { type filter hook forward priority 0; policy drop; }
           chain output { type filter hook output priority 0; policy accept; }
@@ -3768,9 +3925,91 @@ ${recipe.enableSSH ? '              tcp dport 22 accept' : ''}
 ` : ''}${hardeningWriteFiles ? hardeningWriteFiles + '\n' : ''}
 runcmd:
 ${sshEnableLine}
-${dmEnableLine ? dmEnableLine + '\n' : ''}${dmAutologinLine ? dmAutologinLine + '\n' : ''}${kioskLine ? kioskLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? '- ufw --force enable' : ''}
+${dmEnableLine ? dmEnableLine + '\n' : ''}${dmAutologinLine ? dmAutologinLine + '\n' : ''}${kioskLine ? kioskLine + '\n' : ''}  ${recipe.security.firewall === 'ufw' ? `- ufw default deny incoming\n  - ufw default allow outgoing\n${parseAllowedPorts(recipe).map(p => `  - ufw allow ${p}/tcp`).join('\n')}\n  - ufw --force enable` : ''}
+  ${recipe.security.firewall === 'firewalld' ? `- systemctl enable --now firewalld || true\n${parseAllowedPorts(recipe).map(p => `  - firewall-cmd --permanent --add-port=${p}/tcp || true`).join('\n')}\n  - firewall-cmd --reload || true` : ''}
   ${recipe.security.firewall === 'nftables' ? '- nft -f /etc/nftables.conf || true\n  - systemctl enable --now nftables || true' : ''}
 ${hardeningRuncmd ? hardeningRuncmd + '\n' : ''}${recipe.firstBootScript ? toRuncmdBashBlock(recipe.firstBootScript) : '  - [ bash, -c, "echo Ready" ]'}
+`;
+}
+
+/**
+ * Generates an OCI-compliant Containerfile / Dockerfile for the recipe
+ */
+export function generateContainerfile(recipe: OSRecipe): string {
+  const distro = recipe.distro;
+  const pkgs = resolvePackageList(recipe);
+  const username = recipe.user.username;
+  const isDebianLike = distro === 'debian' || distro === 'ubuntu' || distro === 'kali' || distro === 'raspbian' || distro === 'linuxmint';
+  const isArchLike = distro === 'arch' || distro === 'cachyos';
+
+  let baseImage = 'debian:bookworm-slim';
+  let pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
+
+  if (distro === 'ubuntu' || distro === 'linuxmint') {
+    baseImage = 'ubuntu:noble';
+    pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
+  } else if (distro === 'kali') {
+    baseImage = 'kalilinux/kali-rolling';
+    pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
+  } else if (isArchLike) {
+    baseImage = 'archlinux:latest';
+    pkgInstallCmd = `RUN pacman -Syu --noconfirm && pacman -S --noconfirm --needed \\\n    ${pkgs.join(' \\\n    ')} \\\n    && pacman -Scc --noconfirm`;
+  } else if (distro === 'fedora') {
+    baseImage = 'fedora:41';
+    pkgInstallCmd = `RUN dnf install -y \\\n    ${pkgs.join(' \\\n    ')} \\\n    && dnf clean all`;
+  } else if (distro === 'rocky') {
+    baseImage = 'rockylinux:9';
+    pkgInstallCmd = `RUN dnf install -y \\\n    ${pkgs.join(' \\\n    ')} \\\n    && dnf clean all`;
+  } else if (distro === 'alpine') {
+    baseImage = 'alpine:latest';
+    pkgInstallCmd = `RUN apk add --no-cache \\\n    ${pkgs.join(' \\\n    ')}`;
+  } else if (distro === 'opensuse') {
+    baseImage = 'opensuse/tumbleweed:latest';
+    pkgInstallCmd = `RUN zypper refresh && zypper install -y --no-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && zypper clean -a`;
+  } else if (distro === 'void') {
+    baseImage = 'ghcr.io/void-linux/void-linux:latest-full-x86_64';
+    pkgInstallCmd = `RUN xbps-install -Syu && xbps-install -y \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/cache/xbps/*`;
+  }
+
+  const userCmd = isDebianLike
+    ? `RUN if ! id ${username} &>/dev/null; then useradd -m -s ${recipe.user.shell} ${username}; echo "${username}:${recipe.user.password || 'forge'}" | chpasswd; ${recipe.user.sudo ? `usermod -aG sudo ${username} && echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user` : ''}; fi`
+    : distro === 'alpine'
+      ? `RUN adduser -D -s ${recipe.user.shell} ${username} && echo "${username}:${recipe.user.password || 'forge'}" | chpasswd && ${recipe.user.sudo ? `echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user` : ''}`
+      : `RUN if ! id ${username} &>/dev/null; then useradd -m -s ${recipe.user.shell} ${username}; echo "${username}:${recipe.user.password || 'forge'}" | chpasswd; ${recipe.user.sudo ? `usermod -aG wheel ${username} 2>/dev/null || true; echo "${username} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user` : ''}; fi`;
+
+  return `# ==============================================================================
+# OSForge Studio — Containerfile / Dockerfile OCI (${recipe.branding.osName})
+# Base: ${baseImage} | Distribution: ${recipe.distro}
+# ==============================================================================
+
+FROM ${baseImage}
+
+LABEL org.opencontainers.image.title="${recipe.branding.osName}" \\
+      org.opencontainers.image.description="${recipe.description || 'OSForge Custom Container'}" \\
+      org.opencontainers.image.version="${recipe.branding.version}" \\
+      org.opencontainers.image.vendor="OSForge Studio"
+
+ENV LANG=${recipe.locale}.UTF-8 \\
+    LC_ALL=${recipe.locale}.UTF-8 \\
+    TZ=${recipe.timezone} \\
+    DEBIAN_FRONTEND=noninteractive
+
+${pkgInstallCmd}
+
+${userCmd}
+
+${recipe.dotfilesGitUrl ? `RUN git clone --depth 1 "${recipe.dotfilesGitUrl}" /home/${username}/.dotfiles && chown -R ${username}:${username} /home/${username}/.dotfiles 2>/dev/null || true` : ''}
+
+USER ${username}
+WORKDIR /home/${username}
+
+${recipe.firstBootScript ? `# Script d'initialisation personnalisé
+RUN << 'FIRSTBOOT_EOF'
+${recipe.firstBootScript}
+FIRSTBOOT_EOF` : ''}
+
+ENTRYPOINT ["${recipe.user.shell}"]
+CMD ["-l"]
 `;
 }
 

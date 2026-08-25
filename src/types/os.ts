@@ -140,15 +140,29 @@ export interface SystemUser {
   sudo: boolean;
   autologin: boolean;
   sshPublicKey?: string;
+  sshImportGithubUser?: string;
   shell: '/bin/bash' | '/bin/zsh' | '/bin/fish' | '/bin/sh';
+}
+
+export interface NetworkConfig {
+  enableWifi?: boolean;
+  wifiSsid?: string;
+  wifiPassword?: string;
+  ipMode?: 'dhcp' | 'static';
+  staticIp?: string;
+  gateway?: string;
+  dnsServers?: string[];
 }
 
 export interface SecurityConfig {
   cisBenchmarkLevel: 0 | 1 | 2;
-  firewall: 'none' | 'ufw' | 'nftables';
+  firewall: 'none' | 'ufw' | 'firewalld' | 'nftables';
+  allowedPorts?: number[];
+  customAllowedPorts?: string;
   appArmorOrSELinux: boolean;
   fail2ban: boolean;
   luksEncryption: boolean;
+  luksPassword?: string;
   disableRootSSH: boolean;
   autoSecurityUpdates: boolean;
   enableZram?: boolean;
@@ -188,6 +202,7 @@ export interface OSRecipe {
   enableSSH: boolean;
   enableFlatpak?: boolean;
   enableZram?: boolean;
+  network?: NetworkConfig;
   security: SecurityConfig;
   customServices: CustomService[];
   firstBootScript: string;

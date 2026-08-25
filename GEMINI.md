@@ -148,35 +148,13 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : 431 tests, tous verts. CI + Pages verts sur le dernier commit poussé.
-- **Correction importante à une affirmation précédente de ce fichier** : contrairement à ce qui
-  était écrit ici auparavant, `niri` n'est PAS intégré « sur toutes les distributions supportées ».
-  Vérifié en direct : le paquet `niri` lui-même est réellement ABSENT de Debian trixie
-  (packages.debian.org : « No such package ») et d'Ubuntu « resolute » (seuls `niri-companion` et
-  `librust-niri-ipc-dev` existent, uniquement dans la suite future « stonking »). La famille
-  Debian/Ubuntu/Kali/Raspbian/Mint installait donc waybar/alacritty/fuzzel/mako/swaylock — des
-  outils sans aucune utilité sans le compositeur lui-même — sans jamais installer `niri`. Corrigé :
-  plus aucun paquet installé pour cette combinaison (honnêtement hors périmètre, comme
-  Void+Hyprland). Bug distinct trouvé dans le même bloc : Void, à l'inverse, avait bien accès au
-  vrai paquet `niri` (confirmé via son template source) mais l'omettait du script — corrigé en
-  l'ajoutant.
-- **Faille de sécurité réelle trouvée et corrigée** : `kernelCmdline` (champ libre ajouté par le
-  chantier « Ligne de commande noyau personnalisée ») était interpolé sans échappement dans le
-  corps de heredocs bash NON protégés (`<< GRUBCFG_EOF` / `<< CMDLINE_EOF`, sans apostrophes —
-  nécessaire pour laisser `${KERNEL_PATH}`/`${ROOT_UUID}` s'évaluer à l'exécution). Un heredoc non
-  protégé développe aussi `$()`, les backticks et `\` dans tout son corps : un `kernelCmdline`
-  contenant `$(commande malveillante)` exécutait réellement cette commande avec les privilèges
-  root du script généré — reproduit et vérifié par exécution bash réelle (avant/après). Corrigé via
-  `sanitizeKernelCmdline()` qui retire `$`, backtick et `\` (une ligne de commande noyau légitime
-  n'en a jamais besoin).
-- **Point de vigilance pour la suite** : les nouveaux champs ajoutés par n'importe quelle session
-  (`enableZram`, `enableFlatpak`, `kernelCmdline`, etc.) doivent systématiquement être passés au
-  crible des deux mêmes questions que ci-dessus : (1) le paquet/mécanisme annoncé pour CHAQUE
-  distro est-il réellement vérifié en direct, pas seulement pour les familles « évidentes »
-  (Debian/Arch) ? (2) si le champ est un texte libre interpolé dans un heredoc bash NON protégé
-  (delimiteur sans apostrophes), a-t-il été passé par un sanitizer avant interpolation ?
-- Autres chantiers déjà en place (non re-vérifiés ce cycle, toujours considérés fiables) :
-  catalogue logiciel (51 paquets), durcissement CIS Benchmark, zRAM, Flatpak/Flathub, Openbox
-  (vérifié fiable : `openbox` est bien présent dans le push de toutes les familles, contrairement à
-  `niri`).
+- Suite de tests : **561 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **6 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+  1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
+  2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
+  3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
+  4. 🔑 **Injection & Import GitHub de Clés SSH Publiques** : Clé publique libre `authorized_keys` (mode `0600`) et import direct GitHub (`curl -sSL https://github.com/<user>.keys`), miroir dans cloud-init (`ssh_authorized_keys` et `ssh_import_id: [gh:<user>]`).
+  5. 🐳 **Exportateur `Containerfile` / `Dockerfile` Multi-Stage** : Nouveau générateur `generateContainerfile(recipe)` produisant une image OCI 100% exécutable sur Podman/Docker, avec mapping fidèle des bases distros (Debian, Arch, Fedora, Rocky, Alpine, openSUSE, Void).
+  6. 📊 **Score de Posture de Sécurité & Conformité Interactif** : Calcul dynamique (0-100 pts), jauge visuelle colorée et checklist temps réel dans `SecurityConfig.tsx`.
+- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

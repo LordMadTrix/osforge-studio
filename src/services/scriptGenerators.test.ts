@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat, generateUniversalLauncherSh } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateContainerfile, generateGitHubWorkflow, generateAutoBuildSh, generateWslInstallerBat, generateLiveWindowsBat, generateAutoBuildBat, generateUniversalLauncherBat, generateUniversalLauncherSh } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -3162,4 +3162,224 @@ describe('Metasploit Framework — bug réel MAJEUR trouvé en auditant, le pire
     expect(script).not.toContain('msfinstall');
   });
 });
+
+describe('Chantier 1 : Chiffrement intégral LUKS2 sur images disques (qcow2/raw_img/vmdk)', () => {
+  it('Image disque QCOW2 avec LUKS2 activé formate, ouvre et configure crypttab/GRUB', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      security: {
+        luksEncryption: true,
+        luksPassword: 'SecurePassword123!',
+        firewall: 'none',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(script).toContain('cryptsetup luksFormat --type luks2');
+    expect(script).toContain('SecurePassword123!');
+    expect(script).toContain('cryptsetup open --type luks2');
+    expect(script).toContain('/dev/mapper/cryptroot');
+    expect(script).toContain('/etc/crypttab');
+    expect(script).toContain('cryptroot UUID=${ROOT_UUID} none luks,discard');
+    expect(script).toContain('cryptdevice=UUID=${ROOT_UUID}:cryptroot');
+    expect(script).toContain('cryptsetup close cryptroot');
+  });
+
+  it('Image disque sans LUKS2 utilise un formatage standard ext4 direct', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      security: {
+        luksEncryption: false,
+        firewall: 'none',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(script).not.toContain('cryptsetup luksFormat');
+    expect(script).not.toContain('/dev/mapper/cryptroot');
+  });
+
+  it('luksEncryption ajoute le paquet cryptsetup dans resolvePackageList', () => {
+    const pkgs = resolvePackageList(makeRecipe({
+      distro: 'debian',
+      security: {
+        luksEncryption: true,
+        firewall: 'none',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(pkgs).toContain('cryptsetup');
+  });
+});
+
+describe('Chantier 2 : Pré-configuration réseau & Wi-Fi Headless OOB (NetworkConfig)', () => {
+  it('Wi-Fi activé génère le profil NetworkManager preconfigured-wifi.nmconnection sécurisé (0600)', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'arch',
+      outputFormat: 'qcow2',
+      network: {
+        enableWifi: true,
+        wifiSsid: 'HomeMeshNetwork',
+        wifiPassword: 'SuperSecretWpaPassword',
+      },
+    }));
+    expect(script).toContain('/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection');
+    expect(script).toContain('ssid=HomeMeshNetwork');
+    expect(script).toContain('psk=SuperSecretWpaPassword');
+    expect(script).toContain('chmod 600 /etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection');
+  });
+
+  it('IP Statique configurée génère le fichier systemd-networkd', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      network: {
+        ipMode: 'static',
+        staticIp: '192.168.1.200/24',
+        gateway: '192.168.1.1',
+        dnsServers: ['1.1.1.1', '8.8.8.8'],
+      },
+    }));
+    expect(script).toContain('/etc/systemd/network/10-static-eth0.network');
+    expect(script).toContain('Address=192.168.1.200/24');
+    expect(script).toContain('Gateway=192.168.1.1');
+    expect(script).toContain('DNS=1.1.1.1 8.8.8.8');
+  });
+
+  it('generateCloudInitYaml inclut le bloc réseau v2 avec Wi-Fi et IP statique', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'debian',
+      network: {
+        enableWifi: true,
+        wifiSsid: 'OfficeWifi',
+        wifiPassword: 'Pass123',
+        ipMode: 'static',
+        staticIp: '10.0.0.50/24',
+        gateway: '10.0.0.1',
+      },
+    }));
+    expect(yaml).toContain('network:');
+    expect(yaml).toContain('version: 2');
+    expect(yaml).toContain('addresses: ["10.0.0.50/24"]');
+    expect(yaml).toContain('"OfficeWifi":');
+  });
+});
+
+describe('Chantier 3 : Pare-feu granulaire & support Firewalld', () => {
+  it('Firewalld ouvre tous les ports granulaires et active le service', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'fedora',
+      outputFormat: 'wsl2_tar',
+      enableSSH: true,
+      security: {
+        firewall: 'firewalld',
+        allowedPorts: [80, 443, 6443],
+        customAllowedPorts: '9090 3000',
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        luksEncryption: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(script).toContain('systemctl enable firewalld');
+    expect(script).toContain('for port in 22 80 443 3000 6443 9090');
+    expect(script).toContain('firewall-cmd --permanent --add-port="${port}"/tcp');
+    expect(script).toContain('firewall-cmd --reload');
+  });
+
+  it('NFTables avec plusieurs ports utilise la syntaxe tcp dport { ... } accept', () => {
+    const script = generateBuildScript(makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      enableSSH: true,
+      security: {
+        firewall: 'nftables',
+        allowedPorts: [80, 443],
+        cisBenchmarkLevel: 0,
+        appArmorOrSELinux: false,
+        fail2ban: false,
+        luksEncryption: false,
+        disableRootSSH: false,
+        autoSecurityUpdates: false,
+      },
+    }));
+    expect(script).toContain('tcp dport { 22, 80, 443 } accept');
+  });
+});
+
+describe('Chantier 4 : Injection & Import GitHub de Clés SSH Publiques', () => {
+  it('Import GitHub injecte curl et télécharge les clés de l\'utilisateur', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+      enableSSH: true,
+      user: {
+        username: 'sysadmin',
+        fullName: 'Admin',
+        password: 'pass',
+        sudo: true,
+        autologin: false,
+        shell: '/bin/bash',
+        sshImportGithubUser: 'octocat',
+      },
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('curl -sSL "https://github.com/octocat.keys" >> /home/\'sysadmin\'/.ssh/authorized_keys');
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('curl');
+  });
+
+  it('generateCloudInitYaml inclut ssh_import_id avec le préfixe gh:', () => {
+    const yaml = generateCloudInitYaml(makeRecipe({
+      distro: 'debian',
+      user: {
+        username: 'admin',
+        fullName: 'Admin',
+        sudo: true,
+        autologin: false,
+        shell: '/bin/bash',
+        sshImportGithubUser: 'torvalds',
+      },
+    }));
+    expect(yaml).toContain('ssh_import_id:');
+    expect(yaml).toContain('gh:"torvalds"');
+  });
+});
+
+describe('Chantier 5 : Exportateur OCI Containerfile / Dockerfile', () => {
+  it('Containerfile pour Arch utilise base archlinux:latest et pacman', () => {
+    const content = generateContainerfile(makeRecipe({ distro: 'arch', selectedPackages: ['python_stack'] }));
+    expect(content).toContain('FROM archlinux:latest');
+    expect(content).toContain('pacman -Syu');
+    expect(content).toContain('ENTRYPOINT ["/bin/bash"]');
+  });
+
+  it('Containerfile pour Alpine utilise base alpine:latest et adduser', () => {
+    const content = generateContainerfile(makeRecipe({ distro: 'alpine', selectedPackages: [] }));
+    expect(content).toContain('FROM alpine:latest');
+    expect(content).toContain('apk add --no-cache');
+    expect(content).toContain('adduser -D -s');
+  });
+
+  it('Containerfile pour Fedora utilise base fedora:41 et dnf', () => {
+    const content = generateContainerfile(makeRecipe({ distro: 'fedora', selectedPackages: [] }));
+    expect(content).toContain('FROM fedora:41');
+    expect(content).toContain('dnf install -y');
+  });
+});
+
 

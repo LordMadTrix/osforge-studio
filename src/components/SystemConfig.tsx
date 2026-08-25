@@ -1,8 +1,8 @@
 import React from 'react';
-import { OSRecipe } from '../types/os';
+import { OSRecipe, NetworkConfig as NetworkConfigType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { User, Key, Globe, TerminalSquare } from 'lucide-react';
+import { User, Key, Globe, TerminalSquare, Wifi, Network } from 'lucide-react';
 
 interface SystemConfigProps {
   recipe: OSRecipe;
@@ -36,6 +36,10 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
     'Asia/Tokyo',
     'UTC',
   ];
+
+  const updateNet = (updated: Partial<NetworkConfigType>) => {
+    onChange({ network: { ...recipe.network, ...updated } });
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -221,8 +225,8 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
             {lang === 'fr' ? 'Accès SSH & Clés Publiques' : 'SSH Access & Public Keys'}
             <InfoTooltip
               text={lang === 'fr'
-                ? 'Active OpenSSH server et injecte votre clé publique dans ~/.ssh/authorized_keys.'
-                : 'Enables OpenSSH daemon and injects public key into ~/.ssh/authorized_keys.'}
+                ? 'Active OpenSSH server et injecte votre clé publique dans ~/.ssh/authorized_keys ou l’importe depuis GitHub.'
+                : 'Enables OpenSSH daemon and injects public key into ~/.ssh/authorized_keys or imports from GitHub.'}
             />
           </h3>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
@@ -241,25 +245,162 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </div>
 
         {recipe.enableSSH && (
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              {lang === 'fr' ? 'Clé SSH Publique autorisée (authorized_keys) :' : 'Authorized SSH Public Key:'}
-            </label>
-            <textarea
-              className="textarea-custom font-mono"
-              rows={2}
-              placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@machine"
-              value={recipe.user.sshPublicKey || ''}
-              onChange={(e) => onChange({
-                user: { ...recipe.user, sshPublicKey: e.target.value }
-              })}
-              style={{ fontSize: '0.78rem' }}
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                {lang === 'fr' ? 'Clé SSH Publique autorisée (authorized_keys) :' : 'Authorized SSH Public Key:'}
+              </label>
+              <textarea
+                className="textarea-custom font-mono"
+                rows={2}
+                placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@machine"
+                value={recipe.user.sshPublicKey || ''}
+                onChange={(e) => onChange({
+                  user: { ...recipe.user, sshPublicKey: e.target.value }
+                })}
+                style={{ fontSize: '0.78rem' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                {lang === 'fr' ? 'Ou import automatique depuis un compte GitHub :' : 'Or import keys directly from GitHub account:'}
+              </label>
+              <input
+                type="text"
+                className="input-text font-mono"
+                placeholder="ex: torvalds (récupère https://github.com/torvalds.keys)"
+                value={recipe.user.sshImportGithubUser || ''}
+                onChange={(e) => onChange({
+                  user: { ...recipe.user, sshImportGithubUser: e.target.value }
+                })}
+                style={{ fontSize: '0.78rem' }}
+              />
+            </div>
           </div>
         )}
       </div>
 
-      {/* 4. Timezone, Locale & Keyboard */}
+      {/* 4. Headless Network & Wi-Fi Pre-configuration */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Network size={16} color="var(--emerald)" />
+          {lang === 'fr' ? 'Pré-configuration Réseau & Wi-Fi Headless OOB' : 'Headless Network & Wi-Fi Pre-configuration'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Configure automatiquement le Wi-Fi (NetworkManager/wpa_supplicant) et l’adresse IP sans écran ni clavier.'
+              : 'Pre-configures Wi-Fi credentials and IP settings for headless out-of-the-box networking.'}
+          />
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Wi-Fi Headless Toggle & Credentials */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wifi size={16} color="var(--cyan)" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                    {lang === 'fr' ? 'Activer Wi-Fi Headless au Premier Démarrage' : 'Enable Headless Wi-Fi on First Boot'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {lang === 'fr' ? 'Génère la connexion NetworkManager / wpa_supplicant' : 'Generates NetworkManager / wpa_supplicant connection profile'}
+                  </div>
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={recipe.network?.enableWifi || false}
+                  onChange={(e) => updateNet({ enableWifi: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            {recipe.network?.enableWifi && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Nom du Réseau Wi-Fi (SSID) :' : 'Wi-Fi Network SSID:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.wifiSsid || ''}
+                    onChange={(e) => updateNet({ wifiSsid: e.target.value })}
+                    placeholder="MonReseauWifi"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Clé de sécurité (WPA2/WPA3-PSK) :' : 'Security Passphrase (WPA2/WPA3):'}
+                  </label>
+                  <input
+                    type="password"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.wifiPassword || ''}
+                    onChange={(e) => updateNet({ wifiPassword: e.target.value })}
+                    placeholder="••••••••••••"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* IP Mode (DHCP vs Static) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                {lang === 'fr' ? 'Mode d’adressage IP :' : 'IP Addressing Mode:'}
+              </label>
+              <select
+                className="select-custom"
+                value={recipe.network?.ipMode || 'dhcp'}
+                onChange={(e) => updateNet({ ipMode: e.target.value as any })}
+              >
+                <option value="dhcp">DHCP (Automatique standard)</option>
+                <option value="static">IP Statique (Serveur / Passerelle)</option>
+              </select>
+            </div>
+
+            {recipe.network?.ipMode === 'static' && (
+              <>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Adresse IP / Masque CIDR :' : 'Static IP / CIDR Mask:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.staticIp || ''}
+                    onChange={(e) => updateNet({ staticIp: e.target.value })}
+                    placeholder="192.168.1.50/24"
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'fr' ? 'Passerelle par défaut (Gateway) :' : 'Default Gateway:'}
+                  </label>
+                  <input
+                    type="text"
+                    className="input-text font-mono"
+                    style={{ fontSize: '0.78rem' }}
+                    value={recipe.network?.gateway || ''}
+                    onChange={(e) => updateNet({ gateway: e.target.value })}
+                    placeholder="192.168.1.1"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Timezone, Locale & Keyboard */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Globe size={16} color="#f59e0b" />
@@ -316,7 +457,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </div>
       </div>
 
-      {/* 5. Kernel Boot Parameters & Flatpak App Store */}
+      {/* 6. Kernel Boot Parameters & Flatpak App Store */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <TerminalSquare size={16} color="var(--purple)" />
