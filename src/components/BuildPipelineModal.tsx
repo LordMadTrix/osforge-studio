@@ -268,12 +268,22 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                     <Sparkles size={16} color="var(--cyan)" />
                     <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>
-                      Tester instantanément dans le simulateur Live
+                      {lang === 'fr' ? 'Démarrer un vrai Linux dans le navigateur' : 'Boot a real Linux in the browser'}
                     </h4>
-                    <span className="badge badge-emerald">Zéro Installation</span>
+                    <span className="badge badge-emerald">{lang === 'fr' ? 'Zéro Installation' : 'Zero Install'}</span>
                   </div>
+                  {/* Bug réel trouvé en auditant : ce texte affirmait "Démarrez VOTRE SYSTÈME
+                      ({recipe.branding.osName})" — alors que RealBoot.tsx (le composant réellement
+                      lancé par ce bouton, via onLaunchInApp -> setActiveTab('sandbox') dans App.tsx)
+                      ne reçoit AUCUNE prop "recipe" et démarre TOUJOURS le même noyau Buildroot
+                      générique statique, quels que soient la distro/le bureau/les paquets choisis.
+                      RealBoot.tsx est lui-même honnête sur ce point ("un vrai noyau Linux
+                      (Buildroot) démarre", jamais "votre système") — ce texte-ci contredisait cette
+                      honnêteté en nommant précisément le nom de la recette de l'utilisateur. */}
                   <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-                    Démarrez votre système ({recipe.branding.osName}) dans la Machine Virtuelle WebVM intégrée au navigateur.
+                    {lang === 'fr'
+                      ? `Démarrez un vrai noyau Linux (démo générique Buildroot, indépendante de cette recette) dans une machine virtuelle WebAssembly intégrée au navigateur — pour compiler et tester réellement ${recipe.branding.osName}, utilisez le Build Cloud ou Local ci-dessous.`
+                      : `Boot a real Linux kernel (a generic Buildroot demo, independent of this recipe) inside a WebAssembly virtual machine right in the browser — to actually build and test ${recipe.branding.osName}, use the Cloud or Local build below.`}
                   </p>
                 </div>
 
@@ -283,7 +293,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                   style={{ padding: '7px 16px', fontSize: '0.84rem' }}
                 >
                   <Play size={14} />
-                  <span>Démarrer dans l’App</span>
+                  <span>{lang === 'fr' ? 'Démarrer dans l’App' : 'Launch in App'}</span>
                 </button>
               </div>
 
