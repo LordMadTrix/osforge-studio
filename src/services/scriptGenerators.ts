@@ -3514,7 +3514,7 @@ echo -e "\${GREEN}  Fichier généré : \${ARTIFACT_FILE:-voir le dossier dist/}
 echo -e "\${GREEN}===============================================================================\${NC}"
 
 if [ -z "\${ISO_FILE}" ]; then
-    echo "Format de sortie \"${recipe.outputFormat}\" : pas d'image ISO à tester via QEMU (le test Live RAM automatique n'est disponible que pour le format \\"ISO hybride\\")."
+    echo "Format de sortie \\"${recipe.outputFormat}\\" : pas d'image ISO à tester via QEMU (le test Live RAM automatique n'est disponible que pour le format \\"ISO hybride\\")."
 elif command -v qemu-system-x86_64 &>/dev/null; then
     echo "Lancement du test Live RAM (fermez la fenêtre QEMU quand vous avez fini)..."
     qemu-system-x86_64 -cdrom "\${ISO_FILE}" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d

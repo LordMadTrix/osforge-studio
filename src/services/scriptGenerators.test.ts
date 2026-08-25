@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow } from './scriptGenerators';
+import { generateBuildScript, resolvePackageList, generateCloudInitYaml, generateGitHubWorkflow, generateAutoBuildSh } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
@@ -2019,5 +2019,24 @@ describe('generateGitHubWorkflow — bug réel MAJEUR trouvé en auditant : "dis
   it('La Release GitHub cible tout le contenu de dist/ ("dist/*"), quel que soit le format produit', () => {
     const wf = generateGitHubWorkflow(makeRecipe({ distro: 'void', outputFormat: 'docker_rootfs' }));
     expect(wf).toMatch(/files: \|\s*\n\s*dist\/\*\s*\n/);
+  });
+});
+
+describe('generateAutoBuildSh — bug réel trouvé en auditant, par contraste avec l\'équivalent Windows auto-build.bat (déjà correct sur ce point) : quand le format de sortie choisi n\'est pas "ISO hybride" (RootFS WSL2/Docker, image disque, carte SD...), aucun .iso n\'existe jamais dans dist/ — ce script affichait quand même "[SUCCÈS] ... ISO : " avec un chemin vide, puis accusait à tort QEMU d\'être absent alors que la vraie raison est qu\'il n\'y a simplement rien à tester via un boot "-cdrom" ISO (le vrai fichier produit, ex. un .tar.gz, existe bien et a bien réussi) — vérifié en exécutant réellement la logique extraite contre un vrai fichier .tar.gz dans un répertoire temporaire', () => {
+  it('Le message honnête "pas d\'image ISO à tester" existe et interpole le vrai format de sortie choisi (la structure if/elif/else est générée telle quelle pour tous les formats — c\'est une vérification d\'existence au moment de l\'EXÉCUTION du script, pas de la génération)', () => {
+    const sh = generateAutoBuildSh(makeRecipe({ distro: 'arch', outputFormat: 'wsl2_tar' }));
+    expect(sh).toContain('Format de sortie \\"wsl2_tar\\" : pas d\'image ISO à tester via QEMU');
+    expect(sh).toContain('if [ -z "${ISO_FILE}" ]; then');
+  });
+
+  it('Détecte le vrai fichier produit dans dist/ par exclusion des logs (pas par extension .iso) pour le message de succès', () => {
+    const sh = generateAutoBuildSh(makeRecipe({ distro: 'fedora', outputFormat: 'qcow2' }));
+    expect(sh).toContain(`find dist -maxdepth 1 -type f ! -name '*.log'`);
+    expect(sh).toContain('Fichier généré : ${ARTIFACT_FILE:-voir le dossier dist/}');
+  });
+
+  it('Non-régression : la commande de lancement QEMU existe toujours pour le cas où un vrai .iso est présent au moment de l\'exécution', () => {
+    const sh = generateAutoBuildSh(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid' }));
+    expect(sh).toContain('qemu-system-x86_64 -cdrom "${ISO_FILE}"');
   });
 });
