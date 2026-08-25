@@ -2311,5 +2311,26 @@ describe('generateBuildScript — faille réelle d\'injection de commande via "k
   });
 });
 
+describe('resolvePackageList — bureau Niri : deux bugs réels distincts trouvés en auditant. (1) Debian/Ubuntu/Kali/Raspbian/Mint installaient waybar/alacritty/fuzzel/mako/swaylock — des outils sans AUCUNE utilité sans le compositeur Wayland — sans jamais installer "niri" lui-même ; vérifié en direct que "niri" est réellement ABSENT de Debian trixie (packages.debian.org : "No such package") et d\'Ubuntu "resolute" (seuls "niri-companion"/"librust-niri-ipc-dev" existent, dans la suite future "stonking" uniquement) — honnêtement non câblé désormais, comme Void+Hyprland avant lui. (2) Void, à l\'inverse, OMETTAIT "niri" du push alors qu\'il est confirmé réel (raw.githubusercontent.com/void-linux/void-packages srcpkgs/niri/template, build_style=cargo, v26.04) — un oubli, pas une absence légitime, contrairement au cas Debian', () => {
+  it('Debian, Ubuntu, Kali : n\'installent plus AUCUN paquet lié à Niri (honnêtement hors périmètre, "niri" confirmé absent du dépôt)', () => {
+    for (const distro of ['debian', 'ubuntu', 'kali'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, outputFormat: 'iso_hybrid', desktop: 'niri', selectedPackages: [] }));
+      expect(pkgs.some(p => ['niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'swaylock'].includes(p))).toBe(false);
+    }
+  });
+
+  it('Void : installe désormais le vrai paquet "niri" (bug d\'omission corrigé)', () => {
+    const pkgs = resolvePackageList(makeRecipe({ distro: 'void', outputFormat: 'raw_img', desktop: 'niri', selectedPackages: [] }));
+    expect(pkgs).toContain('niri');
+  });
+
+  it('Arch, Fedora, Alpine : non-régression, "niri" toujours installé', () => {
+    for (const distro of ['arch', 'fedora', 'alpine'] as const) {
+      const pkgs = resolvePackageList(makeRecipe({ distro, outputFormat: distro === 'alpine' ? 'wsl2_tar' : 'raw_img', desktop: 'niri', selectedPackages: [] }));
+      expect(pkgs).toContain('niri');
+    }
+  });
+});
+
 
 

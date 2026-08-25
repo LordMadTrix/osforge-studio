@@ -952,11 +952,24 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'fedora') {
       pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
     } else if (isDebianLike) {
-      pkgs.push('waybar', 'alacritty', 'fuzzel', 'mako', 'swaylock', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+      // Bug réel trouvé en auditant : ce bloc installait waybar/alacritty/fuzzel/mako/swaylock —
+      // des outils qui n'ont AUCUNE utilité sans le compositeur Wayland lui-même — sans jamais
+      // installer "niri" (absent du push, contrairement à Arch/Fedora/Alpine juste au-dessus).
+      // Vérifié en direct que ce n'est pas un oubli de nommage mais une réelle absence : paquet
+      // "niri" confirmé ABSENT de Debian trixie (packages.debian.org : "No such package") et
+      // absent d'Ubuntu "resolute" (packages.ubuntu.com : seuls "niri-companion" et
+      // "librust-niri-ipc-dev" existent, uniquement dans la suite future "stonking", ni l'un ni
+      // l'autre n'étant le compositeur lui-même). Honnêtement non câblé plutôt que d'installer
+      // une pile d'outils Wayland inutiles sans aucun compositeur pour les faire fonctionner.
     } else if (distroId === 'alpine') {
       pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'seatd');
     } else if (distroId === 'void') {
-      pkgs.push('waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
+      // Bug réel trouvé en auditant : "niri" manquait ici alors qu'il est confirmé réel sur Void
+      // (raw.githubusercontent.com/void-linux/void-packages srcpkgs/niri/template,
+      // build_style=cargo, v26.04) — contrairement au cas Debian juste au-dessus, ce n'est pas
+      // une absence légitime mais un oubli : les autres familles qui ont "niri" (Arch/Fedora/
+      // Alpine) l'incluent toutes en premier dans leur liste, seul Void avait perdu la ligne.
+      pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
     }
   }
 
