@@ -2772,7 +2772,7 @@ ENTRYPOINT ["/osbuilder/build.sh"]
 export function generateGitHubWorkflow(recipe: OSRecipe): string {
   const isoName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-v${recipe.branding.version}`;
 
-  return `name: 🚀 Build & Release Custom Linux ISO (${recipe.branding.osName})
+  return `name: ${yamlDq(`🚀 Build & Release Custom Linux ISO (${recipe.branding.osName})`)}
 
 # Pipeline 100% automatique : chaque push sur main compile l'ISO,
 # la tague et publie une Release GitHub sans aucune action manuelle.
@@ -2881,7 +2881,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: \${{ steps.autotag.outputs.tag }}
-          name: "${recipe.branding.osName} \${{ steps.autotag.outputs.tag }}"
+          name: "${yamlEscape(recipe.branding.osName)} \${{ steps.autotag.outputs.tag }}"
           files: |
             dist/*
           generate_release_notes: true
@@ -2931,8 +2931,12 @@ function cloudInitServiceEnableLine(service: string, family: NonDebianFamily | u
 // compatible (backslash puis guillemet), suffisant pour les scalaires YAML entre guillemets qui
 // ne contiennent jamais de retour à la ligne réel (hostname/username/fullName/clé SSH sont tous
 // des champs mono-ligne).
+function yamlEscape(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 function yamlDq(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  return `"${yamlEscape(value)}"`;
 }
 
 function toRuncmdBashBlock(bashSnippet: string): string {

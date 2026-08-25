@@ -2470,4 +2470,32 @@ describe('generateCloudInitYaml — bug réel trouvé en auditant, même classe 
   });
 });
 
+describe('generateGitHubWorkflow — bug réel trouvé en auditant, même classe que les deux describe précédents (échappement YAML manquant sur un champ libre) mais sur un troisième générateur : "branding.osName" (simple <input type="text"> sans validation dans SystemConfig.tsx) est inséré dans le "name:" top-level du workflow ET dans le "name:" de l\'étape de publication de Release, tous deux des scalaires YAML. Reproduit par un vrai round-trip PyYAML avant correctif : un nom d\'OS aussi banal que "Mon OS: Édition Pro" (un simple deux-points) rendait TOUT le fichier de workflow GitHub Actions invalide — la fonctionnalité phare "publication automatique d\'une Release GitHub à chaque push" ne se déclenchait alors JAMAIS, sans le moindre message d\'erreur visible dans l\'UI (le workflow est simplement rejeté au niveau GitHub, en dehors de toute observation possible par OSForge Studio). Corrigé via yamlDq()/yamlEscape() (mêmes helpers que les deux fixes précédents)', () => {
+  it('branding.osName avec un deux-points : le "name:" top-level du workflow reste un YAML valide, round-trip exact', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({
+      branding: { osName: 'Mon OS: Édition Pro', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    const nameLine = wf.split('\n')[0];
+    expect(nameLine.startsWith('name: "')).toBe(true);
+    expect(JSON.parse(nameLine.slice('name: '.length))).toContain('Mon OS: Édition Pro');
+  });
+
+  it('branding.osName avec un guillemet double : le "name:" de l\'étape de publication de Release reste un YAML valide, sans fermeture prématurée du scalaire', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({
+      branding: { osName: 'Mon "Super" OS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    const releaseNameMatch = wf.match(/ {10}name: "((?:[^"\\]|\\.)*)"$/m);
+    expect(releaseNameMatch, 'ligne "name:" de l\'étape softprops/action-gh-release introuvable ou mal formée').not.toBeNull();
+    expect(JSON.parse('"' + releaseNameMatch![1] + '"')).toBe('Mon "Super" OS ${{ steps.autotag.outputs.tag }}');
+  });
+
+  it('branding.osName "normal" (sans caractère spécial) : non-régression, contenu identique', () => {
+    const wf = generateGitHubWorkflow(makeRecipe({
+      branding: { osName: 'ForgeOS', editionName: 'D', version: '1.0', accentColor: '#000', wallpaperPreset: 'd', bootSplashTheme: 'classic' },
+    }));
+    expect(wf).toContain('name: "🚀 Build & Release Custom Linux ISO (ForgeOS)"');
+    expect(wf).toContain('name: "ForgeOS ${{ steps.autotag.outputs.tag }}"');
+  });
+});
+
 
