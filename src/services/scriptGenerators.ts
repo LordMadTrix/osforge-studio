@@ -36,6 +36,26 @@ function shellQuotePkgList(names: string[]): string {
   return names.map(shQuote).join(' ');
 }
 
+// Bug réel MAJEUR trouvé en auditant, plus grave encore que le manque d'émulation Debian corrigé
+// juste avant dans ce même cycle : les 5 bootstrapBlock() non-Debian (Arch, Fedora, Alpine,
+// openSUSE, Void) ignoraient TOUTES leur paramètre d'architecture cible (préfixé "_arch" dans
+// chacune), et leurs mécanismes de bootstrap respectifs (pacstrap via geo.mirror.pkgbuild.com,
+// apk-tools-static via dl-cdn.alpinelinux.org/.../x86_64/, xbps-static via
+// repo-default.voidlinux.org/.../x86_64-musl..., etc.) pointent tous vers des miroirs/archives
+// x86_64 CODÉS EN DUR. Contrairement au bug Debian/APT corrigé juste avant (qui provoque un échec
+// bruyant "Exec format error"), celui-ci est PIRE : il produit SILENCIEUSEMENT une image x86_64
+// complète et fonctionnelle tout en prétendant être ARM64/RISC-V/i686 — rien n'indique à
+// l'utilisateur que l'architecture choisie n'a été ni vérifiée ni honorée. Câblage réel du
+// cross-bootstrap (mécanisme différent pour chacun des 5 gestionnaires de paquets, potentiellement
+// une recherche par famille comparable à celle menée cette session pour chaque noyau/bureau)
+// volontairement hors périmètre pour cette itération : avertissement honnête à la place d'un
+// mensonge silencieux, cohérent avec le correctif CachyOS de ce même cycle.
+function nonNativeArchNotice(unameArch: string, familyLabel: string): string {
+  if (unameArch === 'x86_64') return '';
+  return `echo -e "\${YELLOW}[INFO] Le bootstrap ${familyLabel} n'est pas encore câblé pour une architecture autre que x86_64 : l'image générée sera réellement x86_64, quel que soit le choix \\"${unameArch}\\" fait dans l'interface.\${NC}"
+`;
+}
+
 // Faille réelle trouvée et vérifiée en direct (fichier de preuve local créé, puis neutralisé) :
 // "useradd -m -s ${recipe.user.shell} -c \"${recipe.user.fullName}\" ${recipe.user.username}"
 // avait DEUX failures : "username" totalement non protégé (même classe que customPackages
@@ -933,9 +953,10 @@ const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyConfig> =
   arch: {
     hostDeps: 'arch-install-scripts pacman-package-manager',
     hostCheckCmd: 'pacstrap',
-    bootstrapBlock: (distroId, _arch, isDiskImage, kernelType) => {
+    bootstrapBlock: (distroId, unameArch, isDiskImage, kernelType) => {
       const kernelPkg = ARCH_KERNEL_PACKAGE[kernelType] || 'linux';
       const fallbackNotice = ARCH_KERNEL_FALLBACK_NOTICE[kernelType];
+      const archNotice = nonNativeArchNotice(unameArch, 'Arch (pacstrap)');
       // Bug réel trouvé en auditant : choisir "CachyOS" comme distribution de base (pas seulement
       // comme type de noyau) produisait un système strictement IDENTIQUE à "Arch Linux" — ce bloc
       // n'utilise QUE le dépôt officiel Arch (geo.mirror.pkgbuild.com), jamais le vrai dépôt
@@ -952,7 +973,7 @@ const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyConfig> =
         ? `echo -e "\${YELLOW}[INFO] Le dépôt officiel CachyOS n'est pas encore configuré par ce générateur : paquets Arch Linux standards utilisés à la place (aucun paquet compilé x86-64-v3/v4, pas d'ordonnanceur BORE spécifique).\${NC}"
 `
         : '';
-      return `${cachyosNotice}mkdir -p "\${WORK_DIR}/pacman.d"
+      return `${archNotice}${cachyosNotice}mkdir -p "\${WORK_DIR}/pacman.d"
 cat > "\${WORK_DIR}/pacman.d/mirrorlist" << 'ARCH_MIRROR_EOF'
 Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 ARCH_MIRROR_EOF
@@ -999,8 +1020,9 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconso
   fedora: {
     hostDeps: 'dnf dnf-plugins-core rpm',
     hostCheckCmd: 'dnf rpmkeys',
-    bootstrapBlock: (distroId, _arch, isDiskImage, kernelType) => {
+    bootstrapBlock: (distroId, unameArch, isDiskImage, kernelType) => {
       const isRocky = distroId === 'rocky';
+      const archNotice = nonNativeArchNotice(unameArch, isRocky ? 'Rocky (dnf --installroot)' : 'Fedora (dnf --installroot)');
       // Bug réel trouvé en auditant : noyau "lts" pour Fedora tombait toujours dans le repli
       // honnête ci-dessous (aucun paquet dnf officiel LTS pour Fedora — Fedora ne maintient pas
       // de branche noyau LTS, contrairement à Debian/Ubuntu via XanMod). Vérifié en direct qu'un
@@ -1070,7 +1092,7 @@ gpgcheck=0`;
       // baseos/appstream ; sans lui, la résolution de dépendances dnf pour KDE/XFCE/Cinnamon échoue.
       const repoIds = isRocky ? '--repo=baseos --repo=appstream --repo=epel --repo=crb' : '--repo=fedora --repo=updates';
       const releasePkg = isRocky ? 'rocky-release' : 'fedora-release';
-      return `mkdir -p "\${WORK_DIR}/yum.repos.d"
+      return `${archNotice}mkdir -p "\${WORK_DIR}/yum.repos.d"
 cat > "\${WORK_DIR}/yum.repos.d/target.repo" << 'DNF_REPO_EOF'
 ${repoBlock}
 DNF_REPO_EOF
@@ -1125,7 +1147,7 @@ $DNF_BASE install kernel grub2-pc`}` : ''}`;
   alpine: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' && kernelType !== 'lts' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet apk dédié pour Alpine : linux-lts (déjà vérifié en live) utilisé à la place.\${NC}"
+    bootstrapBlock: (_distroId, unameArch, isDiskImage, kernelType) => `${nonNativeArchNotice(unameArch, 'Alpine (apk-tools-static)')}${isDiskImage && kernelType && kernelType !== 'generic' && kernelType !== 'lts' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet apk dédié pour Alpine : linux-lts (déjà vérifié en live) utilisé à la place.\${NC}"
 ` : ''}mkdir -p "\${WORK_DIR}/apk-static"
 APK_IDX="\${WORK_DIR}/apk-idx.html"
 curl -sL https://dl-cdn.alpinelinux.org/alpine/latest-stable/main/x86_64/ -o "$APK_IDX"
@@ -1160,7 +1182,7 @@ sed -i 's/^#ttyS0::/ttyS0::/' "\${ROOTFS_DIR}/etc/inittab"` : ''}`,
   suse: {
     hostDeps: 'zypper',
     hostCheckCmd: 'zypper',
-    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet zypper dédié pour openSUSE : kernel-default utilisé à la place.\${NC}"
+    bootstrapBlock: (_distroId, unameArch, isDiskImage, kernelType) => `${nonNativeArchNotice(unameArch, 'openSUSE (zypper)')}${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet zypper dédié pour openSUSE : kernel-default utilisé à la place.\${NC}"
 ` : ''}mkdir -p "\${ROOTFS_DIR}"
 zypper --root "\${ROOTFS_DIR}" --non-interactive addrepo --no-gpgcheck \\
   https://download.opensuse.org/tumbleweed/repo/oss/ repo-oss
@@ -1205,7 +1227,7 @@ zypper --root "\${ROOTFS_DIR}" --non-interactive install --no-recommends -y --al
   void: {
     hostDeps: '',
     hostCheckCmd: 'curl tar xz',
-    bootstrapBlock: (_distroId, _arch, isDiskImage, kernelType) => `${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet xbps dédié pour Void : linux (paquet par défaut) utilisé à la place.\${NC}"
+    bootstrapBlock: (_distroId, unameArch, isDiskImage, kernelType) => `${nonNativeArchNotice(unameArch, 'Void (xbps-static)')}${isDiskImage && kernelType && kernelType !== 'generic' ? `echo -e "\${YELLOW}[INFO] Le noyau \\"${kernelType}\\" n'a pas de paquet xbps dédié pour Void : linux (paquet par défaut) utilisé à la place.\${NC}"
 ` : ''}mkdir -p "\${WORK_DIR}/xbps-static" "\${ROOTFS_DIR}/var/db/xbps/keys"
 curl -sL https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz -o "\${WORK_DIR}/xbps-static.tar.xz"
 tar -xJf "\${WORK_DIR}/xbps-static.tar.xz" -C "\${WORK_DIR}/xbps-static"

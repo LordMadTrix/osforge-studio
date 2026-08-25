@@ -1627,3 +1627,34 @@ describe('generateBuildScript — bootstrap Debian/APT multi-architecture réell
     expect(script).not.toContain('qemu-');
   });
 });
+
+describe('generateBuildScript — avertissement honnête pour les 5 familles non-Debian (Arch, Fedora/Rocky, Alpine, openSUSE, Void) sur architecture non-x86_64 (bug réel MAJEUR trouvé en auditant, PIRE que le bug Debian corrigé juste avant : les 5 bootstrapBlock() ignoraient TOUTES leur paramètre d\'architecture cible — préfixé "_arch" dans chacune — et leurs miroirs/archives (pacstrap via geo.mirror.pkgbuild.com, apk-tools-static/xbps-static via des URLs x86_64 codées en dur, etc.) produisaient SILENCIEUSEMENT une image x86_64 tout en prétendant honorer le choix ARM64/RISC-V/i686 fait dans l\'UI — aucune erreur, aucun indice, juste la mauvaise architecture livrée sans le dire)', () => {
+  it('Arch + aarch64 : avertissement honnête, aucune fausse promesse silencieuse', () => {
+    const script = generateBuildScript(makeRecipe({ distro: 'arch', outputFormat: 'raw_img', arch: 'aarch64' }));
+    expect(script).toContain('Arch (pacstrap)');
+    expect(script).toContain("n'est pas encore câblé pour une architecture autre que x86_64");
+  });
+
+  it('Fedora + riscv64 et Rocky + aarch64 : avertissement honnête sur les deux (même famille dnf)', () => {
+    const fedoraScript = generateBuildScript(makeRecipe({ distro: 'fedora', outputFormat: 'raw_img', arch: 'riscv64' }));
+    const rockyScript = generateBuildScript(makeRecipe({ distro: 'rocky', outputFormat: 'raw_img', arch: 'aarch64' }));
+    expect(fedoraScript).toContain('Fedora (dnf --installroot)');
+    expect(rockyScript).toContain('Rocky (dnf --installroot)');
+  });
+
+  it('Alpine + i686, openSUSE + aarch64, Void + riscv64 : avertissement honnête sur les trois', () => {
+    const alpineScript = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img', arch: 'i686' }));
+    const opensuseScript = generateBuildScript(makeRecipe({ distro: 'opensuse', outputFormat: 'raw_img', arch: 'aarch64' }));
+    const voidScript = generateBuildScript(makeRecipe({ distro: 'void', outputFormat: 'raw_img', arch: 'riscv64' }));
+    expect(alpineScript).toContain('Alpine (apk-tools-static)');
+    expect(opensuseScript).toContain('openSUSE (zypper)');
+    expect(voidScript).toContain('Void (xbps-static)');
+  });
+
+  it('x86_64 sur les 5 familles : aucun avertissement (comportement par défaut inchangé)', () => {
+    for (const distro of ['arch', 'fedora', 'alpine', 'opensuse', 'void']) {
+      const script = generateBuildScript(makeRecipe({ distro: distro as any, outputFormat: 'raw_img', arch: 'x86_64' }));
+      expect(script).not.toContain("n'est pas encore câblé pour une architecture");
+    }
+  });
+});
