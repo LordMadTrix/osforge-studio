@@ -169,5 +169,10 @@ après.
   - Activation native du mode VT100 / couleurs ANSI (`reg add HKCU\Console /v VirtualTerminalLevel ...`).
   - Détection automatique de l'accélération matérielle Windows Hypervisor Platform (WHPX / `-accel whpx -accel tcg`) pour un démarrage 10x plus rapide de QEMU.
   - Options de RAM configurables (4 Go Standard, 8 Go Haute Performance).
+- **14. ☕ & 🎨 Intégration Financement Créateur (Buy Me a Coffee & Patreon)** :
+  - Création du fichier `.github/FUNDING.yml` (`petitsebash` sur Buy Me a Coffee, `LordMad` sur Patreon) pour activer le bouton Sponsor officiel GitHub.
+  - Boutons de soutien discrets et élégants dans le header (`Header.tsx`) et le footer (`App.tsx`).
+  - Badges de soutien directs dans le `README.md`.
+  - Résolution et assemblage local du driver Playwright (`%LOCALAPPDATA%\ms-playwright-go\1.57.0`) suite à la dépréciation du CDN Azure legacy de Microsoft.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
