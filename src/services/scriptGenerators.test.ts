@@ -12,7 +12,10 @@ import {
   generateLiveWindowsBat,
   generateAutoBuildBat,
   generateUniversalLauncherBat,
-  generateUniversalLauncherSh
+  generateUniversalLauncherSh,
+  generateIpxeScript,
+  generatePxeServerScript,
+  generateVentoyJson
 } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
@@ -3737,4 +3740,101 @@ describe('Gestion des versions de distributions — Dernières versions par déf
     expect(script).not.toContain('deb http://archive.ubuntu.com/ubuntu resolute main');
   });
 });
+
+describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Complète', () => {
+  it('1. Calamares : installe les paquets et génère la configuration branding et le lanceur de bureau Live', () => {
+    const recipe = makeRecipe({
+      distro: 'ubuntu',
+      enableCalamaresInstaller: true,
+      branding: { osName: 'MadOS', editionName: 'Gaming', version: '4.0', accentColor: '#ff003c', wallpaperPreset: 'cyberpunk', bootSplashTheme: 'classic' },
+    });
+    const pkgs = resolvePackageList(recipe);
+    expect(pkgs).toContain('calamares');
+    expect(pkgs).toContain('calamares-settings-ubuntu');
+
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('branding.desc');
+    expect(script).toContain('productName:         "MadOS"');
+    expect(script).toContain('install-system.desktop');
+    expect(script).toContain('Exec=sudo -E calamares -d');
+  });
+
+  it('2. Flatpak & Flathub : installe le runtime et ajoute le dépôt officiel Flathub', () => {
+    const kdeRecipe = makeRecipe({ distro: 'debian', desktop: 'kde', enableFlatpak: true });
+    const kdePkgs = resolvePackageList(kdeRecipe);
+    expect(kdePkgs).toContain('flatpak');
+    expect(kdePkgs).toContain('plasma-discover-backend-flatpak');
+
+    const gnomeRecipe = makeRecipe({ distro: 'debian', desktop: 'gnome', enableFlatpak: true });
+    const gnomePkgs = resolvePackageList(gnomeRecipe);
+    expect(gnomePkgs).toContain('gnome-software-plugin-flatpak');
+
+    const script = generateBuildScript(kdeRecipe);
+    expect(script).toContain('flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo');
+  });
+
+  it('3. CIS Benchmark Hardening : applique le niveau 1 (sysctl, limits) et le niveau 2 (umask 027, shadow)', () => {
+    const l1Recipe = makeRecipe({ security: { cisBenchmarkLevel: 1, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: false } });
+    const l1Script = generateBuildScript(l1Recipe);
+    expect(l1Script).toContain('99-cis-security.conf');
+    expect(l1Script).toContain('fs.suid_dumpable = 0');
+    expect(l1Script).toContain('10-cis-coredumps.conf');
+    expect(l1Script).not.toContain('umask 027');
+
+    const l2Recipe = makeRecipe({ security: { cisBenchmarkLevel: 2, firewall: 'none', appArmorOrSELinux: false, fail2ban: false, luksEncryption: false, disableRootSSH: false, autoSecurityUpdates: false } });
+    const l2Script = generateBuildScript(l2Recipe);
+    expect(l2Script).toContain('99-cis-umask.sh');
+    expect(l2Script).toContain('umask 027');
+    expect(l2Script).toContain('chmod 600 /etc/shadow /etc/gshadow');
+  });
+
+  it('4. Déploiement Réseau iPXE & Serveur PXE : génère boot.ipxe et setup-pxe-server.sh', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'MadOS Netboot', editionName: 'Cloud', version: '1.0', accentColor: '#38bdf8', wallpaperPreset: 'cyberpunk', bootSplashTheme: 'classic' },
+      enableLiveRescue: true,
+    });
+    const ipxe = generateIpxeScript(recipe);
+    expect(ipxe).toContain('#!ipxe');
+    expect(ipxe).toContain('MadOS Netboot Cloud');
+    expect(ipxe).toContain('fetch=${http_base}/filesystem.squashfs');
+    expect(ipxe).toContain(':rescue_boot');
+
+    const pxeServer = generatePxeServerScript(recipe);
+    expect(pxeServer).toContain('dnsmasq');
+    expect(pxeServer).toContain('undionly.kpxe');
+    expect(pxeServer).toContain('/var/lib/tftpboot');
+  });
+
+  it('5. Clé Multi-Boot Ventoy : génère un JSON valide avec métadonnées et auto-install', () => {
+    const recipe = makeRecipe({
+      branding: { osName: 'MadOS ROG', editionName: 'Pro', version: '4.0', accentColor: '#ff003c', wallpaperPreset: 'cyberpunk', bootSplashTheme: 'classic' },
+    });
+    const ventoyRaw = generateVentoyJson(recipe);
+    const ventoy = JSON.parse(ventoyRaw);
+    expect(ventoy.control[0].VTOY_MENU_TIMEOUT).toBe(5);
+    expect(ventoy.theme.ventoy_color).toBe('#ff003c');
+    expect(ventoy.auto_install[0].autosel).toBe(1);
+  });
+
+  it('6. Pilotes GPU & Optimisations Matérielles ROG / AMD : configure NVIDIA, asusctl et CoreCtrl', () => {
+    const nvidiaRecipe = makeRecipe({
+      distro: 'ubuntu',
+      gpuDriver: 'hybrid_prime',
+      enableAsusRogTools: true,
+      enableCoreCtrlAmd: true,
+    });
+    const pkgs = resolvePackageList(nvidiaRecipe);
+    expect(pkgs).toContain('nvidia-driver');
+    expect(pkgs).toContain('nvidia-prime');
+    expect(pkgs).toContain('corectrl');
+
+    const script = generateBuildScript(nvidiaRecipe);
+    expect(script).toContain('options nvidia-drm modeset=1');
+    expect(script).toContain('blacklist nouveau');
+    expect(script).toContain('asusd.service');
+    expect(script).toContain('supergfxctl.service');
+    expect(script).toContain('90-corectrl.rules');
+  });
+});
+
 

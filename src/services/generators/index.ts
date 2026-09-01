@@ -47,3 +47,5 @@ export * from './rpi';
 export * from './cloudInit';
 export * from './iac';
 export * from './launchers';
+export * from './ipxe';
+export * from './ventoy';

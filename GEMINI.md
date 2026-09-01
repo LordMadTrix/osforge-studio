@@ -193,6 +193,15 @@ après.
   - Sélection automatique et exclusive des toutes dernières versions majeures dans le Wizard (Debian 13 Trixie, Ubuntu 26.04 Resolute, Fedora 44, Alpine 3.24, Linux Mint 23).
   - Sélecteur de versions et de rétrogradation (downgrade) dans le Studio Expert avec indicateurs visuels (`⚡ Dernière Version` / `🛡️ Version Rétrogradée LTS`).
   - Câblage dynamique des suites debootstrap et dépôts sources.list (`resolveDebianTarget`).
-- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
+- **20. 🚀 Les 7 Chantiers Majeurs d'Expansion Système (100% Fonctionnels & Zéro Cosmétique)** :
+  1. 💽 **Installeur Graphique Calamares OOB (`enableCalamaresInstaller`)** : Configuration `/etc/calamares/branding/osforge/branding.desc` avec le nom et la couleur d'accentuation, et création du lanceur `/home/$user/Desktop/install-system.desktop`.
+  2. ⚡ **Générateur de Workflow GitHub Actions Automatisé** : Workflow `.github/workflows/build-iso.yml` avec `workflow_dispatch`, cache APT multi-niveaux et upload automatique des Releases.
+  3. 📦 **Intégration Native Flatpak & Flathub OOB (`enableFlatpak`)** : Paquets de backend (`plasma-discover-backend-flatpak`, `gnome-software-plugin-flatpak`) et commande `flatpak remote-add --if-not-exists flathub`.
+  4. 🛡️ **Durcissement CIS Benchmark Niveau 1 & 2 Réel (`cisHardeningCmd`)** : Sysctls `/etc/sysctl.d/99-cis-security.conf`, limites core dumps `/etc/security/limits.d/10-cis-coredumps.conf`, blocage de protocoles vulnérables, et umask `027` au niveau 2.
+  5. 🌐 **Déploiement Réseau iPXE & Serveur PXE Dédié (`generateIpxeScript`, `generatePxeServerScript`)** : Génération de `boot.ipxe` et `setup-pxe-server.sh` (`dnsmasq`, `tftpd-hpa`, `nginx`).
+  6. 🎮 **Pilotes GPU & Gestion Matérielle ROG / AMD (`gpuDriver`, `enableAsusRogTools`, `enableCoreCtrlAmd`)** : Configuration NVIDIA DRM (`modeset=1`), blacklist nouveau, services `asusd`/`supergfxctl`, et règles polkit CoreCtrl (`90-corectrl.rules`).
+  7. 💾 **Format Ventoy Auto-Install (`generateVentoyJson`)** : Génération de `ventoy.json` prêt à l'emploi avec injection auto_install, thèmes et alias de démarrage.
+- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 

@@ -11,7 +11,10 @@ import {
   generateUniversalLauncherBat,
   generateUniversalLauncherSh,
   generateAutoBuildBat,
-  generateAutoBuildSh
+  generateAutoBuildSh,
+  generateIpxeScript,
+  generatePxeServerScript,
+  generateVentoyJson
 } from './scriptGenerators';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -31,6 +34,9 @@ export async function createDownloadableZip(recipe: OSRecipe): Promise<Blob> {
   const liveWindowsBat = generateLiveWindowsBat(recipe);
   const autoBuildBat = generateAutoBuildBat(recipe);
   const autoBuildSh = generateAutoBuildSh(recipe);
+  const ipxeScript = generateIpxeScript(recipe);
+  const pxeServerScript = generatePxeServerScript(recipe);
+  const ventoyJson = generateVentoyJson(recipe);
 
   // Readme instructions
   const repoSlug = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-os`;
@@ -48,6 +54,8 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 - **Sous Windows** : Double-cliquez sur \`launch.bat\` pour ouvrir le menu interactif (WSL2, QEMU Live, Compilation locale), ou directement \`auto-build.bat\` pour une compilation 100% automatique sans interaction.
 - **Sous Linux / macOS** : Exécutez \`./launch.sh\`, ou directement \`./auto-build.sh\` pour une compilation 100% automatique.
 - **Sur GitHub** : poussez ce dossier dans un dépôt — le workflow \`.github/workflows/build-iso.yml\` compile et **publie automatiquement une Release GitHub avec l'ISO** à chaque push sur \`main\`, sans aucune action manuelle.
+- **Sur Clé Multi-Boot Ventoy** : Copiez \`ventoy.json\` dans le dossier \`ventoy/\` de votre clé pour l'amorçage automatique.
+- **Sur le Réseau (Netboot / PXE)** : Exécutez \`./setup-pxe-server.sh\` pour installer un serveur PXE clé-en-main.
 
 ---
 
@@ -60,6 +68,8 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 - \`build.sh\` : Script de compilation autonome pour Linux / WSL2.
 - \`Dockerfile\` : Environnement de compilation conteneurisé.
 - \`.github/workflows/build-iso.yml\` : Workflow **100% automatique** — build + tag + Release GitHub publiée à chaque push, gratuit.
+- \`boot.ipxe\` & \`setup-pxe-server.sh\` : **Déploiement Réseau iPXE / Netboot** sans clé USB.
+- \`ventoy.json\` : Configuration d'amorçage automatique pour clés USB Ventoy.
 - \`cloud-init.yaml\` : Manifeste de déploiement cloud.
 - \`recipe.json\` : Recette de configuration complète.
 `;
@@ -73,6 +83,9 @@ Généré par **OSForge Studio** (compatible OpenFactory).
   zip.file('run-live-windows.bat', liveWindowsBat);
   zip.file('build.sh', buildSh);
   zip.file('Dockerfile', dockerfile);
+  zip.file('boot.ipxe', ipxeScript);
+  zip.file('setup-pxe-server.sh', pxeServerScript);
+  zip.file('ventoy.json', ventoyJson);
   zip.file('cloud-init.yaml', cloudInit);
   zip.file('recipe.json', recipeJson);
   zip.file('README.md', readme);

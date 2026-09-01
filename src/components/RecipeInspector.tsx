@@ -13,7 +13,10 @@ import {
   generateWslConf,
   generateLiveWindowsBat,
   generateUniversalLauncherBat,
-  generateUniversalLauncherSh
+  generateUniversalLauncherSh,
+  generateIpxeScript,
+  generatePxeServerScript,
+  generateVentoyJson
 } from '../services/scriptGenerators';
 import { ContextTip } from './ContextTip';
 import { Copy, Check, FileCode, Download } from 'lucide-react';
@@ -82,6 +85,24 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       lang: 'hcl',
       content: generateTerraformTf(recipe),
       desc: lang === 'fr' ? 'Manifeste Terraform / OpenTofu pour instancier la VM et injecter cloud-init.' : 'Terraform / OpenTofu manifest for VM provisioning.',
+    },
+    'boot.ipxe': {
+      title: 'boot.ipxe (Démarrage Réseau Netboot / iPXE)',
+      lang: 'bash',
+      content: generateIpxeScript(recipe),
+      desc: lang === 'fr' ? 'Script iPXE pour booter l’OS sur le réseau local (TFTP/HTTP) sans clé USB.' : 'iPXE script for network booting without USB.',
+    },
+    'setup-pxe.sh': {
+      title: 'setup-pxe-server.sh (Serveur PXE Clé-en-main)',
+      lang: 'bash',
+      content: generatePxeServerScript(recipe),
+      desc: lang === 'fr' ? 'Script de déploiement automatique d’un serveur PXE (dnsmasq, nginx, tftp) sur le réseau local.' : 'PXE server deployment script.',
+    },
+    'ventoy.json': {
+      title: 'ventoy.json (Clé Multi-Boot Ventoy)',
+      lang: 'json',
+      content: generateVentoyJson(recipe),
+      desc: lang === 'fr' ? 'Configuration Ventoy pour l’amorçage automatique et l’injection de scripts sur clé USB.' : 'Ventoy auto-install and multi-boot configuration.',
     },
     'github-actions.yml': {
       title: '.github/workflows/build-iso.yml',

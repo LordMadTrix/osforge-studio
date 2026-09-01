@@ -25,6 +25,8 @@ import {
   cisHardeningCmd,
   zramSetupCmd,
   flatpakSetupCmd,
+  calamaresInstallerCmd,
+  gpuDriverCmd,
   dmAutologinCmd,
   kioskSetupCmd,
   dotfilesCloneCmd,
@@ -485,6 +487,8 @@ ${autoSecurityUpdatesCmd(recipe, 'debian')}
 ${cisHardeningCmd(recipe, 'debian')}
 ${zramSetupCmd(recipe, 'debian')}
 ${flatpakSetupCmd(recipe, 'debian')}
+${calamaresInstallerCmd(recipe, 'debian')}
+${gpuDriverCmd(recipe, 'debian')}
 
 ${dmCmd}
 ${dmAutologinCmd(recipe, 'debian')}

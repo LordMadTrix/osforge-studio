@@ -623,6 +623,102 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
               <span className="toggle-slider"></span>
             </label>
           </div>
+
+          {/* Calamares Installer */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableCalamaresInstaller ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableCalamaresInstaller ? '1px solid #38bdf8' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableCalamaresInstaller ? '#38bdf8' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>💽</span>
+                <span>{lang === 'fr' ? 'Installeur Graphique Calamares (Live Desktop)' : 'Calamares GUI Installer (Live Desktop)'}</span>
+                <span className="badge badge-blue" style={{ fontSize: '0.62rem' }}>OOB</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Ajoute l’icône « Installer l’OS » sur le bureau avec partitionnement et thèmes personnalisés' : 'Adds "Install OS" desktop icon with partitioning and branding'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableCalamaresInstaller ?? false}
+                onChange={(e) => onChange({ enableCalamaresInstaller: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Flatpak & Flathub */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableFlatpak ? 'rgba(168, 85, 247, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableFlatpak ? '1px solid #a855f7' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableFlatpak ? '#c084fc' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📦</span>
+                <span>{lang === 'fr' ? 'Flatpak & Flathub OOB (App Store Ready)' : 'Flatpak & Flathub OOB (App Store Ready)'}</span>
+                <span className="badge badge-purple" style={{ fontSize: '0.62rem' }}>Flathub</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Dépôt officiel Flathub préconfiguré et intégré à KDE Discover / GNOME Software' : 'Preconfigured Flathub repository integrated into Discover / Software'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableFlatpak ?? false}
+                onChange={(e) => onChange({ enableFlatpak: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* GPU Drivers Selector & Hardware Tools */}
+          <div style={{ padding: '14px', background: 'rgba(10, 15, 28, 0.5)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🎮</span>
+              <span>{lang === 'fr' ? 'Pilotes Graphiques GPU & Gestion Matérielle' : 'GPU Drivers & Hardware Management'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '10px' }}>
+              {[
+                { id: 'mesa_open', label: lang === 'fr' ? 'Mesa Open-Source (AMD/Intel/Nouveau)' : 'Mesa Open-Source (AMD/Intel)', desc: 'Vulkan RADV + ANV natif' },
+                { id: 'nvidia_proprietary', label: lang === 'fr' ? 'NVIDIA Propriétaire (DKMS/560+)' : 'NVIDIA Proprietary (DKMS/560+)', desc: 'Pour cartes RTX / GTX' },
+                { id: 'hybrid_prime', label: lang === 'fr' ? 'NVIDIA Prime Hybride (Optimus/Laptop)' : 'NVIDIA Prime Hybrid (Optimus)', desc: 'Double GPU Intel/AMD + NVIDIA' },
+              ].map((gpu) => (
+                <button
+                  key={gpu.id}
+                  type="button"
+                  onClick={() => onChange({ gpuDriver: gpu.id as any })}
+                  style={{
+                    padding: '8px 10px',
+                    textAlign: 'left',
+                    borderRadius: '6px',
+                    border: (recipe.gpuDriver || 'mesa_open') === gpu.id ? '1px solid #38bdf8' : '1px solid var(--border-subtle)',
+                    background: (recipe.gpuDriver || 'mesa_open') === gpu.id ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: (recipe.gpuDriver || 'mesa_open') === gpu.id ? '#38bdf8' : '#e2e8f0' }}>{gpu.label}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{gpu.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={recipe.enableAsusRogTools ?? false}
+                  onChange={(e) => onChange({ enableAsusRogTools: e.target.checked })}
+                />
+                <span>{lang === 'fr' ? 'ASUS ROG / TUF (asusctl & supergfxctl)' : 'ASUS ROG / TUF (asusctl & supergfxctl)'}</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={recipe.enableCoreCtrlAmd ?? false}
+                  onChange={(e) => onChange({ enableCoreCtrlAmd: e.target.checked })}
+                />
+                <span>{lang === 'fr' ? 'AMD Radeon CoreCtrl (Overclock & Tensions)' : 'AMD Radeon CoreCtrl (Overclock)'}</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 

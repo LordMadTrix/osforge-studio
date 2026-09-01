@@ -223,6 +223,10 @@ export interface OSRecipe {
   keyboardLayout: string;
   enableSSH: boolean;
   enableFlatpak?: boolean;
+  enableCalamaresInstaller?: boolean;
+  gpuDriver?: 'mesa_open' | 'nvidia_proprietary' | 'hybrid_prime';
+  enableAsusRogTools?: boolean;
+  enableCoreCtrlAmd?: boolean;
   enableZram?: boolean;
   enableLiveRescue?: boolean;
   enableCommunityRepos?: boolean;

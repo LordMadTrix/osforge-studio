@@ -21,6 +21,10 @@ export function sanitizeGrubTitle(value: string): string {
   return value.replace(/[";{}$`\\]/g, '').trim();
 }
 
+export function sanitizeHostname(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'osforge-host';
+}
+
 export function nonNativeArchNotice(unameArch: string, familyLabel: string): string {
   if (unameArch === 'x86_64') return '';
   return `echo -e "\${YELLOW}[INFO] Le bootstrap ${familyLabel} n'est pas encore câblé pour une architecture autre que x86_64 : l'image générée sera réellement x86_64, quel que soit le choix \\"${unameArch}\\" fait dans l'interface.\${NC}"\n`;
@@ -894,6 +898,103 @@ export function flatpakSetupCmd(recipe: OSRecipe, _family?: 'debian' | NonDebian
 if command -v flatpak &>/dev/null; then
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi`;
+}
+
+export function calamaresInstallerCmd(recipe: OSRecipe, _family?: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableCalamaresInstaller) return '';
+  const osName = sanitizeGrubTitle(recipe.branding.osName || 'Custom Linux');
+  const edition = sanitizeGrubTitle(recipe.branding.editionName || 'Edition');
+  const username = recipe.user.username;
+
+  return `# Intégration de l'Installeur Graphique Calamares sur le Bureau Live
+if command -v calamares &>/dev/null; then
+    mkdir -p /etc/calamares/branding/osforge
+    cat > /etc/calamares/branding/osforge/branding.desc << 'CALAMARES_EOF'
+---
+componentName:  osforge
+welcomeStyleCalamares: false
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 800px,520px
+windowPlacement: center
+
+strings:
+    productName:         "${osName}"
+    shortProductName:    "${osName}"
+    version:             "${recipe.branding.version || '1.0'}"
+    shortVersion:        "${recipe.branding.version || '1.0'}"
+    versionedName:       "${osName} ${edition}"
+    shortVersionedName:  "${osName} ${edition}"
+    bootloaderEntryName: "${osName}"
+
+images:
+    productLogo:         "logo.png"
+    productIcon:         "icon.png"
+
+style:
+   SidebarBackground:    "#1e293b"
+   SidebarTextColor:     "#ffffff"
+   SidebarTextHighlight: "${recipe.branding.accentColor || '#38bdf8'}"
+CALAMARES_EOF
+
+    # Création du lanceur sur le bureau de l'utilisateur Live
+    mkdir -p "/home/${username}/Desktop" "/etc/skel/Desktop"
+    cat > "/home/${username}/Desktop/install-system.desktop" << 'DESKTOP_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Installer ${osName} sur le disque
+GenericName=Installateur Système
+Comment=Installer définitivement ce système d'exploitation sur votre disque dur
+Exec=sudo -E calamares -d
+Icon=calamares
+Terminal=false
+Categories=System;
+StartupNotify=true
+DESKTOP_EOF
+    chmod +x "/home/${username}/Desktop/install-system.desktop" 2>/dev/null || true
+    cp "/home/${username}/Desktop/install-system.desktop" "/etc/skel/Desktop/" 2>/dev/null || true
+    chown -R "${username}:${username}" "/home/${username}/Desktop" 2>/dev/null || true
+fi`;
+}
+
+export function gpuDriverCmd(recipe: OSRecipe, _family?: 'debian' | NonDebianFamily): string {
+  const parts: string[] = [];
+
+  if (recipe.gpuDriver === 'nvidia_proprietary' || recipe.gpuDriver === 'hybrid_prime') {
+    parts.push(`# Configuration des Pilotes Graphiques NVIDIA & Optimisations DRM
+mkdir -p /etc/modprobe.d
+cat > /etc/modprobe.d/nvidia-modeset.conf << 'NVIDIA_EOF'
+options nvidia-drm modeset=1
+options nvidia "NVreg_DynamicPowerManagement=0x02"
+NVIDIA_EOF
+cat > /etc/modprobe.d/blacklist-nouveau.conf << 'NOUVEAU_EOF'
+blacklist nouveau
+options nouveau modeset=0
+NOUVEAU_EOF`);
+  }
+
+  if (recipe.enableAsusRogTools) {
+    parts.push(`# Services Matériels & Gestion Énergie Portables ASUS ROG / TUF
+systemctl enable asusd.service 2>/dev/null || true
+systemctl enable supergfxctl.service 2>/dev/null || true`);
+  }
+
+  if (recipe.enableCoreCtrlAmd) {
+    parts.push(`# Support Overclocking & Gestion des Tensions AMD Radeon CoreCtrl
+mkdir -p /etc/polkit-1/rules.d
+cat > /etc/polkit-1/rules.d/90-corectrl.rules << 'CORECTRL_EOF'
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.corectrl.helper.init" ||
+         action.id == "org.corectrl.helperkiller.init") &&
+        subject.isInGroup("${recipe.user.username}")) {
+        return polkit.Result.YES;
+    }
+});
+CORECTRL_EOF`);
+  }
+
+  return parts.join('\n');
 }
 
 export function batEscapePercent(value: string): string {

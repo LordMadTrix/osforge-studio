@@ -25,6 +25,8 @@ import {
   cisHardeningCmd,
   zramSetupCmd,
   flatpakSetupCmd,
+  calamaresInstallerCmd,
+  gpuDriverCmd,
   dmAutologinCmd,
   kioskSetupCmd,
   dotfilesCloneCmd,
@@ -499,6 +501,8 @@ ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
 ${zramSetupCmd(recipe, family)}
 ${flatpakSetupCmd(recipe, family)}
+${calamaresInstallerCmd(recipe, family)}
+${gpuDriverCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -797,6 +801,8 @@ ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
 ${zramSetupCmd(recipe, family)}
 ${flatpakSetupCmd(recipe, family)}
+${calamaresInstallerCmd(recipe, family)}
+${gpuDriverCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}

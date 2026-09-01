@@ -337,9 +337,51 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push(distroId === 'void' ? 'fish-shell' : 'fish');
   }
 
-  // Flatpak
+  // Flatpak & App Stores
   if (recipe.enableFlatpak) {
     pkgs.push('flatpak');
+    if (recipe.desktop === 'kde') {
+      pkgs.push('plasma-discover-backend-flatpak');
+    } else if (recipe.desktop === 'gnome') {
+      pkgs.push('gnome-software-plugin-flatpak');
+    }
+  }
+
+  // Installeur Graphique Calamares
+  if (recipe.enableCalamaresInstaller) {
+    pkgs.push('calamares');
+    if (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') {
+      pkgs.push('calamares-settings-ubuntu');
+    } else if (isDebianLike) {
+      pkgs.push('calamares-settings-debian');
+    }
+  }
+
+  // Pilotes Graphiques GPU & Utilitaires Matériels
+  if (recipe.gpuDriver === 'nvidia_proprietary' || recipe.gpuDriver === 'hybrid_prime') {
+    if (isDebianLike) {
+      pkgs.push('nvidia-driver');
+      if (recipe.gpuDriver === 'hybrid_prime') pkgs.push('nvidia-prime');
+    } else if (isArchLike) {
+      pkgs.push('nvidia-dkms', 'nvidia-utils');
+      if (recipe.gpuDriver === 'hybrid_prime') pkgs.push('prime-run');
+    } else if (isFedoraLike) {
+      pkgs.push('akmod-nvidia', 'xorg-x11-drv-nvidia');
+    }
+  }
+
+  // Outils ASUS ROG & TUF
+  if (recipe.enableAsusRogTools) {
+    if (isArchLike || isFedoraLike) {
+      pkgs.push('asusctl', 'supergfxctl');
+    }
+  }
+
+  // Outils AMD CoreCtrl
+  if (recipe.enableCoreCtrlAmd) {
+    if (isDebianLike || isArchLike || isFedoraLike || distroId === 'opensuse') {
+      pkgs.push('corectrl');
+    }
   }
 
   // zRAM Swap
