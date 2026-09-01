@@ -307,10 +307,12 @@ else
 fi`;
   }
   if (recipe.displayManager === 'sddm') {
+    const sessionName = recipe.desktop === 'kde' ? 'plasma' : recipe.desktop;
     return `mkdir -p /etc/sddm.conf.d
 cat > /etc/sddm.conf.d/autologin.conf << 'SDDM_EOF'
 [Autologin]
 User=${username}
+Session=${sessionName}
 SDDM_EOF`;
   }
   if (recipe.displayManager === 'lightdm') {

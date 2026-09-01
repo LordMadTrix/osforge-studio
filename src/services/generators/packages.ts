@@ -52,7 +52,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   } else if (recipe.desktop === 'kde') {
     if (isDebianLike) {
       pkgs.push(
-        'plasma-desktop', 'plasma-workspace', 'sddm', 'konsole', 'dolphin', 'firefox-esr',
+        'plasma-desktop', 'kde-plasma-desktop', 'plasma-workspace', 'plasma-workspace-wayland', 'kwin-wayland', 'kwin-x11', 'sddm', 'konsole', 'dolphin', 'firefox-esr',
         'xorg', 'xserver-xorg-video-all', 'mesa-vulkan-drivers',
         'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager', 'plasma-nm',
         'fonts-noto', 'fonts-font-awesome', 'bluez'
