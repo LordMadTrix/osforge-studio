@@ -113,3 +113,24 @@ describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe : "retr
     expect(pkgs).toContain('lazygit');
   });
 });
+
+describe('DISTRO_PRESETS — Preset officiel "MadOS ROG Edition" (Gaming & ASUS ROG)', () => {
+  it('mados_rog_edition : présent dans le catalogue et configuré avec Ubuntu 24.04, KDE Plasma, XanMod et Gaming stack', () => {
+    const preset = DISTRO_PRESETS.find(p => p.id === 'mados_rog_edition');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('ubuntu');
+    expect(preset!.recipe.desktop).toBe('kde');
+    expect(preset!.recipe.kernel).toBe('xanmod');
+    expect(preset!.recipe.enableGamingOptimizations).toBe(true);
+    expect(preset!.recipe.enablePowerSaving).toBe(true);
+    expect(preset!.recipe.selectedPackages).toContain('steam');
+    expect(preset!.recipe.selectedPackages).toContain('lutris_heroic');
+    expect(preset!.recipe.selectedPackages).toContain('gamepad_drivers');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('deb.xanmod.org');
+    expect(script).toContain('linux-xanmod-x64v3');
+    expect(script).toContain('99-gaming.conf');
+    expect(script).toContain('tcp_congestion_control = bbr');
+  });
+});

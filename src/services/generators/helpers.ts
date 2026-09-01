@@ -654,11 +654,15 @@ sed -i 's/^#//g' /etc/apk/repositories 2>/dev/null || true`;
 
 export function gamingSysctlCmd(recipe: OSRecipe): string {
   if (!recipe.enableGamingOptimizations) return '';
-  return `# Optimisations Système Gaming (Steam / Proton / Faible Latence)
+  return `# Optimisations Système Gaming & Réseau Anti-Lag (Steam / Proton / TCP BBR+)
 mkdir -p /etc/sysctl.d
 cat > /etc/sysctl.d/99-gaming.conf << 'GAMING_SYSCTL_EOF'
 vm.max_map_count = 2147483642
-fs.file-max = 524288
+fs.file-max = 2097152
+vm.swappiness = 10
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+net.ipv4.tcp_fastopen = 3
 GAMING_SYSCTL_EOF
 chmod 644 /etc/sysctl.d/99-gaming.conf 2>/dev/null || true
 sysctl -p /etc/sysctl.d/99-gaming.conf 2>/dev/null || true`;
