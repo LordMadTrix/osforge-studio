@@ -962,7 +962,7 @@ export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
     // réels), inchangés.
     pkgNames: {
       debian: 'joystick jstest-gtk xboxdrv',
-      ubuntu: 'joystick jstest-gtk xboxdrv',
+      ubuntu: 'joystick jstest-gtk',
       arch: 'joyutils',
       alpine: 'linuxconsoletools',
       fedora: 'linuxconsoletools jstest-gtk',

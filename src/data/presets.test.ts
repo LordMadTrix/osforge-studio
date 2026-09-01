@@ -97,7 +97,7 @@ describe('DISTRO_PRESETS — bug réel trouvé en auditant, même classe : "retr
     expect(preset.recipe.selectedPackages).toContain('gamepad_drivers');
     const pkgs = resolvePackageList(recipeFromPreset(preset.recipe));
     expect(pkgs).toContain('joystick');
-    expect(pkgs).toContain('xboxdrv');
+    expect(pkgs).toContain('jstest-gtk');
   });
 
   it('devops_hyprland : highlight annonce "Docker Engine" (cohérent avec son sous-titre et selectedPackages), plus "Podman" non installé', () => {

@@ -337,7 +337,9 @@ ${recipe.distro === 'raspbian' ? `
 mkdir -p /etc/apt/keyrings
 curl -fsSL https://archive.raspberrypi.com/debian/raspberrypi.gpg.key -o /etc/apt/keyrings/raspberrypi.gpg.key
 ` : ''}
-# Mise à jour des index de paquets
+${debArch === 'amd64' ? `# Activation du multi-architecture 32-bit (requis pour Steam, Wine et runtimes de jeux)
+dpkg --add-architecture i386 2>/dev/null || true
+` : ''}# Mise à jour des index de paquets
 apt-get update -y
 
 ${recipe.distro === 'raspbian' && recipe.arch === 'aarch64' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
