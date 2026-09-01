@@ -11,6 +11,8 @@ interface HeaderProps {
   onOpenVersionChecker: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  uiMode: 'wizard' | 'expert';
+  setUiMode: (mode: 'wizard' | 'expert') => void;
   lang: 'fr' | 'en';
   setLang: (lang: 'fr' | 'en') => void;
 }
@@ -25,6 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenVersionChecker,
   activeTab,
   setActiveTab,
+  uiMode,
+  setUiMode,
   lang,
   setLang,
 }) => {
@@ -78,6 +82,58 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
+        {/* Mode Selector Toggle: Wizard vs Expert Studio */}
+        <div style={{
+          display: 'flex',
+          background: 'rgba(26, 22, 19, 0.8)',
+          padding: '3px',
+          borderRadius: '8px',
+          border: '1px solid var(--border-active)',
+          gap: '2px',
+        }}>
+          <button
+            onClick={() => setUiMode('wizard')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: uiMode === 'wizard' ? 'var(--cyan)' : 'transparent',
+              color: uiMode === 'wizard' ? '#000000' : 'var(--text-dim)',
+              fontWeight: uiMode === 'wizard' ? 700 : 500,
+              border: 'none',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🧙‍♂️</span>
+            <span>{lang === 'fr' ? 'Mode Guidé (Wizard)' : 'Guided Wizard'}</span>
+          </button>
+
+          <button
+            onClick={() => setUiMode('expert')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: uiMode === 'expert' ? 'var(--cyan)' : 'transparent',
+              color: uiMode === 'expert' ? '#000000' : 'var(--text-dim)',
+              fontWeight: uiMode === 'expert' ? 700 : 500,
+              border: 'none',
+              padding: '5px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>⚙️</span>
+            <span>{lang === 'fr' ? 'Mode Expert (Studio)' : 'Expert Studio'}</span>
+          </button>
+        </div>
+
         {/* Quick Launcher Trigger Bar */}
         <button
           onClick={onOpenLauncher}
@@ -93,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
             fontSize: '0.78rem',
             cursor: 'pointer',
             transition: 'border-color 0.15s ease',
-            minWidth: '220px',
+            minWidth: '200px',
             justifyContent: 'space-between',
           }}
           onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
@@ -119,44 +175,46 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </button>
 
-        {/* Center Studio Tabs */}
-        <nav style={{
-          display: 'flex',
-          background: 'rgba(26, 22, 19, 0.65)',
-          padding: '3px',
-          borderRadius: '8px',
-          border: '1px solid var(--border-subtle)',
-          gap: '2px',
-          overflowX: 'auto',
-        }}>
-          {[
-            { id: 'builder', label: lang === 'fr' ? '🏗️ Studio' : '🏗️ Studio' },
-            { id: 'packages', label: lang === 'fr' ? '📦 Logiciels' : '📦 Packages' },
-            { id: 'system', label: lang === 'fr' ? '⚙️ Système' : '⚙️ System' },
-            { id: 'security', label: lang === 'fr' ? '🛡️ Sécurité' : '🛡️ Security' },
-            { id: 'postinstall', label: lang === 'fr' ? '📜 Scripts & Hook' : '📜 Scripts & Hook' },
-            { id: 'inspector', label: lang === 'fr' ? '🔍 Code & Recette' : '🔍 Code & Recipe' },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                background: activeTab === tab.id ? 'var(--cyan)' : 'transparent',
-                color: activeTab === tab.id ? '#ffffff' : 'var(--text-muted)',
-                fontWeight: activeTab === tab.id ? 600 : 400,
-                border: 'none',
-                padding: '5px 11px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                transition: 'all 0.15s ease',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+        {/* Center Studio Tabs (Shown in Expert Mode) */}
+        {uiMode === 'expert' && (
+          <nav style={{
+            display: 'flex',
+            background: 'rgba(26, 22, 19, 0.65)',
+            padding: '3px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-subtle)',
+            gap: '2px',
+            overflowX: 'auto',
+          }}>
+            {[
+              { id: 'builder', label: lang === 'fr' ? '🏗️ Studio' : '🏗️ Studio' },
+              { id: 'packages', label: lang === 'fr' ? '📦 Logiciels' : '📦 Packages' },
+              { id: 'system', label: lang === 'fr' ? '⚙️ Système' : '⚙️ System' },
+              { id: 'security', label: lang === 'fr' ? '🛡️ Sécurité' : '🛡️ Security' },
+              { id: 'postinstall', label: lang === 'fr' ? '📜 Scripts & Hook' : '📜 Scripts & Hook' },
+              { id: 'inspector', label: lang === 'fr' ? '🔍 Code & Recette' : '🔍 Code & Recipe' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  background: activeTab === tab.id ? 'var(--cyan)' : 'transparent',
+                  color: activeTab === tab.id ? '#000000' : 'var(--text-muted)',
+                  fontWeight: activeTab === tab.id ? 700 : 400,
+                  border: 'none',
+                  padding: '5px 11px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        )}
 
         {/* Right Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -4,6 +4,7 @@ import { DISTROS } from './data/distros';
 import { DESKTOPS } from './data/desktopEnvironments';
 import { Header } from './components/Header';
 import { StatsBanner } from './components/StatsBanner';
+import { WizardMode } from './components/WizardMode';
 import { DistroSelector } from './components/DistroSelector';
 import { DesktopSelector } from './components/DesktopSelector';
 import { PackageCatalog } from './components/PackageCatalog';
@@ -71,6 +72,7 @@ const DEFAULT_RECIPE: OSRecipe = {
 
 export const App: React.FC = () => {
   const [recipe, setRecipe] = useState<OSRecipe>(DEFAULT_RECIPE);
+  const [uiMode, setUiMode] = useState<'wizard' | 'expert'>('wizard');
   const [activeTab, setActiveTab] = useState<string>('builder');
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
 
@@ -102,6 +104,7 @@ export const App: React.FC = () => {
   };
 
   const handleNavigateFromTip = (targetTab: string) => {
+    setUiMode('expert');
     setActiveTab(targetTab);
   };
 
@@ -129,6 +132,8 @@ export const App: React.FC = () => {
         onOpenVersionChecker={() => setIsVersionCheckerOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        uiMode={uiMode}
+        setUiMode={setUiMode}
         lang={lang}
         setLang={setLang}
       />
@@ -144,25 +149,40 @@ export const App: React.FC = () => {
         padding: '20px 24px',
         flex: 1,
       }}>
-        {/* Tab 1: Studio Builder (Base + Arch + Desktop) */}
-        {activeTab === 'builder' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            <DistroSelector
-              recipe={recipe}
-              onChange={handleUpdateRecipe}
-              lang={lang}
-              onOpenTips={() => setIsTipsOpen(true)}
-              onOpenScreenshots={handleOpenScreenshots}
-            />
-            <DesktopSelector
-              recipe={recipe}
-              onChange={handleUpdateRecipe}
-              lang={lang}
-              onOpenTips={() => setIsTipsOpen(true)}
-              onOpenScreenshots={handleOpenScreenshots}
-            />
-          </div>
+        {/* Mode 1: Guided Wizard Mode */}
+        {uiMode === 'wizard' && (
+          <WizardMode
+            recipe={recipe}
+            onUpdateRecipe={handleUpdateRecipe}
+            onStartBuild={() => setIsBuildOpen(true)}
+            onSwitchToExpert={() => setUiMode('expert')}
+            onOpenScreenshots={handleOpenScreenshots}
+            lang={lang}
+          />
         )}
+
+        {/* Mode 2: Expert Studio Tabs */}
+        {uiMode === 'expert' && (
+          <>
+            {/* Tab 1: Studio Builder (Base + Arch + Desktop) */}
+            {activeTab === 'builder' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                <DistroSelector
+                  recipe={recipe}
+                  onChange={handleUpdateRecipe}
+                  lang={lang}
+                  onOpenTips={() => setIsTipsOpen(true)}
+                  onOpenScreenshots={handleOpenScreenshots}
+                />
+                <DesktopSelector
+                  recipe={recipe}
+                  onChange={handleUpdateRecipe}
+                  lang={lang}
+                  onOpenTips={() => setIsTipsOpen(true)}
+                  onOpenScreenshots={handleOpenScreenshots}
+                />
+              </div>
+            )}
 
         {/* Tab 2: Packages Catalog */}
         {activeTab === 'packages' && (
@@ -187,6 +207,8 @@ export const App: React.FC = () => {
         {/* Tab 6: Code & Recipe Inspector */}
         {activeTab === 'inspector' && (
           <RecipeInspector recipe={recipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
+        )}
+          </>
         )}
       </main>
 

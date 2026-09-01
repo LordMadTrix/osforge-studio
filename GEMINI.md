@@ -146,8 +146,8 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **578 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **16 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+- Suite de tests : **584 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **17 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
   3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
@@ -180,6 +180,10 @@ après.
 - **16. 🚀 & 🎮 Intégration du Preset Officiel « MadOS ROG Edition » & Optimisations Réseau Anti-Lag TCP BBR+** :
   - Ajout du preset `mados_rog_edition` dans `src/data/presets.ts` (Ubuntu 24.04 LTS + KDE Plasma + XanMod EDGE + Gaming Stack complète Proton/Gamescope/MangoHUD + TLP).
   - Enrichissement du sysctl gaming (`99-gaming.conf`) avec les optimisations TCP BBR+ de MadOS (`net.core.default_qdisc = fq`, `net.ipv4.tcp_congestion_control = bbr`, `net.ipv4.tcp_fastopen = 3`, `vm.swappiness = 10`, `fs.file-max = 2097152`).
+- **17. 🧙‍♂️ & ⚙️ Dual-Mode UX : Assistant Pas-à-Pas (Wizard Débutant) & Mode Expert (Studio Pro)** :
+  - Intégration de `src/components/WizardMode.tsx` et `src/data/wizardSteps.ts` : 5 étapes pédagogiques sans jargon (Objectif & Usage, Bureau & Style avec indicateur de RAM, Packs logiciels en 1-clic, Identité & Utilisateur, Support & Lancement).
+  - Sélecteur de mode ergonomique dans l'en-tête (`Header.tsx`) permettant de basculer instantanément entre le Wizard et les 6 onglets techniques du Studio Expert, avec synchronisation continue et bidirectionnelle de la recette.
+  - Tests unitaires dédiés `src/data/wizardSteps.test.ts` (584 tests 100% verts).
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 
