@@ -41,9 +41,14 @@ export const NON_DEBIAN_DISTROS: Record<string, NonDebianFamily> = {
   void: 'void',
 };
 
+const DEBIAN_SUITES = ['trixie', 'bookworm', 'forky', 'sid'];
+const UBUNTU_SUITES = ['resolute', 'noble', 'jammy', 'focal'];
+const KALI_SUITES = ['kali-rolling', 'kali-dev'];
+const RASPBIAN_SUITES = ['bookworm', 'bullseye', 'trixie'];
+
 export function resolveDebianTarget(distro: DistroId, customSuite?: string): DebianTarget | undefined {
   if (distro === 'debian') {
-    const suite = customSuite || 'trixie';
+    const suite = (customSuite && DEBIAN_SUITES.includes(customSuite)) ? customSuite : 'trixie';
     return {
       suite,
       mirror: 'http://deb.debian.org/debian',
@@ -54,7 +59,7 @@ deb http://deb.debian.org/debian ${suite}-updates main contrib non-free non-free
   }
 
   if (distro === 'ubuntu' || distro === 'linuxmint') {
-    const suite = customSuite || 'resolute';
+    const suite = (customSuite && UBUNTU_SUITES.includes(customSuite)) ? customSuite : 'resolute';
     return {
       suite,
       mirror: 'http://archive.ubuntu.com/ubuntu',
@@ -66,7 +71,7 @@ deb http://archive.ubuntu.com/ubuntu ${suite}-security main restricted universe 
   }
 
   if (distro === 'kali') {
-    const suite = customSuite || 'kali-rolling';
+    const suite = (customSuite && KALI_SUITES.includes(customSuite)) ? customSuite : 'kali-rolling';
     return {
       suite,
       mirror: 'http://http.kali.org/kali',
@@ -75,7 +80,7 @@ deb http://archive.ubuntu.com/ubuntu ${suite}-security main restricted universe 
   }
 
   if (distro === 'raspbian') {
-    const suite = customSuite || 'bookworm';
+    const suite = (customSuite && RASPBIAN_SUITES.includes(customSuite)) ? customSuite : 'bookworm';
     return {
       suite,
       mirror: 'http://deb.debian.org/debian',
