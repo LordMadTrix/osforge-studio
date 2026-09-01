@@ -63,12 +63,16 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const handleClose = () => {
+    setSearch('');
+    setSelectedIndex(0);
+    onClose();
+  };
 
   useEffect(() => {
     if (isOpen) {
-      setSearch('');
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timer = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -300,14 +304,14 @@ export const QuickLauncherModal: React.FC<QuickLauncherModalProps> = ({
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      onClose();
+      handleClose();
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div
         className="modal-content"
         style={{

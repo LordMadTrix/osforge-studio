@@ -41,16 +41,15 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
     { title: 'Assemblage ISO Xorriso', desc: 'Création du fichier ISO bootable final' },
   ];
 
-  useEffect(() => {
-    if (!isOpen) {
-      setBuildMode('choice');
-      setIsSimulating(false);
-      setCurrentStep(0);
-      setProgress(0);
-      setIsDone(false);
-      setLogs([]);
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    setBuildMode('choice');
+    setIsSimulating(false);
+    setCurrentStep(0);
+    setProgress(0);
+    setIsDone(false);
+    setLogs([]);
+    onClose();
+  };
 
   const startLocalSimulation = () => {
     setIsSimulating(true);
@@ -139,8 +138,8 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '960px' }}>
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal-content" style={{ maxWidth: '960px' }} onClick={e => e.stopPropagation()}>
         {/* Modal Header */}
         <div style={{
           padding: '16px 20px',
@@ -173,7 +172,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
             </div>
           </div>
 
-          <button onClick={onClose} className="btn btn-secondary" style={{ padding: '5px' }}>
+          <button onClick={handleClose} className="btn btn-secondary" style={{ padding: '5px' }}>
             <X size={16} />
           </button>
         </div>

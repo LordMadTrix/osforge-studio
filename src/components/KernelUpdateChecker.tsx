@@ -19,60 +19,75 @@ interface KernelTagInfo {
 // un site statique. L'API GitHub, elle, envoie "Access-Control-Allow-Origin: *" (vérifié en live)
 // et référence les mêmes tags de version que le vrai dépôt du noyau.
 export const KernelUpdateChecker: React.FC<KernelUpdateCheckerProps> = ({ lang }) => {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('loading');
   const [tags, setTags] = useState<KernelTagInfo[]>([]);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const checkNow = async () => {
+  const handleManualCheck = () => {
     setStatus('loading');
     setErrorMsg('');
-    try {
-      const res = await fetch('https://api.github.com/repos/torvalds/linux/tags?per_page=30');
-      if (res.status === 403) throw new Error(
-        lang === 'fr'
-          ? "Limite de requêtes GitHub atteinte pour votre connexion (60/heure sans authentification) : réessayez dans quelques minutes."
-          : 'GitHub API rate limit reached for your connection (60/hour unauthenticated): try again in a few minutes.'
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const allTags: { name: string; commit: { url: string } }[] = await res.json();
-
-      const latestRc = allTags.find(t => /-rc\d+$/.test(t.name));
-      const latestStable = allTags.find(t => /^v\d+\.\d+(\.\d+)?$/.test(t.name));
-      const picked = [latestStable, latestRc].filter(Boolean) as { name: string; commit: { url: string } }[];
-
-      const withDates: KernelTagInfo[] = await Promise.all(
-        picked.map(async (t) => {
-          let date: string | null = null;
-          try {
-            const commitRes = await fetch(t.commit.url);
-            if (commitRes.ok) {
-              const commitData = await commitRes.json();
-              date = commitData?.commit?.committer?.date?.slice(0, 10) || null;
-            }
-          } catch {
-            // pas bloquant : on affiche juste la version sans date si cet appel échoue
-          }
-          return {
-            label: t === latestStable
-              ? (lang === 'fr' ? 'Stable (dernier tag)' : 'Stable (latest tag)')
-              : (lang === 'fr' ? 'Release candidate (beta)' : 'Release candidate (beta)'),
-            version: t.name,
-            date,
-          };
-        })
-      );
-
-      setTags(withDates);
-      setCheckedAt(new Date());
-      setStatus('done');
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err));
-      setStatus('error');
-    }
+    setRefreshTrigger(c => c + 1);
   };
 
-  useEffect(() => { checkNow(); }, []);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkTags() {
+      try {
+        const res = await fetch('https://api.github.com/repos/torvalds/linux/tags?per_page=30');
+        if (res.status === 403) throw new Error(
+          lang === 'fr'
+            ? "Limite de requêtes GitHub atteinte pour votre connexion (60/heure sans authentification) : réessayez dans quelques minutes."
+            : 'GitHub API rate limit reached for your connection (60/hour unauthenticated): try again in a few minutes.'
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const allTags: { name: string; commit: { url: string } }[] = await res.json();
+
+        const latestRc = allTags.find(t => /-rc\d+$/.test(t.name));
+        const latestStable = allTags.find(t => /^v\d+\.\d+(\.\d+)?$/.test(t.name));
+        const picked = [latestStable, latestRc].filter(Boolean) as { name: string; commit: { url: string } }[];
+
+        const withDates: KernelTagInfo[] = await Promise.all(
+          picked.map(async (t) => {
+            let date: string | null = null;
+            try {
+              const commitRes = await fetch(t.commit.url);
+              if (commitRes.ok) {
+                const commitData = await commitRes.json();
+                date = commitData?.commit?.committer?.date?.slice(0, 10) || null;
+              }
+            } catch {
+              // pas bloquant : on affiche juste la version sans date si cet appel échoue
+            }
+            return {
+              label: t === latestStable
+                ? (lang === 'fr' ? 'Stable (dernier tag)' : 'Stable (latest tag)')
+                : (lang === 'fr' ? 'Release candidate (beta)' : 'Release candidate (beta)'),
+              version: t.name,
+              date,
+            };
+          })
+        );
+
+        if (!isMounted) return;
+        setTags(withDates);
+        setCheckedAt(new Date());
+        setStatus('done');
+      } catch (err) {
+        if (!isMounted) return;
+        setErrorMsg(err instanceof Error ? err.message : String(err));
+        setStatus('error');
+      }
+    }
+
+    void checkTags();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lang, refreshTrigger]);
 
   return (
     <div
@@ -91,7 +106,7 @@ export const KernelUpdateChecker: React.FC<KernelUpdateCheckerProps> = ({ lang }
         </div>
         <button
           className="btn btn-secondary"
-          onClick={checkNow}
+          onClick={handleManualCheck}
           disabled={status === 'loading'}
           style={{ padding: '3px 9px', fontSize: '0.72rem' }}
         >

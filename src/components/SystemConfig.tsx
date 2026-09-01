@@ -2,7 +2,7 @@ import React from 'react';
 import { OSRecipe, NetworkConfig as NetworkConfigType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, HardDrive, Shield, Layers } from 'lucide-react';
+import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield } from 'lucide-react';
 
 interface SystemConfigProps {
   recipe: OSRecipe;

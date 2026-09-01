@@ -174,5 +174,20 @@ après.
   - Boutons de soutien discrets et élégants dans le header (`Header.tsx`) et le footer (`App.tsx`).
   - Badges de soutien directs dans le `README.md`.
   - Résolution et assemblage local du driver Playwright (`%LOCALAPPDATA%\ms-playwright-go\1.57.0`) suite à la dépréciation du CDN Azure legacy de Microsoft.
+- **15. 🧹 & 🏗️ Résolution Intégrale des Warnings Linter & Modularisation des Générateurs de Scripts** :
+  - Résolution complète des 37 warnings oxlint (`no-useless-escape`, `react-hooks/exhaustive-deps`, `react/set-state-in-effect`, `no-unused-vars`). Le linter rapporte **0 warning et 0 erreur** sur 53 fichiers.
+  - Décomposition du fichier monolithique `scriptGenerators.ts` (~5250 lignes) en sous-modules dédiés et testés sous `src/services/generators/` :
+    1. `types.ts` : Types partagés (`NonDebianFamily`, `DebianTarget`), mappings de distribution (`DEBOOTSTRAP_TARGETS`, `NON_DEBIAN_DISTROS`, `PKG_NAME_FALLBACK`, `KEYBOARD_XKB_MAP`).
+    2. `helpers.ts` : Fonctions d'assainissement et générateurs de commandes unitaires (services, DM, réseau, wifi, firewall, CIS hardening, etc.).
+    3. `packages.ts` : Résolution exhaustive des paquets (`resolvePackageList`).
+    4. `debian.ts` : Génération du script de construction debootstrap Debian/Ubuntu/Kali/Mint.
+    5. `nonDebian.ts` : Génération du script de construction et images disques partitionnées (Arch, Fedora, Alpine, openSUSE, Void).
+    6. `rpi.ts` : Génération de l'image carte SD Raspberry Pi ARM64.
+    7. `cloudInit.ts` : Génération du manifeste YAML cloud-init.
+    8. `iac.ts` : Générateurs IaC (Ansible Playbook, Terraform/OpenTofu, Containerfile, Dockerfile, Recipe JSON).
+    9. `launchers.ts` : Lanceurs universels Windows/Linux, batchs WSL2/QEMU et workflow GitHub Actions.
+    10. `index.ts` : Point d'entrée principal (`generateBuildScript`) et ré-export de l'ensemble des modules.
+    11. `scriptGenerators.ts` : Façade légère re-exportant `./generators` assurant 100% de rétrocompatibilité sans casser les imports existants.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
