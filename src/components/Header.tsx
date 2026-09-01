@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Coffee } from 'lucide-react';
+import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
 interface HeaderProps {
   onOpenPresets: () => void;
@@ -274,28 +274,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Sponsor Links */}
-          <a
-            href="https://buymeacoffee.com/petitsebash"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-secondary"
-            style={{
-              padding: '5px 9px',
-              fontSize: '0.78rem',
-              color: '#f59e0b',
-              borderColor: 'rgba(245, 158, 11, 0.35)',
-              background: 'rgba(245, 158, 11, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              textDecoration: 'none',
-            }}
-            title={lang === 'fr' ? 'Offrir un café sur Buy Me a Coffee' : 'Buy me a coffee'}
-          >
-            <Coffee size={13} />
-            <span>Coffee</span>
-          </a>
-
           <a
             href="https://www.patreon.com/c/LordMad"
             target="_blank"

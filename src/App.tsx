@@ -12,7 +12,7 @@ import { SystemConfig } from './components/SystemConfig';
 import { SecurityConfig } from './components/SecurityConfig';
 import { PostInstallScripts } from './components/PostInstallScripts';
 import { RecipeInspector } from './components/RecipeInspector';
-import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart, Coffee } from 'lucide-react';
+import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
 // Code-split heavy, non-first-paint views and modals to shrink the initial bundle.
 const BuildPipelineModal = lazy(() => import('./components/BuildPipelineModal').then(m => ({ default: m.BuildPipelineModal })));
@@ -287,28 +287,6 @@ export const App: React.FC = () => {
               <Download size={13} />
               <span>{lang === 'fr' ? 'Kit Export (ZIP)' : 'Export Kit (ZIP)'}</span>
             </button>
-            <a
-              href="https://buymeacoffee.com/petitsebash"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                background: 'rgba(245, 158, 11, 0.12)',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                color: '#f59e0b',
-                borderRadius: '4px',
-                padding: '2px 8px',
-                fontSize: '0.78rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
-              title={lang === 'fr' ? 'Offrir un café à LordMadTrix sur Buy Me a Coffee' : 'Buy LordMadTrix a coffee'}
-            >
-              <Coffee size={12} />
-              <span>{lang === 'fr' ? 'Offrir un café' : 'Buy a coffee'}</span>
-            </a>
             <a
               href="https://www.patreon.com/c/LordMad"
               target="_blank"

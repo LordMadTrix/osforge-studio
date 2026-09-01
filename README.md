@@ -1,6 +1,5 @@
 # 🚀 OSForge Studio — Custom Linux Distro & ISO Graphical Builder
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/petitsebash)
 [![Patreon](https://img.shields.io/badge/Patreon-Support-red?style=for-the-badge&logo=patreon)](https://www.patreon.com/c/LordMad)
 
 **OSForge Studio** est un environnement complet et graphique pour concevoir, personnaliser, simuler et compiler des distributions Linux sur mesure (Debian, Ubuntu, Linux Mint, Arch Linux, CachyOS, Alpine, Kali Linux, Fedora, Rocky Linux, openSUSE Tumbleweed, Void Linux, Raspberry Pi OS, NixOS).
