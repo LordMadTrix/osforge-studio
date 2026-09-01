@@ -116,4 +116,19 @@ describe('WIZARD_INTENTS — Assistant Pas-à-Pas (Mode Guidé)', () => {
     expect(formats).toContain('qcow2');
     expect(formats).toContain('rpi_sd');
   });
+
+  it('le Wizard applique automatiquement la toute dernière version et suite de chaque distribution', () => {
+    const gamingIntent = WIZARD_INTENTS.find((i) => i.id === 'gaming')!;
+    const gamingRecipe = applyWizardIntentToRecipe(gamingIntent, BASE_RECIPE);
+    expect(gamingRecipe.distro).toBe('ubuntu');
+    expect(gamingRecipe.distroVersion).toContain('26.04');
+    expect(gamingRecipe.distroSuite).toBe('resolute');
+
+    const devIntent = WIZARD_INTENTS.find((i) => i.id === 'development')!;
+    const devRecipe = applyWizardIntentToRecipe(devIntent, BASE_RECIPE);
+    expect(devRecipe.distro).toBe('debian');
+    expect(devRecipe.distroVersion).toContain('13');
+    expect(devRecipe.distroSuite).toBe('trixie');
+  });
 });
+

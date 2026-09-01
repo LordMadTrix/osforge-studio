@@ -41,39 +41,56 @@ export const NON_DEBIAN_DISTROS: Record<string, NonDebianFamily> = {
   void: 'void',
 };
 
+export function resolveDebianTarget(distro: DistroId, customSuite?: string): DebianTarget | undefined {
+  if (distro === 'debian') {
+    const suite = customSuite || 'trixie';
+    return {
+      suite,
+      mirror: 'http://deb.debian.org/debian',
+      sourcesList: () => `deb http://deb.debian.org/debian ${suite} main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security ${suite}-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian ${suite}-updates main contrib non-free non-free-firmware`,
+    };
+  }
+
+  if (distro === 'ubuntu' || distro === 'linuxmint') {
+    const suite = customSuite || 'resolute';
+    return {
+      suite,
+      mirror: 'http://archive.ubuntu.com/ubuntu',
+      components: 'main,universe',
+      sourcesList: () => `deb http://archive.ubuntu.com/ubuntu ${suite} main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu ${suite}-updates main restricted universe multiverse
+deb http://archive.ubuntu.com/ubuntu ${suite}-security main restricted universe multiverse`,
+    };
+  }
+
+  if (distro === 'kali') {
+    const suite = customSuite || 'kali-rolling';
+    return {
+      suite,
+      mirror: 'http://http.kali.org/kali',
+      sourcesList: () => `deb http://http.kali.org/kali ${suite} main contrib non-free non-free-firmware`,
+    };
+  }
+
+  if (distro === 'raspbian') {
+    const suite = customSuite || 'bookworm';
+    return {
+      suite,
+      mirror: 'http://deb.debian.org/debian',
+      sourcesList: () => `deb http://deb.debian.org/debian ${suite} main
+deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian ${suite} main`,
+    };
+  }
+
+  return undefined;
+}
+
 export const DEBOOTSTRAP_TARGETS: Record<string, DebianTarget> = {
-  debian: {
-    suite: 'trixie',
-    mirror: 'http://deb.debian.org/debian',
-    sourcesList: () => `deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware`,
-  },
-  ubuntu: {
-    suite: 'resolute',
-    mirror: 'http://archive.ubuntu.com/ubuntu',
-    sourcesList: () => `deb http://archive.ubuntu.com/ubuntu resolute main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu resolute-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe multiverse`,
-    components: 'main,universe',
-  },
-  kali: {
-    suite: 'kali-rolling',
-    mirror: 'http://http.kali.org/kali',
-    sourcesList: () => `deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware`,
-  },
-  linuxmint: {
-    suite: 'resolute',
-    mirror: 'http://archive.ubuntu.com/ubuntu',
-    sourcesList: () => `deb http://archive.ubuntu.com/ubuntu resolute main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu resolute-updates main restricted universe multiverse
-deb http://archive.ubuntu.com/ubuntu resolute-security main restricted universe multiverse`,
-    components: 'main,universe',
-  },
-  raspbian: {
-    suite: 'bookworm',
-    mirror: 'http://deb.debian.org/debian',
-    sourcesList: () => `deb http://deb.debian.org/debian bookworm main
-deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main`,
-  },
+  debian: resolveDebianTarget('debian')!,
+  ubuntu: resolveDebianTarget('ubuntu')!,
+  kali: resolveDebianTarget('kali')!,
+  linuxmint: resolveDebianTarget('linuxmint')!,
+  raspbian: resolveDebianTarget('raspbian', 'bookworm')!,
 };

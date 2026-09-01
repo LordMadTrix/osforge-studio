@@ -3689,3 +3689,52 @@ describe('Chantier 13 : Formats Cloud & Virtualisation Avancés (Proxmox VE, AWS
     expect(pkgs).toContain('obs-studio');
   });
 });
+
+describe('Gestion des versions de distributions — Dernières versions par défaut et rétrogradation (downgrade)', () => {
+  it('Debian : utilise par défaut la dernière version (trixie, Debian 13)', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('trixie');
+    expect(script).toContain('deb http://deb.debian.org/debian trixie main');
+  });
+
+  it('Debian : rétrogradation vers Debian 12 (bookworm LTS) respectée dans le debootstrap et sources.list', () => {
+    const recipe = makeRecipe({
+      distro: 'debian',
+      distroSuite: 'bookworm',
+      distroVersion: '12 (Bookworm)',
+      outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('bookworm');
+    expect(script).toContain('deb http://deb.debian.org/debian bookworm main');
+    expect(script).not.toContain('deb http://deb.debian.org/debian trixie main');
+  });
+
+  it('Ubuntu : utilise par défaut la dernière version LTS 26.04 (resolute)', () => {
+    const recipe = makeRecipe({
+      distro: 'ubuntu',
+      outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('resolute');
+    expect(script).toContain('deb http://archive.ubuntu.com/ubuntu resolute main');
+  });
+
+  it('Ubuntu : rétrogradation vers Ubuntu 24.04 LTS (noble) respectée dans le debootstrap et sources.list', () => {
+    const recipe = makeRecipe({
+      distro: 'ubuntu',
+      distroSuite: 'noble',
+      distroVersion: '24.04 LTS (Noble Numbat)',
+      outputFormat: 'iso_hybrid',
+    });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('noble');
+    expect(script).toContain('deb http://archive.ubuntu.com/ubuntu noble main');
+    expect(script).not.toContain('deb http://archive.ubuntu.com/ubuntu resolute main');
+  });
+});
+

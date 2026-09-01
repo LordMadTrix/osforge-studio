@@ -179,9 +179,11 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                 key={distro.id}
                 onClick={() => {
                   const newArch = distro.supportedArch.includes(recipe.arch) ? recipe.arch : distro.supportedArch[0];
+                  const latestRel = distro.availableReleases?.find(r => r.isLatest) || distro.availableReleases?.[0];
                   onChange({
                     distro: distro.id,
-                    distroVersion: distro.version,
+                    distroVersion: latestRel?.version || distro.version,
+                    distroSuite: latestRel?.suite,
                     arch: newArch,
                     outputFormat: recipe.outputFormat === 'rpi_sd' && (distro.id !== 'raspbian' || newArch !== 'aarch64')
                       ? 'iso_hybrid' : recipe.outputFormat,
@@ -284,6 +286,89 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
             );
           })}
         </div>
+
+        {/* Active Distro Release / Downgrade Selector (Expert Studio) */}
+        {(() => {
+          const currentDistro = DISTROS.find(d => d.id === recipe.distro);
+          if (!currentDistro || !currentDistro.availableReleases || currentDistro.availableReleases.length <= 1) return null;
+          
+          const currentRelease = currentDistro.availableReleases.find(r => r.suite === recipe.distroSuite || r.version === recipe.distroVersion) || currentDistro.availableReleases[0];
+          const isLatest = currentRelease?.isLatest ?? true;
+
+          return (
+            <div style={{
+              marginTop: '16px',
+              padding: '14px 18px',
+              borderRadius: '8px',
+              background: 'rgba(26, 22, 19, 0.75)',
+              border: isLatest ? '1px solid var(--border-subtle)' : '1px solid rgba(245, 158, 11, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: isLatest ? 'rgba(14, 165, 233, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  color: isLatest ? 'var(--cyan)' : '#f59e0b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Zap size={16} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      {lang === 'fr' ? `Version & Canal de ${currentDistro.name}` : `${currentDistro.name} Release & Channel`}
+                    </span>
+                    {isLatest ? (
+                      <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>
+                        {lang === 'fr' ? '⚡ Dernière Version (Par défaut)' : '⚡ Latest Release'}
+                      </span>
+                    ) : (
+                      <span className="badge badge-amber" style={{ fontSize: '0.62rem', background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                        {lang === 'fr' ? '🛡️ Version Rétrogradée (LTS Antérieure)' : '🛡️ Downgraded LTS'}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0 }}>
+                    {lang === 'fr'
+                      ? 'Par défaut sur la dernière version. Vous pouvez rétrograder vers une version LTS antérieure si vos outils l’exigent.'
+                      : 'Defaults to latest release. You can downgrade to an earlier LTS version for specific tooling.'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <select
+                  className="select"
+                  style={{ padding: '6px 12px', fontSize: '0.82rem', minWidth: '260px' }}
+                  value={currentRelease.suite}
+                  onChange={(e) => {
+                    const rel = currentDistro.availableReleases?.find(r => r.suite === e.target.value);
+                    if (rel) {
+                      onChange({
+                        distroVersion: rel.version,
+                        distroSuite: rel.suite,
+                      });
+                    }
+                  }}
+                >
+                  {currentDistro.availableReleases.map(rel => (
+                    <option key={rel.suite} value={rel.suite}>
+                      {rel.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 2. Architecture & Target Format */}

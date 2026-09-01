@@ -4,7 +4,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'debian',
     name: 'Debian GNU/Linux',
-    version: '13 (Trixie) & 14 (Forky Testing)',
+    version: '13 (Trixie)',
     codename: 'trixie',
     packageManager: 'apt',
     description: 'Le système d’exploitation universel Debian 13 "Trixie" (Stable) avec GCC 14, GNOME 47 et accès à la branche Testing Debian 14 "Forky".',
@@ -17,6 +17,11 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 290,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '13 (Trixie)', suite: 'trixie', label: 'Debian 13 "Trixie" (Dernière Stable / Recommandé)', isLatest: true },
+      { version: '12 (Bookworm)', suite: 'bookworm', label: 'Debian 12 "Bookworm" (LTS Précédente Éprouvée)', isLts: true },
+      { version: '14 (Forky)', suite: 'forky', label: 'Debian 14 "Forky" (Testing / Bleeding Edge)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #40041a 0%, #150209 100%)',
       topBarTitle: 'Debian GNU/Linux 13 (Trixie) — Linux 6.12.10-amd64',
@@ -27,7 +32,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'ubuntu',
     name: 'Ubuntu Linux',
-    version: '26.04 LTS (Resolute) / 25.04',
+    version: '26.04 LTS (Resolute Raccoon)',
     codename: 'resolute',
     packageManager: 'apt',
     description: 'Dernière version LTS majeure Ubuntu 26.04 "Resolute Raccoon" avec support étendu 5-10 ans, Wayland pur et Mesa graphiques dernière génération.',
@@ -40,6 +45,11 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 490,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '26.04 LTS (Resolute Raccoon)', suite: 'resolute', label: 'Ubuntu 26.04 LTS "Resolute Raccoon" (Dernière LTS / Recommandé)', isLatest: true, isLts: true },
+      { version: '24.04 LTS (Noble Numbat)', suite: 'noble', label: 'Ubuntu 24.04 LTS "Noble Numbat" (LTS Précédente Éprouvée)', isLts: true },
+      { version: '22.04 LTS (Jammy Jellyfish)', suite: 'jammy', label: 'Ubuntu 22.04 LTS "Jammy Jellyfish" (LTS Legacy)', isLts: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #7c2d12 0%, #1c0a00 100%)',
       topBarTitle: 'Ubuntu 26.04 LTS (Resolute Raccoon) — Linux 7.1-generic',
@@ -50,7 +60,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'linuxmint',
     name: 'Linux Mint',
-    version: '23 (Xandra) — base Ubuntu 26.04',
+    version: '23 (Xandra)',
     codename: 'xandra',
     packageManager: 'apt',
     description: 'Distribution conviviale basée sur Ubuntu 26.04 LTS, avec l’environnement Cinnamon, un menu Démarrer classique et zéro télémétrie ni snap par défaut.',
@@ -63,6 +73,11 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 520,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '23 (Xandra)', suite: 'resolute', label: 'Linux Mint 23 "Xandra" (base Ubuntu 26.04 LTS / Recommandé)', isLatest: true },
+      { version: '22 (Wilma)', suite: 'noble', label: 'Linux Mint 22 "Wilma" (base Ubuntu 24.04 LTS)', isLts: true },
+      { version: '21.3 (Virginia)', suite: 'jammy', label: 'Linux Mint 21.3 "Virginia" (base Ubuntu 22.04 LTS)', isLts: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #2e4b1f 0%, #0d1508 100%)',
       topBarTitle: 'Linux Mint 23 (Xandra) — Linux 7.1.0-generic',
@@ -86,6 +101,9 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 260,
     isBeta: false,
     channel: 'rolling',
+    availableReleases: [
+      { version: 'Rolling 2026 (BORE)', suite: 'rolling', label: 'CachyOS Rolling 2026 (Ordonnanceur BORE / x86-64-v3/v4)', isLatest: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #033346 0%, #01111a 100%)',
       topBarTitle: 'CachyOS Rolling Edition 260809 — Linux 7.1-cachyos-bore',
@@ -109,6 +127,9 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 290,
     isBeta: false,
     channel: 'rolling',
+    availableReleases: [
+      { version: 'Rolling Release (2026)', suite: 'rolling', label: 'Arch Linux Rolling 2026 (Toujours à la pointe)', isLatest: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #0b3d5b 0%, #031520 100%)',
       topBarTitle: 'Arch Linux Bleeding Edge — Linux 7.1.9-arch1-1',
@@ -119,7 +140,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'alpine',
     name: 'Alpine Linux',
-    version: '3.24 (Stable) / Edge (musl/busybox)',
+    version: '3.24 (Stable)',
     codename: 'v3.24',
     packageManager: 'apk',
     description: 'Distribution ultra-légère et sécurisée basée sur musl libc et BusyBox. Démarrage instantané en moins de 1 seconde et sécurité PaX/SSP.',
@@ -132,6 +153,11 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 58,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '3.24 (Stable)', suite: 'v3.24', label: 'Alpine Linux 3.24 (Dernière Stable / Recommandé)', isLatest: true },
+      { version: '3.20 (Stable)', suite: 'v3.20', label: 'Alpine Linux 3.20 (Stable Antérieure)', isLts: true },
+      { version: 'Edge (Rolling)', suite: 'edge', label: 'Alpine Linux Edge (Rolling / Bleeding Edge)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #062b3d 0%, #020e14 100%)',
       topBarTitle: 'Alpine Linux v3.24 (musl) — Linux 6.12-lts',
@@ -142,7 +168,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'kali',
     name: 'Kali Linux',
-    version: '2026.1 Rolling (Pentest & Security)',
+    version: '2026.1 (Rolling)',
     codename: 'kali-rolling',
     packageManager: 'apt',
     description: 'La référence mondiale en cybersécurité et forensic, pré-équipée de plus de 600 outils de test d’intrusion et audit de vulnérabilités.',
@@ -155,6 +181,9 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 460,
     isBeta: false,
     channel: 'rolling',
+    availableReleases: [
+      { version: '2026.1 (Rolling)', suite: 'kali-rolling', label: 'Kali Linux Rolling 2026 (Dernière Version / Recommandé)', isLatest: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #10212e 0%, #04090d 100%)',
       topBarTitle: 'Kali Linux 2026.1 — Linux 6.12.11-kali1',
@@ -165,7 +194,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'fedora',
     name: 'Fedora Linux',
-    version: '44 (Stable) & 45 (Rawhide Beta)',
+    version: '44 (Stable)',
     codename: 'f44',
     packageManager: 'dnf',
     description: 'Laboratoire d’innovations Red Hat avec Fedora 44 (Stable) et Fedora 45 Rawhide, intégrant DNF5 ultra-rapide en C++, Wayland pur et SELinux.',
@@ -178,6 +207,11 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 510,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '44 (Stable)', suite: '44', label: 'Fedora 44 (Dernière Stable / Recommandé)', isLatest: true },
+      { version: '41 (Stable)', suite: '41', label: 'Fedora 41 (Stable Éprouvée)' },
+      { version: '40 (Legacy)', suite: '40', label: 'Fedora 40 (Stable Legacy)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #113454 0%, #04101c 100%)',
       topBarTitle: 'Fedora Linux 44 — Linux 7.1.9-fc44',
@@ -188,19 +222,23 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'nixos',
     name: 'NixOS',
-    version: '25.05 / Unstable (Déclaratif)',
-    codename: 'nixos-unstable',
+    version: '25.05 (Stable)',
+    codename: '25.05',
     packageManager: 'nix',
     description: 'Distribution 100% déclarative, reproductible et atomique. Configuration intégrale dans un seul fichier configuration.nix avec rollback instantané.',
     badge: 'Déclaratif & Atomique',
     color: '#7EBAE4',
     popularFor: 'Reproductibilité parfaite, DevOps, rollback garanti sans bogue',
-    defaultMirror: 'https://channels.nixos.org/nixos-unstable',
+    defaultMirror: 'https://channels.nixos.org/nixos-25.05',
     supportedArch: ['x86_64', 'aarch64', 'riscv64'],
     baseIsoSizeMB: 880,
     baseRamMB: 330,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '25.05 (Stable)', suite: '25.05', label: 'NixOS 25.05 (Dernière Stable / Recommandé)', isLatest: true },
+      { version: 'Unstable (Rolling)', suite: 'nixos-unstable', label: 'NixOS Unstable (Rolling / Bleeding Edge)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #1c3d52 0%, #07131b 100%)',
       topBarTitle: 'NixOS 25.05 — Linux 7.1-zen',
@@ -211,7 +249,7 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'void',
     name: 'Void Linux',
-    version: 'Rolling (XBPS / Runit / Musl & Glibc)',
+    version: 'Current (Rolling)',
     codename: 'void-current',
     packageManager: 'xbps',
     description: 'Distribution indépendante ultra-rapide n’utilisant pas Systemd mais Runit. Gestionnaire de paquets XBPS écrit en C et support Musl natif.',
@@ -224,6 +262,9 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 140,
     isBeta: false,
     channel: 'rolling',
+    availableReleases: [
+      { version: 'Current (Rolling)', suite: 'void-current', label: 'Void Linux Rolling (Dernière Version)', isLatest: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #122e20 0%, #040d08 100%)',
       topBarTitle: 'Void Linux Current — Linux 6.12.8_1 (runit)',
@@ -234,19 +275,23 @@ export const DISTROS: DistroInfo[] = [
   {
     id: 'raspbian',
     name: 'Raspberry Pi OS',
-    version: 'Bookworm & Trixie ARM64',
-    codename: 'rpi-bookworm',
+    version: '12 (Bookworm ARM64)',
+    codename: 'bookworm',
     packageManager: 'apt',
     description: 'Système officiel optimisé pour Raspberry Pi 4, Pi 5 et Compute Modules avec accélération matérielle VideoCore VII et GPIO.',
     badge: 'ARM64 Pi 4/5',
     color: '#C51A4A',
     popularFor: 'Micro-serveurs domotiques, robotique, Home Assistant, émulation rétro',
-    defaultMirror: 'http://raspbian.raspberrypi.org/raspbian',
+    defaultMirror: 'http://deb.debian.org/debian',
     supportedArch: ['aarch64', 'x86_64'],
     baseIsoSizeMB: 580,
     baseRamMB: 210,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '12 (Bookworm ARM64)', suite: 'bookworm', label: 'Raspberry Pi OS 12 "Bookworm" (Stable Officielle / Recommandé)', isLatest: true, isLts: true },
+      { version: '13 (Trixie ARM64)', suite: 'trixie', label: 'Raspberry Pi OS 13 "Trixie" (Testing / Prochaine Version)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #3d0515 0%, #120106 100%)',
       topBarTitle: 'Raspberry Pi OS (64-bit) — Linux 6.12.10-v8+',
@@ -256,34 +301,38 @@ export const DISTROS: DistroInfo[] = [
   },
   {
     id: 'opensuse',
-    name: 'openSUSE Tumbleweed',
-    version: 'Rolling Release 2026',
-    codename: 'tumbleweed',
+    name: 'openSUSE Leap & Tumbleweed',
+    version: '16.0 (Leap Stable)',
+    codename: 'leap-16',
     packageManager: 'zypper',
-    description: 'Distribution rolling release robuste testée automatiquement par openQA avec instantanés Snapper et Btrfs intégrés.',
-    badge: 'Auto-QA Rolling',
+    description: 'Distribution robuste testée automatiquement par openQA avec instantanés Snapper et Btrfs intégrés.',
+    badge: 'Auto-QA Robustesse',
     color: '#73BA25',
     popularFor: 'Stabilité avec paquets récents, serveurs d’entreprise, administration YaST',
-    defaultMirror: 'https://download.opensuse.org/tumbleweed/repo/oss',
+    defaultMirror: 'https://download.opensuse.org/distribution/leap/16.0/repo/oss',
     supportedArch: ['x86_64', 'aarch64'],
     baseIsoSizeMB: 920,
     baseRamMB: 420,
     isBeta: false,
-    channel: 'rolling',
+    channel: 'stable',
+    availableReleases: [
+      { version: '16.0 (Leap Stable)', suite: '16.0', label: 'openSUSE Leap 16.0 (Dernière Stable / Recommandé)', isLatest: true },
+      { version: 'Tumbleweed (Rolling)', suite: 'tumbleweed', label: 'openSUSE Tumbleweed (Rolling QA continue)' },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #223f07 0%, #0a1402 100%)',
-      topBarTitle: 'openSUSE Tumbleweed — Linux 7.1-default (Btrfs Snapper)',
-      terminalText: 'geeko@tumbleweed:~> snapper list\n # | Type   | Pre # | Date                     | User | Cleanup | Description\n---+--------+-------+--------------------------+------+---------+-----------------\n 0 | single |       |                          | root |         | current\n 1 | single |       | Sun Feb 23 07:00:00 2026 | root | timeline| snapshot post-update',
+      topBarTitle: 'openSUSE Leap 16.0 — Linux 6.12-default (Btrfs Snapper)',
+      terminalText: 'geeko@opensuse:~> snapper list\n # | Type   | Pre # | Date                     | User | Cleanup | Description\n---+--------+-------+--------------------------+------+---------+-----------------\n 0 | single |       |                          | root |         | current\n 1 | single |       | Sun Feb 23 07:00:00 2026 | root | timeline| snapshot post-update',
       statsText: 'ISO: 920 Mo | RAM repos: 420 Mo | Btrfs Snapper Rollback',
     },
   },
   {
     id: 'rocky',
     name: 'Rocky Linux',
-    version: '9.5 / 10 Enterprise Beta',
-    codename: 'blue-onyx',
+    version: '10 (Enterprise)',
+    codename: 'rocky-10',
     packageManager: 'dnf',
-    description: 'Distribution d’entreprise 100% compatible bogue par bogue avec Red Hat Enterprise Linux (RHEL 9 / 10).',
+    description: 'Distribution d’entreprise 100% compatible bogue par bogue avec Red Hat Enterprise Linux (RHEL 10 / 9).',
     badge: 'Enterprise 10 ans',
     color: '#10B981',
     popularFor: 'Production critique, centres de données, clusters HPC, serveurs d’entreprise',
@@ -293,10 +342,14 @@ export const DISTROS: DistroInfo[] = [
     baseRamMB: 410,
     isBeta: false,
     channel: 'stable',
+    availableReleases: [
+      { version: '10 (Enterprise)', suite: '10', label: 'Rocky Linux 10 (Dernière Version Enterprise / Recommandé)', isLatest: true },
+      { version: '9 (Enterprise LTS 2032)', suite: '9', label: 'Rocky Linux 9 (Enterprise 9 LTS supporté 2032)', isLts: true },
+    ],
     screenshotMockup: {
       wallpaper: 'linear-gradient(135deg, #053b27 0%, #01130c 100%)',
-      topBarTitle: 'Rocky Linux 9.5 (Blue Onyx) — Linux 5.14.0-503.el9_5',
-      terminalText: 'rocky@enterprise:~$ cat /etc/rocky-release\nRocky Linux release 9.5 (Blue Onyx)\nrocky@enterprise:~$ dnf check-update\nAll packages are up to date (Enterprise Tier 1 Certified).',
+      topBarTitle: 'Rocky Linux 10 — Linux 6.12-enterprise',
+      terminalText: 'rocky@enterprise:~$ cat /etc/rocky-release\nRocky Linux release 10.0\nrocky@enterprise:~$ dnf check-update\nAll packages are up to date (Enterprise Tier 1 Certified).',
       statsText: 'ISO: 880 Mo | RAM repos: 410 Mo | RHEL Binary Compatible',
     },
   },

@@ -1,4 +1,5 @@
 import { DistroId, DesktopEnvironmentId, KernelType, OutputFormat, OSRecipe } from '../types/os';
+import { DISTROS } from './distros';
 
 export interface WizardIntent {
   id: string;
@@ -266,10 +267,15 @@ export const WIZARD_FORMAT_CHOICES: WizardFormatChoice[] = [
  * Applies a Wizard intent to a recipe cleanly without breaking custom settings.
  */
 export function applyWizardIntentToRecipe(intent: WizardIntent, currentRecipe: OSRecipe): OSRecipe {
+  const distroInfo = DISTROS.find(d => d.id === intent.recommendedDistro);
+  const latestRel = distroInfo?.availableReleases?.find(r => r.isLatest) || distroInfo?.availableReleases?.[0];
+
   return {
     ...currentRecipe,
     name: `${currentRecipe.branding.osName || 'ForgeOS'} ${intent.title}`,
     distro: intent.recommendedDistro,
+    distroVersion: latestRel?.version || distroInfo?.version || currentRecipe.distroVersion,
+    distroSuite: latestRel?.suite,
     desktop: intent.recommendedDesktop,
     kernel: intent.recommendedKernel,
     outputFormat: intent.recommendedFormat,

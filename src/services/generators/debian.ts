@@ -1,5 +1,5 @@
 import { OSRecipe } from '../../types/os';
-import { DEBOOTSTRAP_TARGETS } from './types';
+import { DEBOOTSTRAP_TARGETS, resolveDebianTarget } from './types';
 import { resolvePackageList } from './packages';
 import { DISK_IMAGE_FORMATS } from './nonDebian';
 import {
@@ -48,7 +48,7 @@ export function generateDebianBuildScript(recipe: OSRecipe): string {
   const debArch = recipe.arch === 'x86_64' ? 'amd64' : recipe.arch === 'aarch64' ? 'arm64' : recipe.arch === 'i686' ? 'i386' : recipe.arch;
   const needsCrossArchEmulation = debArch !== 'amd64' && recipe.arch !== 'i686';
   const qemuStaticBinary = recipe.arch === 'aarch64' ? 'qemu-aarch64-static' : recipe.arch === 'riscv64' ? 'qemu-riscv64-static' : null;
-  const target = DEBOOTSTRAP_TARGETS[recipe.distro] || DEBOOTSTRAP_TARGETS.debian;
+  const target = resolveDebianTarget(recipe.distro, recipe.distroSuite) || DEBOOTSTRAP_TARGETS[recipe.distro] || DEBOOTSTRAP_TARGETS.debian;
   const xkb = resolveXkb(recipe.keyboardLayout);
   const dmCmd = dmEnableCmd(recipe.displayManager, 'debian');
 

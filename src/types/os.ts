@@ -71,6 +71,15 @@ export type PackageCategory =
   | 'ai'
   | 'audio';
 
+export interface DistroRelease {
+  version: string;
+  suite: string;
+  label: string;
+  isLatest?: boolean;
+  isLts?: boolean;
+  eol?: string;
+}
+
 export interface DistroInfo {
   id: DistroId;
   name: string;
@@ -87,6 +96,7 @@ export interface DistroInfo {
   baseRamMB: number;
   isBeta?: boolean;
   channel?: 'stable' | 'beta' | 'rolling' | 'testing';
+  availableReleases?: DistroRelease[];
   screenshotMockup?: {
     wallpaper: string;
     terminalText: string;
@@ -195,6 +205,7 @@ export interface OSRecipe {
   description: string;
   distro: DistroId;
   distroVersion: string;
+  distroSuite?: string;
   arch: ArchType;
   outputFormat: OutputFormat;
   desktop: DesktopEnvironmentId;

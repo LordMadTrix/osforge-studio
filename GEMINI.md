@@ -146,8 +146,8 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **585 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **18 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+- Suite de tests : **590 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
   3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
@@ -189,6 +189,10 @@ après.
   - Lanceur de session Gamescope Steam GamepadUI `/usr/local/bin/steam-gamescope-session` (`gamescope -e -f -- steam -gamepadui -steamos3`) et entrée autostart `/etc/xdg/autostart/steam-console.desktop`.
   - Règles UDEV officielles pour manettes de jeu (`70-steam-input.rules`) : Xbox One/Series, Sony DualSense, Nintendo Switch Pro, 8BitDo.
   - Modèle officiel `steam_machine_console` dans `src/data/presets.ts` et toggle visuel dans `SystemConfig.tsx`.
+- **19. ⚡ & 🛡️ Dernières Versions par Défaut & Rétrogradation Granulaire (Downgrade)** :
+  - Sélection automatique et exclusive des toutes dernières versions majeures dans le Wizard (Debian 13 Trixie, Ubuntu 26.04 Resolute, Fedora 44, Alpine 3.24, Linux Mint 23).
+  - Sélecteur de versions et de rétrogradation (downgrade) dans le Studio Expert avec indicateurs visuels (`⚡ Dernière Version` / `🛡️ Version Rétrogradée LTS`).
+  - Câblage dynamique des suites debootstrap et dépôts sources.list (`resolveDebianTarget`).
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 
