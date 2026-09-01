@@ -16,6 +16,7 @@ import {
   vpnConfigCmd,
   communityReposCmd,
   gamingSysctlCmd,
+  steamConsoleModeCmd,
   powerSavingCmd,
   sshHardeningCmd,
   macHardeningCmd,
@@ -489,6 +490,7 @@ ${networkConfigCmd(recipe, family)}
 ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
+${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}
@@ -786,6 +788,7 @@ ${networkConfigCmd(recipe, family)}
 ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
+${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
 ${macHardeningCmd(recipe, family)}

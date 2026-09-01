@@ -514,10 +514,10 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
-                {lang === 'fr' ? '🎮 Profil Gaming & Mesa Vulkan' : '🎮 Gaming Profile & Vulkan'}
+                {lang === 'fr' ? '🎮 Optimisations Gaming' : '🎮 Gaming Optimizations'}
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {lang === 'fr' ? 'Gamemode, MangoHud, sysctl vm.max_map_count' : 'Gamemode, MangoHud, sysctl vm.max_map_count'}
+                {lang === 'fr' ? 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count' : 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count'}
               </div>
             </div>
             <label className="toggle-switch">
@@ -525,6 +525,40 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
                 type="checkbox"
                 checked={recipe.enableGamingOptimizations ?? false}
                 onChange={(e) => onChange({ enableGamingOptimizations: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Steam Console Mode (Steam Machine) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableSteamConsoleMode ? 'rgba(16, 124, 65, 0.15)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableSteamConsoleMode ? '1px solid #107c41' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableSteamConsoleMode ? '#4ade80' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🕹️</span>
+                <span>{lang === 'fr' ? 'Mode Console Steam Machine (TV / Salon)' : 'Steam Machine Console Mode (TV / Living Room)'}</span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>SteamOS 3</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Démarrage direct en session Steam GamepadUI + Gamescope HDR/VRR + règles UDEV manettes (Xbox/PS5/Switch/8BitDo)'
+                  : 'Direct boot into Steam GamepadUI session + Gamescope HDR/VRR + UDEV gamepad rules (Xbox/PS5/Switch/8BitDo)'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableSteamConsoleMode ?? false}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  const updated: Partial<OSRecipe> = { enableSteamConsoleMode: checked };
+                  if (checked) {
+                    updated.enableGamingOptimizations = true;
+                    if (!recipe.selectedPackages.includes('steam')) {
+                      updated.selectedPackages = Array.from(new Set([...recipe.selectedPackages, 'steam', 'gamepad_drivers']));
+                    }
+                  }
+                  onChange(updated);
+                }}
               />
               <span className="toggle-slider"></span>
             </label>

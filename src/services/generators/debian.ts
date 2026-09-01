@@ -16,6 +16,7 @@ import {
   vpnConfigCmd,
   communityReposCmd,
   gamingSysctlCmd,
+  steamConsoleModeCmd,
   powerSavingCmd,
   sshHardeningCmd,
   macHardeningCmd,
@@ -474,6 +475,7 @@ ${networkConfigCmd(recipe, 'debian')}
 ${vpnConfigCmd(recipe, 'debian')}
 ${communityReposCmd(recipe, 'debian')}
 ${gamingSysctlCmd(recipe)}
+${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}

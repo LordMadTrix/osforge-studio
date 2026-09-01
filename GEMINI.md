@@ -146,8 +146,8 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **584 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **17 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+- Suite de tests : **585 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **18 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
   3. 🛡️ **Pare-feu & Filtrage Réseau Granulaire (`allowedPorts`)** : Support UFW, Firewalld (`firewall-cmd --permanent --add-port=.../tcp`) et NFTables (`tcp dport { ... } accept`). Sélection des ports courants (SSH 22, HTTP/S 80/443, K3s 6443, Cockpit 9090, DNS 53, WireGuard 51820) et champ libre désinfecté.
@@ -183,7 +183,12 @@ après.
 - **17. 🧙‍♂️ & ⚙️ Dual-Mode UX : Assistant Pas-à-Pas (Wizard Débutant) & Mode Expert (Studio Pro)** :
   - Intégration de `src/components/WizardMode.tsx` et `src/data/wizardSteps.ts` : 5 étapes pédagogiques sans jargon (Objectif & Usage, Bureau & Style avec indicateur de RAM, Packs logiciels en 1-clic, Identité & Utilisateur, Support & Lancement).
   - Sélecteur de mode ergonomique dans l'en-tête (`Header.tsx`) permettant de basculer instantanément entre le Wizard et les 6 onglets techniques du Studio Expert, avec synchronisation continue et bidirectionnelle de la recette.
-  - Tests unitaires dédiés `src/data/wizardSteps.test.ts` (584 tests 100% verts).
+  - Tests unitaires dédiés `src/data/wizardSteps.test.ts`.
+- **18. 🕹️ & 🎮 Prise en Charge Complète « Steam Machine » (Living Room Console Edition)** :
+  - Nouveau flag `enableSteamConsoleMode` dans `OSRecipe`.
+  - Lanceur de session Gamescope Steam GamepadUI `/usr/local/bin/steam-gamescope-session` (`gamescope -e -f -- steam -gamepadui -steamos3`) et entrée autostart `/etc/xdg/autostart/steam-console.desktop`.
+  - Règles UDEV officielles pour manettes de jeu (`70-steam-input.rules`) : Xbox One/Series, Sony DualSense, Nintendo Switch Pro, 8BitDo.
+  - Modèle officiel `steam_machine_console` dans `src/data/presets.ts` et toggle visuel dans `SystemConfig.tsx`.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

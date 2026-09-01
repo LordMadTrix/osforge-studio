@@ -216,6 +216,7 @@ export interface OSRecipe {
   enableLiveRescue?: boolean;
   enableCommunityRepos?: boolean;
   enableGamingOptimizations?: boolean;
+  enableSteamConsoleMode?: boolean;
   enablePowerSaving?: boolean;
   network?: NetworkConfig;
   security: SecurityConfig;

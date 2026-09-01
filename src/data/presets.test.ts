@@ -133,4 +133,20 @@ describe('DISTRO_PRESETS — Preset officiel "MadOS ROG Edition" (Gaming & ASUS 
     expect(script).toContain('99-gaming.conf');
     expect(script).toContain('tcp_congestion_control = bbr');
   });
+
+  it('steam_machine_console configure la session Gamescope GamepadUI et les règles udev manettes', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'steam_machine_console');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('ubuntu');
+    expect(preset!.recipe.enableSteamConsoleMode).toBe(true);
+    expect(preset!.recipe.enableGamingOptimizations).toBe(true);
+    expect(preset!.recipe.selectedPackages).toContain('steam');
+    expect(preset!.recipe.selectedPackages).toContain('gamepad_drivers');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('70-steam-input.rules');
+    expect(script).toContain('steam-gamescope-session');
+    expect(script).toContain('steam -gamepadui -steamos3');
+    expect(script).toContain('steam-console.desktop');
+  });
 });

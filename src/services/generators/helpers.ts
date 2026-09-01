@@ -668,6 +668,73 @@ chmod 644 /etc/sysctl.d/99-gaming.conf 2>/dev/null || true
 sysctl -p /etc/sysctl.d/99-gaming.conf 2>/dev/null || true`;
 }
 
+export function steamConsoleModeCmd(recipe: OSRecipe): string {
+  if (!recipe.enableSteamConsoleMode && !recipe.selectedPackages.includes('gamepad_drivers')) {
+    return '';
+  }
+
+  const parts: string[] = [];
+
+  // Règles UDEV officielles pour manettes USB/Bluetooth
+  parts.push(`# Règles UDEV pour Manettes de Jeu (Steam Controller, Xbox, PlayStation DualSense, Switch Pro, 8BitDo)
+mkdir -p /etc/udev/rules.d
+cat > /etc/udev/rules.d/70-steam-input.rules << 'UDEV_STEAM_EOF'
+# Valve USB / Bluetooth devices (Steam Controller, Steam Deck)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="28de", MODE="0660", TAG+="uaccess"
+KERNEL=="uinput", SUBSYSTEM=="misc", MODE="0660", TAG+="uaccess", OPTIONS+="static_node=uinput"
+
+# Sony PlayStation DualShock 4 & DualSense 5 USB & Bluetooth
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", MODE="0660", TAG+="uaccess"
+
+# Microsoft Xbox 360 / Xbox One / Series X|S USB & Wireless dongle
+KERNEL=="hidraw*", ATTRS{idVendor}=="045e", MODE="0660", TAG+="uaccess"
+
+# Nintendo Switch Pro Controller
+KERNEL=="hidraw*", ATTRS{idVendor}=="057e", ATTRS{idProduct}=="2009", MODE="0660", TAG+="uaccess"
+
+# 8BitDo Controllers
+KERNEL=="hidraw*", ATTRS{idVendor}=="2dc8", MODE="0660", TAG+="uaccess"
+UDEV_STEAM_EOF
+chmod 644 /etc/udev/rules.d/70-steam-input.rules 2>/dev/null || true
+udevadm control --reload-rules 2>/dev/null || true`);
+
+  // Lanceur de session Steam Console (Big Picture / Gamescope)
+  if (recipe.enableSteamConsoleMode) {
+    parts.push(`# Lanceur de session Steam Console (Big Picture / Gamescope)
+mkdir -p /usr/local/bin /etc/xdg/autostart
+cat > /usr/local/bin/steam-gamescope-session << 'STEAM_SESSION_EOF'
+#!/usr/bin/env bash
+export ENABLE_GAMESCOPE_WSI=1
+export STEAM_MULTIPLE_XWAYLANDS=1
+export MANGOHUD=1
+
+# Lancement avec Gamescope si disponible, sinon repli direct Steam GamepadUI
+if command -v gamescope &>/dev/null; then
+    exec gamescope -e -f -- steam -gamepadui -steamos3 "$@"
+else
+    exec steam -gamepadui -steamos3 "$@"
+fi
+STEAM_SESSION_EOF
+chmod +x /usr/local/bin/steam-gamescope-session 2>/dev/null || true
+
+# Autostart XDG au démarrage de la session graphique
+cat > /etc/xdg/autostart/steam-console.desktop << 'STEAM_DESKTOP_EOF'
+[Desktop Entry]
+Name=Steam GamepadUI Console
+Comment=Démarrage direct en mode console Steam Big Picture
+Exec=/usr/local/bin/steam-gamescope-session
+Icon=steam
+Terminal=false
+Type=Application
+Categories=Game;
+X-GNOME-Autostart-enabled=true
+STEAM_DESKTOP_EOF
+chmod 644 /etc/xdg/autostart/steam-console.desktop 2>/dev/null || true`);
+  }
+
+  return parts.join('\n');
+}
+
 export function powerSavingCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
   if (!recipe.enablePowerSaving) return '';
   return `# Gestion de l'énergie et autonomie batterie Laptop (TLP)

@@ -13,6 +13,7 @@ export interface WizardIntent {
   recommendedFormat: OutputFormat;
   defaultPackages: string[];
   enableGamingOptimizations?: boolean;
+  enableSteamConsoleMode?: boolean;
   enablePowerSaving?: boolean;
   accentColor: string;
 }
@@ -273,6 +274,7 @@ export function applyWizardIntentToRecipe(intent: WizardIntent, currentRecipe: O
     kernel: intent.recommendedKernel,
     outputFormat: intent.recommendedFormat,
     enableGamingOptimizations: intent.enableGamingOptimizations ?? currentRecipe.enableGamingOptimizations,
+    enableSteamConsoleMode: intent.enableSteamConsoleMode ?? currentRecipe.enableSteamConsoleMode,
     enablePowerSaving: intent.enablePowerSaving ?? currentRecipe.enablePowerSaving,
     selectedPackages: Array.from(new Set([...currentRecipe.selectedPackages, ...intent.defaultPackages])),
     branding: {
