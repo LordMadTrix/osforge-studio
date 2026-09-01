@@ -201,7 +201,13 @@ après.
   5. 🌐 **Déploiement Réseau iPXE & Serveur PXE Dédié (`generateIpxeScript`, `generatePxeServerScript`)** : Génération de `boot.ipxe` et `setup-pxe-server.sh` (`dnsmasq`, `tftpd-hpa`, `nginx`).
   6. 🎮 **Pilotes GPU & Gestion Matérielle ROG / AMD (`gpuDriver`, `enableAsusRogTools`, `enableCoreCtrlAmd`)** : Configuration NVIDIA DRM (`modeset=1`), blacklist nouveau, services `asusd`/`supergfxctl`, et règles polkit CoreCtrl (`90-corectrl.rules`).
   7. 💾 **Format Ventoy Auto-Install (`generateVentoyJson`)** : Génération de `ventoy.json` prêt à l'emploi avec injection auto_install, thèmes et alias de démarrage.
+- **21. 🔄 🖴 Résolution Initramfs Live Boot & Périphériques Loop (`No loop devices available`)** :
+  - Création du hook `/etc/initramfs-tools/scripts/init-premount/00_loop_devices` (`modprobe loop`, `mknod /dev/loop-control c 10 237`, `mknod /dev/loop0..7 b 7 0..7`).
+  - Déclaration explicite des modules de stockage dans `/etc/initramfs-tools/modules` (`loop`, `overlay`, `squashfs`, `iso9660`, `isofs`, `vfat`).
+  - Régénération de l'initramfs dans le chroot (`update-initramfs -u -k all`).
+  - Ajout des paramètres noyau `loop.max_loop=8 max_loop=8` dans `grub.cfg` et `boot.ipxe`.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
 

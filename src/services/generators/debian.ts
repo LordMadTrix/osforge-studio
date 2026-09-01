@@ -183,17 +183,17 @@ insmod search
 search --no-floppy --set=root --file /live/vmlinuz
 
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (${sanitizeGrubTitle(recipe.branding.editionName)}) [Live Desktop]" {
-    linux /live/vmlinuz boot=live components quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
+    linux /live/vmlinuz boot=live components loop.max_loop=8 max_loop=8 quiet splash hostname=${recipe.hostname}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd /live/initrd
 }
 
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (Mode Secours / Failsafe)" {
-    linux /live/vmlinuz boot=live components nomodeset
+    linux /live/vmlinuz boot=live components loop.max_loop=8 max_loop=8 nomodeset
     initrd /live/initrd
 }
 ${recipe.enableLiveRescue ? `
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)} (Mode Live Rescue & RAM Boot / toram)" {
-    linux /live/vmlinuz boot=live components toram quiet splash hostname=${recipe.hostname}
+    linux /live/vmlinuz boot=live components toram loop.max_loop=8 max_loop=8 quiet splash hostname=${recipe.hostname}
     initrd /live/initrd
 }
 ` : ''}
@@ -508,6 +508,43 @@ ${metasploitSetupCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}
+
+# Configuration robuste de l'initramfs pour le boot Live (SquashFS & Loop devices)
+mkdir -p /etc/initramfs-tools/scripts/init-premount
+cat >> /etc/initramfs-tools/modules << 'INITRAMFS_MODULES_EOF'
+loop
+overlay
+squashfs
+iso9660
+isofs
+vfat
+INITRAMFS_MODULES_EOF
+
+cat << 'LOOP_HOOK_EOF' > /etc/initramfs-tools/scripts/init-premount/00_loop_devices
+#!/bin/sh
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case $1 in
+prereqs) prereqs; exit 0;;
+esac
+
+modprobe loop 2>/dev/null || true
+if [ ! -e /dev/loop-control ]; then
+    mknod /dev/loop-control c 10 237 2>/dev/null || true
+fi
+for i in 0 1 2 3 4 5 6 7; do
+    if [ ! -e /dev/loop$i ]; then
+        mknod /dev/loop$i b 7 $i 2>/dev/null || true
+    fi
+done
+exit 0
+LOOP_HOOK_EOF
+chmod +x /etc/initramfs-tools/scripts/init-premount/00_loop_devices
+
+# Régénération de l'initramfs avec live-boot et les modules de stockage
+if command -v update-initramfs &>/dev/null; then
+    update-initramfs -u -k all 2>/dev/null || update-initramfs -c -k all 2>/dev/null || true
+fi
 
 # Script de post-installation First-Boot
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh

@@ -35,7 +35,7 @@ choose --timeout \${menu-timeout} --default \${menu-default} target && goto \${t
 
 :live_boot
 echo [INFO] Chargement du noyau Linux pour ${osName}...
-kernel \${http_base}/vmlinuz boot=live components quiet splash hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs${extraCmdline} initrd=initrd
+kernel \${http_base}/vmlinuz boot=live components loop.max_loop=8 max_loop=8 quiet splash hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs${extraCmdline} initrd=initrd
 echo [INFO] Chargement du ramdisk initial (initrd)...
 initrd \${http_base}/initrd
 echo [INFO] Lancement de l'OS en mémoire RAM...
@@ -43,13 +43,13 @@ boot || goto failed
 
 ${recipe.enableLiveRescue ? `:rescue_boot
 echo [INFO] Chargement du mode Secours Live Rescue (100% RAM toram)...
-kernel \${http_base}/vmlinuz boot=live components toram quiet splash hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs initrd=initrd
+kernel \${http_base}/vmlinuz boot=live components toram loop.max_loop=8 max_loop=8 quiet splash hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs initrd=initrd
 initrd \${http_base}/initrd
 boot || goto failed
 ` : ''}
 :failsafe_boot
 echo [INFO] Chargement du mode Sans Échec (nomodeset)...
-kernel \${http_base}/vmlinuz boot=live components nomodeset hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs initrd=initrd
+kernel \${http_base}/vmlinuz boot=live components loop.max_loop=8 max_loop=8 nomodeset hostname=${hostname} ip=dhcp fetch=\${http_base}/filesystem.squashfs initrd=initrd
 initrd \${http_base}/initrd
 boot || goto failed
 

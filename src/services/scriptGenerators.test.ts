@@ -2263,7 +2263,7 @@ describe('Ligne de commande noyau personnalisée (kernelCmdline) — injection G
       outputFormat: 'iso_hybrid',
       kernelCmdline: 'transparent_hugepage=madvise split_lock_mitigate=0',
     }));
-    expect(script).toContain('linux /live/vmlinuz boot=live components quiet splash hostname=test-box transparent_hugepage=madvise split_lock_mitigate=0');
+    expect(script).toContain('linux /live/vmlinuz boot=live components loop.max_loop=8 max_loop=8 quiet splash hostname=test-box transparent_hugepage=madvise split_lock_mitigate=0');
   });
 
   it('Image disque QCOW2 Arch : injecte kernelCmdline dans grub.cfg', () => {
@@ -2492,7 +2492,7 @@ describe('generateBuildScript — faille réelle d\'injection de commande via "k
 
   it('ISO Debian/APT (heredoc déjà protégé par apostrophes) : le correctif retire aussi $/backtick/\\, cohérent avec les 2 autres cas', () => {
     const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid', kernelCmdline: 'mitigations=$(off) `nope`' } as any));
-    const grubLine = script.split('\n').find(l => l.includes('boot=live components quiet splash'));
+    const grubLine = script.split('\n').find(l => l.includes('boot=live components'));
     expect(grubLine).toBeDefined();
     expect(grubLine).not.toContain('$(off)');
     expect(grubLine).not.toContain('`nope`');
@@ -3518,7 +3518,7 @@ describe('Chantier 9 : Profil Live Rescue & Forensics (RAM Boot toram)', () => {
     }));
 
     expect(script).toContain('menuentry "RescueOS (Mode Live Rescue & RAM Boot / toram)"');
-    expect(script).toContain('boot=live components toram quiet splash');
+    expect(script).toContain('boot=live components toram loop.max_loop=8 max_loop=8 quiet splash');
   });
 });
 
@@ -3835,6 +3835,16 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
     expect(script).toContain('supergfxctl.service');
     expect(script).toContain('90-corectrl.rules');
   });
+
+  it('Résolution du bug No loop devices available : inclut le hook 00_loop_devices, les modules initramfs et loop.max_loop=8 dans grub.cfg', () => {
+    const recipe = makeRecipe({ distro: 'ubuntu', kernel: 'xanmod' });
+    const script = generateBuildScript(recipe);
+    expect(script).toContain('00_loop_devices');
+    expect(script).toContain('mknod /dev/loop-control c 10 237');
+    expect(script).toContain('loop.max_loop=8 max_loop=8');
+    expect(script).toContain('update-initramfs -u -k all');
+  });
 });
+
 
 
