@@ -127,7 +127,7 @@ echo   [SUCCES] Pipeline 100%% automatique termine !
 echo   ISO       : %ISO_PATH%
 echo   Test QEMU : demarrage en cours (fermez la fenetre QEMU quand vous avez fini)
 echo ===============================================================================
-"%QEMU_CMD%" -cdrom "%ISO_PATH%" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d
+"%QEMU_CMD%" -accel whpx -accel tcg -cdrom "%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 
 pause
 exit /b 0

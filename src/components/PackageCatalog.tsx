@@ -535,6 +535,139 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
         </div>
       )}
 
+      {/* 2b. Specialized Stacks: Local AI Engine & Homelab Compose */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px', marginBottom: '8px' }}>
+        {/* Local AI Stack Card */}
+        <div style={{
+          padding: '14px',
+          background: recipe.enableLocalAiStack ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.5)',
+          borderRadius: '8px',
+          border: recipe.enableLocalAiStack ? '1px solid #38bdf8' : '1px solid var(--border-subtle)',
+          transition: 'all 0.15s ease',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: recipe.enableLocalAiStack ? '10px' : '0' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: recipe.enableLocalAiStack ? '#38bdf8' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🤖</span>
+                <span>{lang === 'fr' ? 'Stack IA Locale & Inférence LLM (Ollama)' : 'Local AI & LLM Inference (Ollama)'}</span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>OOB</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Installe Ollama en service systemd, pré-télécharge un modèle Edge et configure le GPU'
+                  : 'Installs Ollama systemd daemon, pre-pulls an Edge model and configures GPU'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableLocalAiStack ?? false}
+                onChange={(e) => onChange({ enableLocalAiStack: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {recipe.enableLocalAiStack && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div>
+                <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>
+                  {lang === 'fr' ? 'Modèle LLM pré-téléchargé :' : 'Pre-pulled LLM Model:'}
+                </label>
+                <select
+                  className="select-custom font-mono"
+                  style={{ fontSize: '0.78rem' }}
+                  value={recipe.localAiModel || 'qwen2.5:0.5b'}
+                  onChange={(e) => onChange({ localAiModel: e.target.value })}
+                >
+                  <option value="qwen2.5:0.5b">qwen2.5:0.5b (~390 Mo - Ultra rapide / CPU-friendly)</option>
+                  <option value="tinyllama">tinyllama:latest (~630 Mo - Compact & Réactif)</option>
+                  <option value="llama3.2:1b">llama3.2:1b (~1.3 Go - Meta Edge performant)</option>
+                  <option value="mistral">mistral:7b (~4.1 Go - Puissance maximale)</option>
+                </select>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '2px' }}>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={recipe.enableOpenWebUi ?? false}
+                    onChange={(e) => onChange({ enableOpenWebUi: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span style={{ fontSize: '0.76rem', color: '#f1f5f9' }}>
+                  {lang === 'fr' ? 'Interface Web locale Open-WebUI (Port 3000)' : 'Local Open-WebUI Web Interface (Port 3000)'}
+                </span>
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Homelab Docker Stacks Card */}
+        <div style={{
+          padding: '14px',
+          background: recipe.enableHomelabStack ? 'rgba(16, 185, 129, 0.12)' : 'rgba(10, 15, 28, 0.5)',
+          borderRadius: '8px',
+          border: recipe.enableHomelabStack ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+          transition: 'all 0.15s ease',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: recipe.enableHomelabStack ? '10px' : '0' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: recipe.enableHomelabStack ? '#34d399' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🏠</span>
+                <span>{lang === 'fr' ? 'Profil Homelab & Stacks Docker Compose' : 'Homelab & Docker Compose Stacks'}</span>
+                <span className="badge badge-emerald" style={{ fontSize: '0.62rem' }}>Docker</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Génère /opt/homelab/docker-compose.yml et un service systemd pour démarrage automatique'
+                  : 'Generates /opt/homelab/docker-compose.yml and systemd service on boot'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableHomelabStack ?? false}
+                onChange={(e) => onChange({ enableHomelabStack: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {recipe.enableHomelabStack && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                {lang === 'fr' ? 'Services conteneurisés actifs :' : 'Active containerized services:'}
+              </span>
+              {[
+                { id: 'adguard', label: 'AdGuard Home (Bloqueur DNS / Port 53 & 3000)' },
+                { id: 'jellyfin', label: 'Jellyfin Media Server (Streaming / Port 8096)' },
+                { id: 'nextcloud', label: 'Nextcloud Hub (Stockage Privé / Port 8080)' },
+                { id: 'nginx_proxy_manager', label: 'Nginx Proxy Manager (Reverse Proxy SSL / Port 81)' },
+              ].map(svc => {
+                const currentServices = recipe.homelabServices || ['adguard', 'jellyfin', 'nginx_proxy_manager'];
+                const isChecked = currentServices.includes(svc.id as any);
+                return (
+                  <label key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.74rem', color: '#e2e8f0' }}>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...currentServices, svc.id as any]
+                          : currentServices.filter(s => s !== svc.id);
+                        onChange({ homelabServices: next });
+                      }}
+                    />
+                    <span>{svc.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 3. Package Selection Grid */}
       <div className="cards-grid">
         {filteredPackages.map(pkg => {

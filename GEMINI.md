@@ -216,10 +216,15 @@ après.
   - Intégration multi-environnements : KDE Plasma (`kdeglobals` AccentColor + metadata wallpaper), GNOME DConf (`01-background` & `02-theme` avec mapping d'accent color), XFCE (`xfce4-desktop.xml`), SDDM et LightDM.
   - Bannière terminal et Fastfetch `/etc/fastfetch/config.jsonc` aux couleurs de l'OS avec exécution interactive propre `/etc/profile.d/00-fastfetch-welcome.sh`.
   - Thème graphique GRUB 2 HD (`/boot/grub/themes/.../theme.txt`) et Boot Splash Plymouth (`bgrt`, `spinner`, `fade-in`, `tribar`).
-  - Suite de tests : 17 tests unitaires dédiés dans `src/services/generators/branding.test.ts`.
+  - Suite de tests : **624 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **24. 🧠 🚀 Expansion Modulaire 100% Fonctionnelle (IA Locale, Homelab Docker, Kiosk, Btrfs Snapshots, Dotfiles, Partage d'URL, Calculateur d'Empreinte)** :
+  1. 🤖 **Stack IA Locale & Inférence LLM OOB (`enableLocalAiStack`)** : Intégration réelle d'Ollama (`ollama-setup.service`), pré-téléchargement du modèle compact choisi (`qwen2.5:0.5b`, `tinyllama`, `llama3.2:1b`, `mistral`) et interface web `open-webui.service` sur port 3000.
+  2. 🏠 **Profil Homelab & Stacks Docker Compose (`enableHomelabStack`)** : Génération de `/opt/homelab/docker-compose.yml` multi-services (AdGuard Home, Jellyfin, Nextcloud, Nginx Proxy Manager) et service systemd `homelab-compose.service`.
+  3. 📺 **Mode Kiosk / Affichage Dynamique (`enableKioskMode`)** : Session plein écran sans bureau avec Chromium/Firefox en `--kiosk`, masquage du curseur `unclutter` et auto-login getty sur tty1.
+  4. 🛡️ **Stockage Btrfs & Snapshots Automatiques (`filesystem === 'btrfs'`)** : Partitionnement Btrfs, sous-volumes `@`, `@home`, `@snapshots`, `@var_log`, compression transparente `compress=zstd:3`, `fstab`, argument GRUB `rootflags=subvol=@`, et Snapper.
+  5. 📦 **Injection Automatique de Dotfiles Git (`dotfilesGitUrl`)** : Clonage automatique dans `~/.dotfiles` et exécution sécurisée sous l'utilisateur d'`install.sh` ou `setup.sh`.
+  6. 🔗 **Partage de Recette par URL / Lien Court** : Service `src/services/recipeSharing.ts` avec encodage/décodage Base64 URL-safe, chargement automatique via hash `#recipe=...` au démarrage, et boutons de copie 1-clic dans l'en-tête et l'inspecteur.
+  7. 📊 **Calculateur d'Empreinte RAM & Disque en Direct** : Service `src/services/resourceEstimator.ts` calculant dynamiquement l'ISO, le disque installé et la RAM minimale/recommandée, avec widget pill dans le header.
+  8. Suite de tests : 10 tests unitaires dédiés dans `src/services/generators/advancedFeatures.test.ts`.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
-
-
-
-

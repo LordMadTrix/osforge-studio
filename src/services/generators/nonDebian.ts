@@ -34,6 +34,7 @@ import {
   k3sSetupCmd,
   tailscaleServiceCmd,
   ollamaSetupCmd,
+  homelabComposeCmd,
   opentofuSetupCmd,
   k8sCliSetupCmd,
   zigSetupCmd,
@@ -388,6 +389,56 @@ export function generateNonDebianDiskImageScript(
 echo -e "\${RED:-}[IMPORTANT] Notez-le MAINTENANT : sans lui, ce disque sera ILLISIBLE (aucune récupération possible).\${NC:-}"\n`
     : '';
 
+  const isBtrfs = recipe.filesystem === 'btrfs';
+  const targetDev = recipe.security.luksEncryption ? '/dev/mapper/cryptroot' : '"${LOOPDEV}p1"';
+  const btrfsRootFlag = isBtrfs ? ' rootflags=subvol=@' : '';
+  const btrfsUmount = isBtrfs ? `
+umount -lf "\${MNT_DIR}/var/log" 2>/dev/null || true
+umount -lf "\${MNT_DIR}/.snapshots" 2>/dev/null || true
+umount -lf "\${MNT_DIR}/home" 2>/dev/null || true` : '';
+
+  let formatAndMountCmd = '';
+  if (recipe.security.luksEncryption) {
+    formatAndMountCmd += `# Chiffrement intégral LUKS2 de la partition racine
+${luksPasswordWarning}echo -n ${luksPasswordQuoted} | cryptsetup luksFormat --type luks2 --batch-mode -d - "\${LOOPDEV}p1"
+echo -n ${luksPasswordQuoted} | cryptsetup open --type luks2 -d - "\${LOOPDEV}p1" cryptroot\n`;
+  }
+
+  if (isBtrfs) {
+    formatAndMountCmd += `mkfs.btrfs -f -L rootfs ${targetDev}
+mount ${targetDev} "\${MNT_DIR}"
+btrfs subvolume create "\${MNT_DIR}/@"
+btrfs subvolume create "\${MNT_DIR}/@home"
+btrfs subvolume create "\${MNT_DIR}/@snapshots"
+btrfs subvolume create "\${MNT_DIR}/@var_log"
+umount "\${MNT_DIR}"
+mount -o subvol=@,compress=zstd:3 ${targetDev} "\${MNT_DIR}"
+mkdir -p "\${MNT_DIR}/home" "\${MNT_DIR}/.snapshots" "\${MNT_DIR}/var/log"
+mount -o subvol=@home,compress=zstd:3 ${targetDev} "\${MNT_DIR}/home"
+mount -o subvol=@snapshots,compress=zstd:3 ${targetDev} "\${MNT_DIR}/.snapshots"
+mount -o subvol=@var_log,compress=zstd:3 ${targetDev} "\${MNT_DIR}/var/log"`;
+  } else {
+    formatAndMountCmd += `mkfs.ext4 -F ${targetDev}
+mount ${targetDev} "\${MNT_DIR}"`;
+  }
+
+  let fstabBlock = '';
+  if (isBtrfs) {
+    const rootDevFstab = recipe.security.luksEncryption ? '/dev/mapper/cryptroot' : 'UUID=${ROOT_UUID}';
+    fstabBlock = `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
+${rootDevFstab} / btrfs subvol=@,compress=zstd:3,defaults 0 0
+${rootDevFstab} /home btrfs subvol=@home,compress=zstd:3,defaults 0 0
+${rootDevFstab} /.snapshots btrfs subvol=@snapshots,compress=zstd:3,defaults 0 0
+${rootDevFstab} /var/log btrfs subvol=@var_log,compress=zstd:3,defaults 0 0
+FSTAB_EOF`;
+  } else {
+    fstabBlock = recipe.security.luksEncryption ? `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
+/dev/mapper/cryptroot / ext4 defaults 0 1
+FSTAB_EOF` : `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
+UUID=\${ROOT_UUID} / ext4 defaults 0 1
+FSTAB_EOF`;
+  }
+
   const diskConversionStep = needsConversion ? `
 echo -e "\${YELLOW}[6/6] 💽 Conversion vers ${diskTarget.label}...\${NC}"
 qemu-img convert -O ${diskTarget.qemuFormat}${diskTarget.qemuFormat === 'qcow2' ? ' -o compat=1.1' : ''} "\${OUTPUT_DIR}/${rawImageName}" "\${OUTPUT_DIR}/${diskImageName}"
@@ -427,9 +478,9 @@ OUTPUT_DIR="$(pwd)/dist"
 mkdir -p "\${ROOTFS_DIR}" "\${MNT_DIR}" "\${OUTPUT_DIR}"
 
 echo -e "\${YELLOW}[1/6] 📦 Installation des dépendances de bootstrap sur l'hôte...\${NC}"
-which ${config.hostCheckCmd} parted qemu-img ${recipe.security.luksEncryption ? 'cryptsetup' : ''} >/dev/null 2>&1 || {
+which ${config.hostCheckCmd} parted qemu-img ${recipe.security.luksEncryption ? 'cryptsetup' : ''} ${recipe.filesystem === 'btrfs' ? 'mkfs.btrfs' : ''} >/dev/null 2>&1 || {
     echo -e "\${YELLOW}Installation des outils requis sur l'hôte...\${NC}"
-    apt-get update -y && apt-get install -y curl tar xz-utils parted qemu-utils ${config.hostDeps} ${recipe.security.luksEncryption ? 'cryptsetup' : ''}
+    apt-get update -y && apt-get install -y curl tar xz-utils parted qemu-utils ${config.hostDeps} ${recipe.security.luksEncryption ? 'cryptsetup' : ''} ${recipe.filesystem === 'btrfs' ? 'btrfs-progs' : ''}
 }
 
 echo -e "\${YELLOW}[2/6] 🏗️ Initialisation du RootFS ${label} (avec noyau + GRUB)...\${NC}"
@@ -511,6 +562,7 @@ ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
+${homelabComposeCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}
@@ -536,19 +588,12 @@ echo -e "\${YELLOW}[4/6] 💽 Partitionnement et formatage de l'image disque...\
 RAW_IMG="\${OUTPUT_DIR}/${rawImageName}"
 qemu-img create -f raw "\${RAW_IMG}" 8G
 parted -s "\${RAW_IMG}" mklabel msdos
-parted -s "\${RAW_IMG}" mkpart primary ext4 1MiB 100%
+parted -s "\${RAW_IMG}" mkpart primary ${isBtrfs ? 'btrfs' : 'ext4'} 1MiB 100%
 parted -s "\${RAW_IMG}" set 1 boot on
 
 LOOPDEV=$(losetup -f)
 losetup -P "\${LOOPDEV}" "\${RAW_IMG}"
-${recipe.security.luksEncryption ? `
-# Chiffrement intégral LUKS2 de la partition racine
-${luksPasswordWarning}echo -n ${luksPasswordQuoted} | cryptsetup luksFormat --type luks2 --batch-mode -d - "\${LOOPDEV}p1"
-echo -n ${luksPasswordQuoted} | cryptsetup open --type luks2 -d - "\${LOOPDEV}p1" cryptroot
-mkfs.ext4 -F "/dev/mapper/cryptroot"
-mount "/dev/mapper/cryptroot" "\${MNT_DIR}"
-` : `mkfs.ext4 -F "\${LOOPDEV}p1"
-mount "\${LOOPDEV}p1" "\${MNT_DIR}"`}
+${formatAndMountCmd}
 
 echo -e "\${YELLOW}[5/6] 🖲️ Copie du système et installation de GRUB (BIOS)...\${NC}"
 cp -a "\${ROOTFS_DIR}"/. "\${MNT_DIR}"/
@@ -566,11 +611,7 @@ chroot "\${MNT_DIR}" ${grubBin} --target=i386-pc --boot-directory=/boot "\${LOOP
 ${recipe.security.luksEncryption ? `cat > "\${MNT_DIR}/etc/crypttab" << CRYPT_EOF
 cryptroot UUID=\${ROOT_UUID} none luks,discard
 CRYPT_EOF
-cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
-/dev/mapper/cryptroot / ext4 defaults 0 1
-FSTAB_EOF` : `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
-UUID=\${ROOT_UUID} / ext4 defaults 0 1
-FSTAB_EOF`}
+` : ''}${fstabBlock}
 
 ${typeof config.diskImageKernelDetectCmd === 'function' ? config.diskImageKernelDetectCmd(recipe.kernel) : config.diskImageKernelDetectCmd}
 
@@ -579,7 +620,7 @@ cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)}" {
-${grubSearchLine}    linux \${KERNEL_PATH} root=${recipe.security.luksEncryption ? '/dev/mapper/cryptroot cryptdevice=UUID=${ROOT_UUID}:cryptroot rd.luks.name=${ROOT_UUID}=cryptroot' : rootKernelArg} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
+${grubSearchLine}    linux \${KERNEL_PATH} root=${recipe.security.luksEncryption ? '/dev/mapper/cryptroot cryptdevice=UUID=${ROOT_UUID}:cryptroot rd.luks.name=${ROOT_UUID}=cryptroot' : rootKernelArg}${btrfsRootFlag} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}
 }
 GRUBCFG_EOF
@@ -587,7 +628,7 @@ GRUBCFG_EOF
 umount -lf "\${MNT_DIR}/sys" || true
 umount -lf "\${MNT_DIR}/proc" || true
 umount -lf "\${MNT_DIR}/dev/pts" || true
-umount -lf "\${MNT_DIR}/dev" || true
+umount -lf "\${MNT_DIR}/dev" || true${btrfsUmount}
 umount -lf "\${MNT_DIR}" || true
 ${recipe.security.luksEncryption ? `cryptsetup close cryptroot 2>/dev/null || true` : ''}
 losetup -d "\${LOOPDEV}" || true
@@ -811,6 +852,7 @@ ${customServicesCmd(recipe, family)}
 ${k3sSetupCmd(recipe, family)}
 ${tailscaleServiceCmd(recipe, family)}
 ${ollamaSetupCmd(recipe, family)}
+${homelabComposeCmd(recipe, family)}
 ${opentofuSetupCmd(recipe, family)}
 ${k8sCliSetupCmd(recipe, family)}
 ${zigSetupCmd(recipe, family)}

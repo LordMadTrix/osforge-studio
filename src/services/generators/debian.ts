@@ -33,6 +33,7 @@ import {
   k3sSetupCmd,
   tailscaleServiceCmd,
   ollamaSetupCmd,
+  homelabComposeCmd,
   opentofuSetupCmd,
   k8sCliSetupCmd,
   zigSetupCmd,
@@ -498,6 +499,7 @@ ${customServicesCmd(recipe, 'debian')}
 ${k3sSetupCmd(recipe, 'debian')}
 ${tailscaleServiceCmd(recipe, 'debian')}
 ${ollamaSetupCmd(recipe, 'debian')}
+${homelabComposeCmd(recipe, 'debian')}
 ${opentofuSetupCmd(recipe, 'debian')}
 ${k8sCliSetupCmd(recipe, 'debian')}
 ${zigSetupCmd(recipe, 'debian')}

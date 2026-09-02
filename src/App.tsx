@@ -14,6 +14,8 @@ import { PostInstallScripts } from './components/PostInstallScripts';
 import { RecipeInspector } from './components/RecipeInspector';
 import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
+import { extractRecipeFromUrl } from './services/recipeSharing';
+
 // Code-split heavy, non-first-paint views and modals to shrink the initial bundle.
 const BuildPipelineModal = lazy(() => import('./components/BuildPipelineModal').then(m => ({ default: m.BuildPipelineModal })));
 const AIAssistantModal = lazy(() => import('./components/AIAssistantModal').then(m => ({ default: m.AIAssistantModal })));
@@ -72,7 +74,10 @@ const DEFAULT_RECIPE: OSRecipe = {
 };
 
 export const App: React.FC = () => {
-  const [recipe, setRecipe] = useState<OSRecipe>(DEFAULT_RECIPE);
+  const [recipe, setRecipe] = useState<OSRecipe>(() => {
+    const shared = extractRecipeFromUrl();
+    return shared ? { ...DEFAULT_RECIPE, ...shared } : DEFAULT_RECIPE;
+  });
   const [uiMode, setUiMode] = useState<'wizard' | 'expert'>('wizard');
   const [activeTab, setActiveTab] = useState<string>('builder');
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
@@ -124,6 +129,7 @@ export const App: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       {/* Header Bar */}
       <Header
+        recipe={recipe}
         onOpenPresets={() => setIsPresetsOpen(true)}
         onOpenAI={() => setIsAIOpen(true)}
         onStartBuild={() => setIsBuildOpen(true)}

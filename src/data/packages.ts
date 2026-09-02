@@ -1,6 +1,41 @@
 import { SoftwarePackage } from '../types/os';
 
 export const SOFTWARE_PACKAGES: SoftwarePackage[] = [
+  // --- INTELLIGENCE ARTIFICIELLE & DATA ---
+  {
+    id: 'ollama_cli',
+    name: 'Ollama Runtime & LLM Local',
+    category: 'ai',
+    description: 'Moteur d’inférence local pour exécuter des modèles de langage (Llama 3, Mistral, Qwen, DeepSeek) sans dépendance cloud.',
+    sizeMB: 350,
+    icon: 'Sparkles',
+    tags: ['LLM', 'IA Locale', 'Ollama', 'GPU'],
+    pkgNames: {
+      arch: 'ollama',
+      alpine: 'ollama',
+    },
+    appType: 'daemon',
+    systemImpact: 'medium',
+  },
+  {
+    id: 'python_ai_stack',
+    name: 'Python 3 AI & Data Science Stack',
+    category: 'ai',
+    description: 'Environnement Python 3 complet pour le Machine Learning et la Data Science (NumPy, Pandas, SciPy, Scikit-Learn, Pip).',
+    sizeMB: 380,
+    icon: 'Brain',
+    tags: ['Python', 'Data Science', 'Machine Learning'],
+    pkgNames: {
+      debian: 'python3-pip python3-numpy python3-pandas python3-scipy',
+      ubuntu: 'python3-pip python3-numpy python3-pandas python3-scipy',
+      arch: 'python-pip python-numpy python-pandas python-scipy',
+      fedora: 'python3-pip python3-numpy python3-pandas python3-scipy',
+      alpine: 'py3-pip py3-numpy py3-pandas py3-scipy',
+    },
+    appType: 'cli',
+    systemImpact: 'medium',
+  },
+
   // --- DEVELOPPEMENT ---
   {
     id: 'docker',

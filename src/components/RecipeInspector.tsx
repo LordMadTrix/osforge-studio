@@ -18,8 +18,9 @@ import {
   generatePxeServerScript,
   generateVentoyJson
 } from '../services/scriptGenerators';
+import { copyShareableLink } from '../services/recipeSharing';
 import { ContextTip } from './ContextTip';
-import { Copy, Check, FileCode, Download } from 'lucide-react';
+import { Copy, Check, FileCode, Download, Share2 } from 'lucide-react';
 
 interface RecipeInspectorProps {
   recipe: OSRecipe;
@@ -30,6 +31,7 @@ interface RecipeInspectorProps {
 export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, onOpenTips }) => {
   const [activeFile, setActiveFile] = useState<string>('launch.bat');
   const [copied, setCopied] = useState<boolean>(false);
+  const [shareCopied, setShareCopied] = useState<boolean>(false);
 
   const files: Record<string, { title: string; lang: string; content: string; desc: string }> = {
     'launch.bat': {
@@ -172,6 +174,24 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={async () => {
+              await copyShareableLink(recipe);
+              setShareCopied(true);
+              setTimeout(() => setShareCopied(false), 2000);
+            }}
+            className="btn btn-secondary"
+            style={{
+              padding: '5px 10px',
+              fontSize: '0.78rem',
+              color: shareCopied ? '#84a05c' : 'var(--cyan)',
+              borderColor: shareCopied ? 'rgba(132, 160, 92, 0.4)' : undefined,
+            }}
+            title={lang === 'fr' ? 'Copier le lien direct de partage de cette recette' : 'Copy shareable recipe link'}
+          >
+            {shareCopied ? <Check size={13} color="#84a05c" /> : <Share2 size={13} />}
+            <span>{shareCopied ? (lang === 'fr' ? 'Lien Copié !' : 'Link Copied!') : (lang === 'fr' ? 'Partager URL' : 'Share URL')}</span>
+          </button>
           <button onClick={copyToClipboard} className="btn btn-secondary" style={{ padding: '5px 10px', fontSize: '0.78rem' }}>
             {copied ? <Check size={13} color="#a3bc7d" /> : <Copy size={13} />}
             <span>{copied ? (lang === 'fr' ? 'Copié !' : 'Copied!') : (lang === 'fr' ? 'Copier' : 'Copy')}</span>

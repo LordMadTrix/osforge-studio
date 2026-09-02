@@ -179,6 +179,24 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
               <option value="/bin/sh">/bin/sh (Minimaliste)</option>
             </select>
           </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Dépôt Git de Dotfiles (Déploiement Automatique OOB) :' : 'Dotfiles Git Repository (Auto-Deploy OOB):'}
+            </label>
+            <input
+              type="text"
+              className="input-text font-mono"
+              value={recipe.dotfilesGitUrl || ''}
+              onChange={(e) => onChange({ dotfilesGitUrl: e.target.value })}
+              placeholder="ex: https://github.com/votre-compte/dotfiles.git"
+            />
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '2px', display: 'block' }}>
+              {lang === 'fr'
+                ? 'Cloné automatiquement dans ~/.dotfiles au premier démarrage. Si un script install.sh ou setup.sh est présent, il sera exécuté.'
+                : 'Automatically cloned into ~/.dotfiles on first boot. If install.sh or setup.sh is present, it will run.'}
+            </span>
+          </div>
         </div>
 
         {/* User Toggles */}
@@ -718,6 +736,108 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
                 <span>{lang === 'fr' ? 'AMD Radeon CoreCtrl (Overclock & Tensions)' : 'AMD Radeon CoreCtrl (Overclock)'}</span>
               </label>
             </div>
+          </div>
+          {/* Mode Kiosk / Digital Signage */}
+          <div style={{ padding: '14px', background: recipe.enableKioskMode ? 'rgba(14, 165, 233, 0.12)' : 'rgba(10, 15, 28, 0.5)', borderRadius: '6px', border: recipe.enableKioskMode ? '1px solid #0ea5e9' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: recipe.enableKioskMode ? '10px' : '0' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableKioskMode ? '#38bdf8' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📺</span>
+                  <span>{lang === 'fr' ? 'Mode Kiosk / Affichage Dynamique (Digital Signage)' : 'Kiosk Mode / Digital Signage'}</span>
+                  <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>Plein Écran</span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {lang === 'fr'
+                    ? 'Démarre directement le navigateur en plein écran sans bureau avec curseur masqué (cage + unclutter)'
+                    : 'Launches full-screen kiosk browser directly on boot with hidden cursor (cage + unclutter)'}
+                </div>
+              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={recipe.enableKioskMode ?? false}
+                  onChange={(e) => onChange({ enableKioskMode: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            {recipe.enableKioskMode && (
+              <div>
+                <label style={{ fontSize: '0.76rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                  {lang === 'fr' ? 'URL du Dashboard / Site à afficher :' : 'Dashboard / Website URL to display:'}
+                </label>
+                <input
+                  type="text"
+                  className="input-text font-mono"
+                  value={recipe.kioskUrl || ''}
+                  onChange={(e) => onChange({ kioskUrl: e.target.value })}
+                  placeholder="https://votre-domaine.com/dashboard"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Btrfs Filesystem & Snapshots */}
+          <div style={{ padding: '14px', background: 'rgba(10, 15, 28, 0.5)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🛡️</span>
+              <span>{lang === 'fr' ? 'Système de Fichiers & Snapshots (Images Disques)' : 'Filesystem & Snapshots (Disk Images)'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginBottom: '10px' }}>
+              <button
+                type="button"
+                onClick={() => onChange({ filesystem: 'ext4' })}
+                style={{
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  borderRadius: '6px',
+                  border: (!recipe.filesystem || recipe.filesystem === 'ext4') ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+                  background: (!recipe.filesystem || recipe.filesystem === 'ext4') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: (!recipe.filesystem || recipe.filesystem === 'ext4') ? '#34d399' : '#e2e8f0' }}>
+                  ext4 (Standard éprouvé)
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                  Robuste, universel, compatible 100%
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ filesystem: 'btrfs' })}
+                style={{
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  borderRadius: '6px',
+                  border: recipe.filesystem === 'btrfs' ? '1px solid #38bdf8' : '1px solid var(--border-subtle)',
+                  background: recipe.filesystem === 'btrfs' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: recipe.filesystem === 'btrfs' ? '#38bdf8' : '#e2e8f0' }}>
+                  Btrfs (Sous-volumes & ZSTD)
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>
+                  Subvolumes @, @home, @snapshots, compression zstd:3
+                </div>
+              </button>
+            </div>
+            {recipe.filesystem === 'btrfs' && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '8px' }}>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={recipe.enableBtrfsSnapshots ?? false}
+                    onChange={(e) => onChange({ enableBtrfsSnapshots: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-main)' }}>
+                  {lang === 'fr' ? 'Configuration des Snapshots automatiques Snapper' : 'Configure automated Snapper snapshots'}
+                </span>
+              </label>
+            )}
           </div>
         </div>
       </div>

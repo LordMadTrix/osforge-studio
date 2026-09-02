@@ -1,7 +1,11 @@
-import React from 'react';
-import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Share2, Check } from 'lucide-react';
+import { OSRecipe } from '../types/os';
+import { copyShareableLink } from '../services/recipeSharing';
+import { calculateResourceEstimate } from '../services/resourceEstimator';
 
 interface HeaderProps {
+  recipe?: OSRecipe;
   onOpenPresets: () => void;
   onOpenAI: () => void;
   onStartBuild: () => void;
@@ -18,6 +22,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  recipe,
   onOpenPresets,
   onOpenAI,
   onStartBuild,
@@ -32,6 +37,15 @@ export const Header: React.FC<HeaderProps> = ({
   lang,
   setLang,
 }) => {
+  const [sharedCopied, setSharedCopied] = useState(false);
+  const estimate = recipe ? calculateResourceEstimate(recipe) : null;
+
+  const handleShare = async () => {
+    if (!recipe) return;
+    await copyShareableLink(recipe);
+    setSharedCopied(true);
+    setTimeout(() => setSharedCopied(false), 2000);
+  };
   return (
     <header style={{
       borderBottom: '1px solid var(--border-subtle)',
@@ -218,6 +232,47 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Resource Footprint Pill */}
+          {estimate && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(2, 132, 199, 0.12)',
+                border: '1px solid rgba(2, 132, 199, 0.35)',
+                borderRadius: '6px',
+                padding: '4px 9px',
+                fontSize: '0.72rem',
+                color: 'var(--cyan)',
+                whiteSpace: 'nowrap',
+              }}
+              title={lang === 'fr' ? estimate.summaryTextFr : estimate.summaryTextEn}
+            >
+              <span>💾 ~{(estimate.estimatedIsoMB / 1024).toFixed(1)} Go</span>
+              <span style={{ color: 'var(--border-active)' }}>•</span>
+              <span>🧠 {Math.round(estimate.recommendedRamMB / 1024)} Go RAM</span>
+            </div>
+          )}
+
+          {/* Share Recipe Button */}
+          {recipe && (
+            <button
+              onClick={handleShare}
+              className="btn btn-secondary"
+              style={{
+                padding: '5px 10px',
+                fontSize: '0.78rem',
+                color: sharedCopied ? '#84a05c' : 'var(--cyan)',
+                borderColor: sharedCopied ? 'rgba(132, 160, 92, 0.4)' : undefined,
+              }}
+              title={lang === 'fr' ? 'Copier le lien direct de partage de cette recette' : 'Copy shareable recipe link'}
+            >
+              {sharedCopied ? <Check size={13} color="#84a05c" /> : <Share2 size={13} />}
+              <span>{sharedCopied ? (lang === 'fr' ? 'Copié !' : 'Copied!') : (lang === 'fr' ? 'Partager' : 'Share')}</span>
+            </button>
+          )}
+
           {/* Language Switch */}
           <button
             onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')}

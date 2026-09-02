@@ -237,6 +237,14 @@ export interface OSRecipe {
   enableGamingOptimizations?: boolean;
   enableSteamConsoleMode?: boolean;
   enablePowerSaving?: boolean;
+  enableLocalAiStack?: boolean;
+  localAiModel?: string;
+  enableOpenWebUi?: boolean;
+  enableHomelabStack?: boolean;
+  homelabServices?: ('adguard' | 'jellyfin' | 'nextcloud' | 'nginx_proxy_manager')[];
+  enableKioskMode?: boolean;
+  filesystem?: 'ext4' | 'btrfs';
+  enableBtrfsSnapshots?: boolean;
   network?: NetworkConfig;
   security: SecurityConfig;
   customServices: CustomService[];

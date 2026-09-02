@@ -133,12 +133,13 @@ export function tailscaleServiceCmd(recipe: OSRecipe, family: 'debian' | NonDebi
 }
 
 export function ollamaSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
-  if (!recipe.selectedPackages.includes('ollama_ai')) return '';
+  if (!recipe.selectedPackages.includes('ollama_ai') && !recipe.selectedPackages.includes('ollama_cli') && !recipe.enableLocalAiStack) return '';
   if (family === 'alpine' || family === 'arch' || family === 'fedora' || family === 'suse') return '';
   if (family === 'void') {
     return `echo -e "\${YELLOW:-}[INFO] Ollama n'est pas encore câblé pour Void : aucun paquet xbps réel et l'installeur officiel (ollama.com/install.sh) ne documente pas de support runit.\${NC:-}" 2>/dev/null || true`;
   }
-  return `cat > /etc/systemd/system/ollama-setup.service << 'OLLAMASVC_EOF'
+  const modelToPull = recipe.localAiModel ? ` && /usr/local/bin/ollama pull ${shQuote(recipe.localAiModel)} || true` : '';
+  let script = `cat > /etc/systemd/system/ollama-setup.service << 'OLLAMASVC_EOF'
 [Unit]
 Description=OSForge Studio - installation Ollama (ollama.com/install.sh)
 After=network-online.target
@@ -146,7 +147,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c "curl -fsSL https://ollama.com/install.sh | sh"
+ExecStart=/bin/sh -c "curl -fsSL https://ollama.com/install.sh | sh${modelToPull}"
 ExecStartPost=-/usr/bin/systemctl disable ollama-setup.service
 RemainAfterExit=no
 TimeoutStartSec=900
@@ -155,6 +156,114 @@ TimeoutStartSec=900
 WantedBy=multi-user.target
 OLLAMASVC_EOF
 ${serviceEnableCmd('ollama-setup.service', family)}`;
+
+  if (recipe.enableOpenWebUi) {
+    script += `\ncat > /etc/systemd/system/open-webui.service << 'OWEBUI_EOF'
+[Unit]
+Description=OSForge Studio - Open-WebUI Local AI Interface
+After=docker.service ollama.service
+Wants=ollama.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c "docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart unless-stopped ghcr.io/open-webui/open-webui:main 2>/dev/null || true"
+ExecStop=/usr/bin/docker stop open-webui
+
+[Install]
+WantedBy=multi-user.target
+OWEBUI_EOF
+${serviceEnableCmd('open-webui.service', family)}`;
+  }
+
+  return script;
+}
+
+export function homelabComposeCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableHomelabStack) return '';
+  if (family === 'alpine' || family === 'void') {
+    return `echo -e "\${YELLOW:-}[INFO] La stack Homelab Docker Compose n'est pas encore câblée pour OpenRC/runit.\${NC:-}" 2>/dev/null || true`;
+  }
+  const services = recipe.homelabServices && recipe.homelabServices.length > 0
+    ? recipe.homelabServices
+    : ['adguard', 'jellyfin', 'nginx_proxy_manager'];
+
+  const composeServices: string[] = [];
+
+  if (services.includes('adguard')) {
+    composeServices.push(`  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "3000:3000/tcp"
+    volumes:
+      - /opt/homelab/adguard/work:/opt/adguardhome/work
+      - /opt/homelab/adguard/conf:/opt/adguardhome/conf`);
+  }
+
+  if (services.includes('jellyfin')) {
+    composeServices.push(`  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    volumes:
+      - /opt/homelab/jellyfin/config:/config
+      - /opt/homelab/jellyfin/cache:/cache
+      - /opt/homelab/media:/media`);
+  }
+
+  if (services.includes('nextcloud')) {
+    composeServices.push(`  nextcloud:
+    image: nextcloud:apache
+    container_name: nextcloud
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - /opt/homelab/nextcloud/data:/var/www/html`);
+  }
+
+  if (services.includes('nginx_proxy_manager')) {
+    composeServices.push(`  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - /opt/homelab/npm/data:/data
+      - /opt/homelab/npm/letsencrypt:/etc/letsencrypt`);
+  }
+
+  return `mkdir -p /opt/homelab
+cat > /opt/homelab/docker-compose.yml << 'HOMELAB_EOF'
+services:
+${composeServices.join('\n\n')}
+HOMELAB_EOF
+cat > /etc/systemd/system/homelab-compose.service << 'HOMELABSVC_EOF'
+[Unit]
+Description=OSForge Studio - Homelab Docker Compose Stack
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/homelab
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose down
+
+[Install]
+WantedBy=multi-user.target
+HOMELABSVC_EOF
+${serviceEnableCmd('homelab-compose.service', family)}`;
 }
 
 export function opentofuSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
@@ -331,7 +440,7 @@ LIGHTDM_EOF`;
 }
 
 export function kioskSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
-  if (recipe.desktop !== 'web_kiosk') return '';
+  if (recipe.desktop !== 'web_kiosk' && !recipe.enableKioskMode) return '';
   const useFirefox = (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint');
   const browserCmd = useFirefox
     ? 'firefox --kiosk --no-remote'
@@ -362,6 +471,13 @@ export function dotfilesCloneCmd(recipe: OSRecipe): string {
   const url = recipe.dotfilesGitUrl.replace(/'/g, `'\\''`);
   const username = recipe.user.username;
   return `git clone --depth 1 '${url}' /home/${shQuote(username)}/.dotfiles 2>/dev/null || true
+if [ -f "/home/${shQuote(username)}/.dotfiles/install.sh" ]; then
+  chmod +x "/home/${shQuote(username)}/.dotfiles/install.sh"
+  su - ${username} -c "/home/${shQuote(username)}/.dotfiles/install.sh" 2>/dev/null || true
+elif [ -f "/home/${shQuote(username)}/.dotfiles/setup.sh" ]; then
+  chmod +x "/home/${shQuote(username)}/.dotfiles/setup.sh"
+  su - ${username} -c "/home/${shQuote(username)}/.dotfiles/setup.sh" 2>/dev/null || true
+fi
 chown -R ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.dotfiles 2>/dev/null || true`;
 }
 
