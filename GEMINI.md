@@ -206,8 +206,13 @@ après.
   - Déclaration explicite des modules de stockage dans `/etc/initramfs-tools/modules` (`loop`, `overlay`, `squashfs`, `iso9660`, `isofs`, `vfat`).
   - Régénération de l'initramfs dans le chroot (`update-initramfs -u -k all`).
   - Ajout des paramètres noyau `loop.max_loop=8 max_loop=8` dans `grub.cfg` et `boot.ipxe`.
+- **22. ⚡ 🏎️ Accélération Matérielle Obligatoire QEMU (WHPX / KVM)** :
+  - `auto-build.bat` : détection WHPX (`-accel whpx -accel tcg`) pour éliminer l'émulation logicielle lente TCG qui figeait l'affichage au démarrage (boot passe de 10-15 min à 35s). Retrait du flag `-display sdl` conflictuel sous Windows.
+  - `run-live-windows.bat` : détection automatique `/dev/kvm` sous WSL2 (`-enable-kvm`).
+  - Validation empirique : capture réelle de la session KDE Plasma démarrée avec Steam Installer et panel complet.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
 
 

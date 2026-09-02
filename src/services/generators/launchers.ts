@@ -388,7 +388,7 @@ echo [INFO] Fermez simplement la fenetre QEMU quand vous avez termine le test.
 echo.
 
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d"
+    wsl bash -c 'ISO_FILE=$(wslpath -a "%ISO_PATH%"); KVM_ARG=""; [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"; qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d'
 ) else (
     "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 )
@@ -411,7 +411,7 @@ echo   CPU Coeurs : 6 Coeurs Virtuels
 echo.
 
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -m 8192 -smp 6 -vga virtio -display sdl -net nic -net user -boot d"
+    wsl bash -c 'ISO_FILE=$(wslpath -a "%ISO_PATH%"); KVM_ARG=""; [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"; qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -m 8192 -smp 6 -vga virtio -net nic -net user -boot d'
 ) else (
     "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -m 8192 -smp 6 -vga virtio -net nic -net user -boot d
 )
@@ -432,7 +432,7 @@ set DISK_NAME=dist\\test-vm-disk.qcow2
 
 echo [1/3] Creation d'un disque virtuel temporaire dynamique de 20 Go (%DISK_NAME%)...
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c "DISK_FILE=\\$(wslpath -a '%DISK_NAME%'); qemu-img create -f qcow2 \\"\\$DISK_FILE\\" 20G"
+    wsl bash -c 'DISK_FILE=$(wslpath -a "%DISK_NAME%"); qemu-img create -f qcow2 "$DISK_FILE" 20G'
 ) else (
     if not "%QEMU_IMG_CMD%"=="" (
         "%QEMU_IMG_CMD%" create -f qcow2 "%CD%\\%DISK_NAME%" 20G
@@ -445,7 +445,7 @@ echo [2/3] Demarrage de la VM avec support d'ecriture...
 echo.
 
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c "ISO_FILE=\\$(wslpath -a '%ISO_PATH%'); DISK_FILE=\\$(wslpath -a '%DISK_NAME%'); qemu-system-x86_64 -cdrom \\"\\$ISO_FILE\\" -hda \\"\\$DISK_FILE\\" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d"
+    wsl bash -c 'ISO_FILE=$(wslpath -a "%ISO_PATH%"); DISK_FILE=$(wslpath -a "%DISK_NAME%"); KVM_ARG=""; [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"; qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -hda "$DISK_FILE" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d'
 ) else (
     "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -hda "%CD%\\%DISK_NAME%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 )
@@ -471,32 +471,15 @@ goto MENU
 :CLEANUP_VM
 cls
 echo ===============================================================================
-echo   NETTOYAGE DES MACHINES VIRTUELLES DE TEST
+echo   NETTOYAGE DES FICHIERS TEMPORAIRES DE LA VM
 echo ===============================================================================
 echo.
-set FOUND=0
-if exist "dist\\test-vm-disk.qcow2" (
-    del /f /q "dist\\test-vm-disk.qcow2"
-    echo [SUPPRIME] dist\\test-vm-disk.qcow2
-    set FOUND=1
-)
-if exist "test-vm-disk.qcow2" (
-    del /f /q "test-vm-disk.qcow2"
-    echo [SUPPRIME] test-vm-disk.qcow2
-    set FOUND=1
-)
-if exist "dist\\*.qcow2" (
-    del /f /q "dist\\*.qcow2"
-    echo [SUPPRIME] Fichiers .qcow2 temporaires
-    set FOUND=1
-)
-
-if "%FOUND%"=="0" (
-    echo [INFO] Aucun fichier de VM temporaire a supprimer. Tout est propre !
+if exist "%CD%\\dist\\test-vm-disk.qcow2" (
+    del /f /q "%CD%\\dist\\test-vm-disk.qcow2" 2>nul
+    echo [OK] Disque virtuel temporaire supprime.
 ) else (
-    echo [SUCCES] Tous les disques et fichiers temporaires de VM ont ete nettoyes !
+    echo [INFO] Aucun disque virtuel temporaire a supprimer.
 )
-echo.
 pause
 goto MENU
 `;
@@ -588,6 +571,7 @@ echo.
 :: ---------------------------------------------------------------------------
 echo [5/5] Preparation du test Live automatique (QEMU)...
 set QEMU_CMD=
+set ACCEL_ARGS=-accel tcg
 where qemu-system-x86_64 >nul 2>&1
 if %ERRORLEVEL% EQU 0 set QEMU_CMD=qemu-system-x86_64
 if "%QEMU_CMD%"=="" if exist "C:\\Program Files\\qemu\\qemu-system-x86_64.exe" set "QEMU_CMD=C:\\Program Files\\qemu\\qemu-system-x86_64.exe"
@@ -620,6 +604,12 @@ if not exist "%ISO_PATH%" (
     exit /b 0
 )
 
+"%QEMU_CMD%" -accel help 2>nul | findstr /i "whpx" >nul 2>&1
+if !ERRORLEVEL! EQU 0 (
+    set ACCEL_ARGS=-accel whpx -accel tcg
+    echo [OK] Acceleration materielle WHPX (Windows Hypervisor Platform) activee !
+)
+
 echo [OK] Lancement du test Live RAM automatique de %ISO_PATH%...
 echo.
 echo ===============================================================================
@@ -627,7 +617,7 @@ echo   [SUCCES] Pipeline 100%% automatique termine !
 echo   ISO       : %ISO_PATH%
 echo   Test QEMU : demarrage en cours (fermez la fenetre QEMU quand vous avez fini)
 echo ===============================================================================
-"%QEMU_CMD%" -cdrom "%ISO_PATH%" -m 4096 -smp 4 -vga virtio -display sdl -net nic -net user -boot d
+"%QEMU_CMD%" !ACCEL_ARGS! -cdrom "%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 
 pause
 exit /b 0
