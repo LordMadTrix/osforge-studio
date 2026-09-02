@@ -430,5 +430,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Branding & Thème (Plymouth & Fastfetch)
+  if (recipe.branding.bootSplashTheme) {
+    if (isDebianLike) {
+      pkgs.push('plymouth', 'plymouth-themes');
+    } else if (isFedoraLike || isArchLike || distroId === 'opensuse') {
+      pkgs.push('plymouth');
+    }
+  }
+  if (recipe.branding.enableFastfetchMotd !== false) {
+    pkgs.push('fastfetch');
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }

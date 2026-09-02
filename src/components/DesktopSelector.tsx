@@ -361,6 +361,40 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
 
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                {lang === 'fr' ? 'Fond d’Écran & Style Graphique' : 'Wallpaper Preset & Style'}
+              </label>
+              <select
+                className="input-select"
+                value={recipe.branding.wallpaperPreset || 'minimal'}
+                onChange={(e) => onChange({
+                  branding: { ...recipe.branding, wallpaperPreset: e.target.value }
+                })}
+              >
+                <option value="minimal">Minimal Slate (Ardoise sobre & géométrie épurée)</option>
+                <option value="cyberpunk">Cyberpunk Neon (Grille synthwave & soleil néon)</option>
+                <option value="matrix">Matrix Hacker (Pluie numérique verte)</option>
+                <option value="gaming_rog">Gaming ROG (Fibre de carbone & rouge gamer)</option>
+                <option value="deep_space">Deep Space (Cosmos, nébuleuse & étoiles)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                {lang === 'fr' ? 'URL Fond d’Écran Personnalisé (Optionnel)' : 'Custom Wallpaper Image URL (Optional)'}
+              </label>
+              <input
+                type="text"
+                className="input-text"
+                value={recipe.branding.customWallpaperUrl || ''}
+                onChange={(e) => onChange({
+                  branding: { ...recipe.branding, customWallpaperUrl: e.target.value }
+                })}
+                placeholder="https://example.com/wallpaper.png"
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
                 {lang === 'fr' ? 'Thème Plymouth (Boot Splash)' : 'Plymouth Splash Theme'}
               </label>
               <select
@@ -370,11 +404,48 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                   branding: { ...recipe.branding, bootSplashTheme: e.target.value as any }
                 })}
               >
-                <option value="minimal">Minimal Spinner (Épuré)</option>
-                <option value="cyberpunk">Cyberpunk Neon Glitch (Futuriste)</option>
-                <option value="retro_tui">Retro Terminal TUI (Matrix / Hack)</option>
-                <option value="enterprise">Enterprise Slate (Sobre & Pro)</option>
+                <option value="spinner">Minimal Spinner (Roue moderne)</option>
+                <option value="bgrt">BGRT (Logo UEFI constructeur natif)</option>
+                <option value="fade-in">Fade-In (Transition douce)</option>
+                <option value="tribar">Tribar (Barre de progression classique)</option>
+                <option value="cyberpunk">Cyberpunk Glow (Lueur futuriste)</option>
+                <option value="matrix">Matrix Glow</option>
               </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={recipe.branding.enableCustomOsRelease !== false}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, enableCustomOsRelease: e.target.checked }
+                  })}
+                />
+                <span>{lang === 'fr' ? 'Identité Système (/etc/os-release & Logo dans les Paramètres)' : 'System Identity (/etc/os-release & Settings Logo)'}</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={recipe.branding.enableFastfetchMotd !== false}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, enableFastfetchMotd: e.target.checked }
+                  })}
+                />
+                <span>{lang === 'fr' ? 'Bannière Terminal & Fastfetch aux couleurs de l’OS' : 'Terminal Banner & Fastfetch in OS Colors'}</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(recipe.branding.enableGrubTheme)}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, enableGrubTheme: e.target.checked }
+                  })}
+                />
+                <span>{lang === 'fr' ? 'Thème GRUB 2 Graphique HD avec fond coordonné' : 'HD Graphical GRUB 2 Theme with matching background'}</span>
+              </label>
             </div>
           </div>
         </div>

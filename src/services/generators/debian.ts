@@ -10,7 +10,6 @@ import {
   resolveXkb,
   dmEnableCmd,
   localeSetupCmd,
-  osReleaseCmd,
   userSshSetupCmd,
   networkConfigCmd,
   vpnConfigCmd,
@@ -43,6 +42,7 @@ import {
   metasploitSetupCmd,
   firstbootTriggerCmd,
 } from './helpers';
+import { generateBrandingChrootCommands } from './branding';
 
 export function generateDebianBuildScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
@@ -446,7 +446,7 @@ cat << 'HOSTS' > /etc/hosts
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
 
-${osReleaseCmd(recipe, 'debian')}
+${generateBrandingChrootCommands(recipe)}
 
 # Configuration de la locale et du fuseau horaire
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime

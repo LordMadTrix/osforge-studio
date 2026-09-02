@@ -194,9 +194,13 @@ export interface BrandingConfig {
   editionName: string;
   version: string;
   accentColor: string;
-  wallpaperPreset: string;
+  wallpaperPreset: 'minimal' | 'cyberpunk' | 'matrix' | 'gaming_rog' | 'deep_space' | string;
   customWallpaperUrl?: string;
-  bootSplashTheme: 'cyberpunk' | 'minimal' | 'matrix' | 'classic' | 'openfactory';
+  bootSplashTheme: 'cyberpunk' | 'minimal' | 'matrix' | 'classic' | 'openfactory' | 'bgrt' | 'spinner' | 'fade-in';
+  enableGrubTheme?: boolean;
+  enableFastfetchMotd?: boolean;
+  enableCustomOsRelease?: boolean;
+  enableCustomAudioChime?: boolean;
 }
 
 export interface OSRecipe {

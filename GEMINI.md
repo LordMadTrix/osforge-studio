@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **590 tests**, tous verts (100%). CI + Pages fonctionnels.
+- Suite de tests : **614 tests**, tous verts (100%). CI + Pages fonctionnels.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -210,6 +210,13 @@ après.
   - `auto-build.bat` : détection WHPX (`-accel whpx -accel tcg`) pour éliminer l'émulation logicielle lente TCG qui figeait l'affichage au démarrage (boot passe de 10-15 min à 35s). Retrait du flag `-display sdl` conflictuel sous Windows.
   - `run-live-windows.bat` : détection automatique `/dev/kvm` sous WSL2 (`-enable-kvm`).
   - Validation empirique : capture réelle de la session KDE Plasma démarrée avec Steam Installer et panel complet.
+- **23. 🎨 🖼️ Personnalisation Intégrale & Design System (Branding, Wallpapers SVG, Plymouth, GRUB 2, Fastfetch, Accent Color, /etc/os-release)** :
+  - Fiche d'identité système réelle `/etc/os-release`, `/usr/lib/os-release`, `/etc/issue` et icône officielle `/usr/share/pixmaps/${slug}.svg`.
+  - 5 presets de fond d'écran vectoriels SVG 1920x1080 (`minimal`, `cyberpunk`, `matrix`, `gaming_rog`, `deep_space`) et support d'URL personnalisée (`customWallpaperUrl`).
+  - Intégration multi-environnements : KDE Plasma (`kdeglobals` AccentColor + metadata wallpaper), GNOME DConf (`01-background` & `02-theme` avec mapping d'accent color), XFCE (`xfce4-desktop.xml`), SDDM et LightDM.
+  - Bannière terminal et Fastfetch `/etc/fastfetch/config.jsonc` aux couleurs de l'OS avec exécution interactive propre `/etc/profile.d/00-fastfetch-welcome.sh`.
+  - Thème graphique GRUB 2 HD (`/boot/grub/themes/.../theme.txt`) et Boot Splash Plymouth (`bgrt`, `spinner`, `fade-in`, `tribar`).
+  - Suite de tests : 17 tests unitaires dédiés dans `src/services/generators/branding.test.ts`.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 
