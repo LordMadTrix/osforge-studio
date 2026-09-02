@@ -216,15 +216,18 @@ après.
   - Intégration multi-environnements : KDE Plasma (`kdeglobals` AccentColor + metadata wallpaper), GNOME DConf (`01-background` & `02-theme` avec mapping d'accent color), XFCE (`xfce4-desktop.xml`), SDDM et LightDM.
   - Bannière terminal et Fastfetch `/etc/fastfetch/config.jsonc` aux couleurs de l'OS avec exécution interactive propre `/etc/profile.d/00-fastfetch-welcome.sh`.
   - Thème graphique GRUB 2 HD (`/boot/grub/themes/.../theme.txt`) et Boot Splash Plymouth (`bgrt`, `spinner`, `fade-in`, `tribar`).
-  - Suite de tests : **624 tests**, tous verts (100%). CI + Pages fonctionnels.
-- **24. 🧠 🚀 Expansion Modulaire 100% Fonctionnelle (IA Locale, Homelab Docker, Kiosk, Btrfs Snapshots, Dotfiles, Partage d'URL, Calculateur d'Empreinte)** :
-  1. 🤖 **Stack IA Locale & Inférence LLM OOB (`enableLocalAiStack`)** : Intégration réelle d'Ollama (`ollama-setup.service`), pré-téléchargement du modèle compact choisi (`qwen2.5:0.5b`, `tinyllama`, `llama3.2:1b`, `mistral`) et interface web `open-webui.service` sur port 3000.
-  2. 🏠 **Profil Homelab & Stacks Docker Compose (`enableHomelabStack`)** : Génération de `/opt/homelab/docker-compose.yml` multi-services (AdGuard Home, Jellyfin, Nextcloud, Nginx Proxy Manager) et service systemd `homelab-compose.service`.
-  3. 📺 **Mode Kiosk / Affichage Dynamique (`enableKioskMode`)** : Session plein écran sans bureau avec Chromium/Firefox en `--kiosk`, masquage du curseur `unclutter` et auto-login getty sur tty1.
-  4. 🛡️ **Stockage Btrfs & Snapshots Automatiques (`filesystem === 'btrfs'`)** : Partitionnement Btrfs, sous-volumes `@`, `@home`, `@snapshots`, `@var_log`, compression transparente `compress=zstd:3`, `fstab`, argument GRUB `rootflags=subvol=@`, et Snapper.
-  5. 📦 **Injection Automatique de Dotfiles Git (`dotfilesGitUrl`)** : Clonage automatique dans `~/.dotfiles` et exécution sécurisée sous l'utilisateur d'`install.sh` ou `setup.sh`.
-  6. 🔗 **Partage de Recette par URL / Lien Court** : Service `src/services/recipeSharing.ts` avec encodage/décodage Base64 URL-safe, chargement automatique via hash `#recipe=...` au démarrage, et boutons de copie 1-clic dans l'en-tête et l'inspecteur.
-  7. 📊 **Calculateur d'Empreinte RAM & Disque en Direct** : Service `src/services/resourceEstimator.ts` calculant dynamiquement l'ISO, le disque installé et la RAM minimale/recommandée, avec widget pill dans le header.
-  8. Suite de tests : 10 tests unitaires dédiés dans `src/services/generators/advancedFeatures.test.ts`.
+  - Suite de tests : **631 tests**, tous verts (100%). CI + Pages fonctionnels.
+- **25 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
+  1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
+...
+- **25. 🎨 💅 Personnalisation Système Poussée & Design System Avancé (Icônes, Curseurs, Polices, Terminaux, Disposition, Aliases & Sons)** :
+  1. 🖼️ **4 Nouveaux Fonds d'Écran Vectoriels SVG 1920x1080** : `nordic_frost` (Glacier arctique & tons #88c0d0), `sunset_synthwave` (Soleil rétro 80s avec dégradé horizontal et grille 3D), `emerald_forest` (Bio-matrice émeraude #10b981), `tokyo_neon` (Nébuleuse urbaine et pluie néon #7aa2f7).
+  2. 🎨 **Thèmes d'Icônes & Curseurs OOB** : Support de Papirus (Dark/Light), Breeze (Dark/Light), Adwaita, Yaru, et curseurs Bibata Modern, Breeze, Adwaita, DMZ Black câblés dans `/etc/gtk-*`, `/usr/share/icons/default/index.theme`, DConf GNOME, KDE `kcminputrc` et XFCE `xsettings.xml`.
+  3. 🔤 **Typographie & Local Fontconfig** : Polices UI (`Inter`, `Roboto`, `Cantarell`, `DejaVu Sans`) et polices de programmation à ligatures (`JetBrains Mono`, `Fira Code`, `Hack`, `Cascadia Code`) avec génération de `/etc/fonts/local.conf` et `fc-cache -f`.
+  4. 🖥️ **Thèmes de Terminal & Palettes de Couleurs Multi-Émulateurs** : Tokyo Night, Catppuccin Mocha, Dracula, Nord, Gruvbox Dark, Cyberpunk Neon générés nativement pour Kitty (`kitty.conf`), Alacritty (`alacritty.toml`) et XFCE Terminal (`terminalrc`).
+  5. 🪟 **Disposition des Boutons de Fenêtres** : Standard droit (`minimize,maximize,close`) ou style macOS gauche (`close,minimize,maximize:`) câblé dans DConf, KDE `kwinrc` et XFCE `xfwm4.xml`.
+  6. 🐚 **Raccourcis & Aliases Shell Pro** : `/etc/profile.d/99-osforge-aliases.sh` injectant des commandes productivité (`sysupdate` adapté par distro, `ports`, `myip`, `memtop`, `cputop`, `ll`, `la`).
+  7. 🔊 **Son de Démarrage / Chime de Bienvenue** : Script `/usr/local/bin/osforge-startup-sound.sh` et entrée autostart `/etc/xdg/autostart/osforge-startup-sound.desktop`.
+  8. Suite de tests : 24 tests unitaires dédiés dans `src/services/generators/branding.test.ts`. Total suite : **631 tests**.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

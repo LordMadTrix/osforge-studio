@@ -192,6 +192,89 @@ export function generateWallpaperSvg(recipe: OSRecipe): string {
   <text x="960" y="575" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="16" fill="${accent}" text-anchor="middle" letter-spacing="8">${edition.toUpperCase()}</text>
 </svg>`;
 
+    case 'nordic_frost':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="frostBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="iceAurora" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#88c0d0" stop-opacity="0.1"/>
+      <stop offset="50%" stop-color="${accent}" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#81a1c1" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#frostBg)"/>
+  <!-- Geometric Ice Peak -->
+  <polygon points="960,260 1260,780 660,780" fill="none" stroke="${accent}" stroke-width="2.5" opacity="0.8"/>
+  <polygon points="960,340 1180,780 740,780" fill="url(#iceAurora)" opacity="0.3"/>
+  <polygon points="960,420 1100,780 820,780" fill="none" stroke="#88c0d0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="400" y1="840" x2="1520" y2="840" stroke="url(#iceAurora)" stroke-width="2"/>
+  <text x="960" y="890" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="34" fill="#ffffff" text-anchor="middle" letter-spacing="4">${osName}</text>
+  <text x="960" y="925" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="16" fill="#88c0d0" text-anchor="middle" letter-spacing="6">NORDIC FROST // ${edition.toUpperCase()}</text>
+</svg>`;
+
+    case 'sunset_synthwave':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="sunsetSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#180b2c"/>
+      <stop offset="45%" stop-color="#3b0764"/>
+      <stop offset="100%" stop-color="#701a75"/>
+    </linearGradient>
+    <linearGradient id="retroSun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="60%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="${accent}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#sunsetSky)"/>
+  <circle cx="960" cy="560" r="260" fill="url(#retroSun)"/>
+  <rect x="680" y="510" width="560" height="9" fill="#3b0764"/>
+  <rect x="680" y="540" width="560" height="15" fill="#3b0764"/>
+  <rect x="680" y="580" width="560" height="22" fill="#3b0764"/>
+  <rect x="680" y="630" width="560" height="32" fill="#3b0764"/>
+  <line x1="0" y1="680" x2="1920" y2="680" stroke="#f43f5e" stroke-width="3"/>
+  <text x="960" y="760" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="38" fill="#ffffff" text-anchor="middle" letter-spacing="6">${osName.toUpperCase()}</text>
+  <text x="960" y="800" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="16" fill="#fbbf24" text-anchor="middle" letter-spacing="5">SYNTHWAVE // ${edition.toUpperCase()}</text>
+</svg>`;
+
+    case 'emerald_forest':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="emeraldBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#022c22"/>
+      <stop offset="50%" stop-color="#064e3b"/>
+      <stop offset="100%" stop-color="#021f18"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#emeraldBg)"/>
+  <polygon points="960,320 1140,420 1140,640 960,740 780,640 780,420" fill="none" stroke="#10b981" stroke-width="3" opacity="0.8"/>
+  <circle cx="960" cy="530" r="60" fill="#10b981" fill-opacity="0.15" stroke="#34d399" stroke-width="2"/>
+  <line x1="500" y1="800" x2="1420" y2="800" stroke="#10b981" stroke-width="2" opacity="0.6"/>
+  <text x="960" y="850" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="34" fill="#ffffff" text-anchor="middle" letter-spacing="4">${osName}</text>
+  <text x="960" y="885" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="15" fill="#34d399" text-anchor="middle" letter-spacing="6">EMERALD BIO-CORE // ${edition.toUpperCase()}</text>
+</svg>`;
+
+    case 'tokyo_neon':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="tokyoBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#1a1b26"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#tokyoBg)"/>
+  <circle cx="960" cy="520" r="180" fill="none" stroke="#7aa2f7" stroke-width="3" opacity="0.75"/>
+  <polygon points="960,380 1080,450 1080,590 960,660 840,590 840,450" fill="#bb9af7" fill-opacity="0.12" stroke="#bb9af7" stroke-width="2"/>
+  <line x1="600" y1="740" x2="1320" y2="740" stroke="#7aa2f7" stroke-width="2"/>
+  <text x="960" y="790" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="34" fill="#ffffff" text-anchor="middle" letter-spacing="4">${osName}</text>
+  <text x="960" y="825" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="15" fill="#bb9af7" text-anchor="middle" letter-spacing="5">TOKYO NIGHT // ${edition.toUpperCase()}</text>
+</svg>`;
+
     case 'minimal':
     default:
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
@@ -387,42 +470,127 @@ fi
 }
 
 /**
- * Configure la couleur d'accentuation et le thème sombre global (KDE, GTK 3 & 4)
+ * Mappe l'identifiant d'icône vers le nom de dossier de thème d'icônes officiel
+ */
+export function mapIconThemeName(theme?: string): string {
+  switch (theme) {
+    case 'papirus-light': return 'Papirus-Light';
+    case 'breeze-dark': return 'breeze-dark';
+    case 'breeze': return 'breeze';
+    case 'adwaita': return 'Adwaita';
+    case 'yaru-dark': return 'Yaru-dark';
+    case 'papirus-dark':
+    default:
+      return 'Papirus-Dark';
+  }
+}
+
+/**
+ * Mappe l'identifiant de curseur vers le nom de thème de curseur officiel
+ */
+export function mapCursorThemeName(theme?: string): string {
+  switch (theme) {
+    case 'bibata-modern': return 'Bibata-Modern-Classic';
+    case 'adwaita': return 'Adwaita';
+    case 'dmz-black': return 'DMZ-Black';
+    case 'breeze':
+    default:
+      return 'breeze_cursors';
+  }
+}
+
+/**
+ * Mappe l'identifiant de police UI vers la chaîne de police officielle
+ */
+export function mapFontFamilyName(font?: string): string {
+  switch (font) {
+    case 'roboto': return 'Roboto';
+    case 'cantarell': return 'Cantarell';
+    case 'dejavu': return 'DejaVu Sans';
+    case 'jetbrains-mono': return 'JetBrains Mono';
+    case 'fira-code': return 'Fira Code';
+    case 'inter':
+    default:
+      return 'Inter';
+  }
+}
+
+/**
+ * Mappe l'identifiant de police monospace vers la police terminal
+ */
+export function mapMonoFontFamilyName(mono?: string): string {
+  switch (mono) {
+    case 'fira-code': return 'Fira Code';
+    case 'hack': return 'Hack';
+    case 'cascadia-code': return 'Cascadia Code';
+    case 'jetbrains-mono':
+    default:
+      return 'JetBrains Mono';
+  }
+}
+
+/**
+ * Configure la couleur d'accentuation, le thème sombre, les icônes, curseurs et dispositions (KDE, GNOME, XFCE, GTK)
  */
 export function generateGlobalThemeCmd(recipe: OSRecipe): string {
   const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
   const rgb = hexToRgb(accent);
   const gnomeAccent = hexToGnomeAccent(accent);
+  const iconTheme = mapIconThemeName(recipe.branding.iconTheme);
+  const cursorTheme = mapCursorThemeName(recipe.branding.cursorTheme);
+  const uiFont = mapFontFamilyName(recipe.branding.fontFamily);
+  const monoFont = mapMonoFontFamilyName(recipe.branding.monoFontFamily);
+  const buttonsOnLeft = recipe.branding.windowButtonsPosition === 'left';
 
   return `# ==============================================================================
-# Thème Sombre & Couleur d'Accentuation (${accent})
+# Thème Sombre, Icônes (${iconTheme}), Curseurs (${cursorTheme}) & Fenêtres
 # ==============================================================================
-echo -e "\${BLUE}[BRANDING] Application de la couleur d'accentuation (${accent}) et du Dark Theme...\${NC}"
+echo -e "\${BLUE}[BRANDING] Configuration des themes d'icones (${iconTheme}), curseurs (${cursorTheme}) et polices...\${NC}"
 
-# 1. Configuration globale KDE Plasma (kdeglobals)
+# 1. Configuration globale KDE Plasma (kdeglobals, kcminputrc, kwinrc)
 mkdir -p /etc/xdg
 cat << KDEGLOBALS_EOF >> /etc/xdg/kdeglobals
 [General]
 AccentColor=${rgb.r},${rgb.g},${rgb.b}
 ColorScheme=BreezeDark
+font=${uiFont},10,-1,5,50,0,0,0,0,0
+fixed=${monoFont},10,-1,5,50,0,0,0,0,0
 
 [KDE]
 colorScheme=BreezeDark
 lookAndFeelPackage=org.kde.breezedark.desktop
+
+[Icons]
+Theme=${iconTheme}
 KDEGLOBALS_EOF
+
+cat << KCMINPUT_EOF > /etc/xdg/kcminputrc
+[Mouse]
+cursorTheme=${cursorTheme}
+cursorSize=24
+KCMINPUT_EOF
+
+cat << KWINRC_EOF > /etc/xdg/kwinrc
+[org.kde.kdecoration2]
+ButtonsOnLeft=${buttonsOnLeft ? 'XAI' : 'M'}
+ButtonsOnRight=${buttonsOnLeft ? 'M' : 'IAX'}
+KWINRC_EOF
 
 # Copie dans le squelette utilisateur /etc/skel
 mkdir -p /etc/skel/.config
 cp -f /etc/xdg/kdeglobals /etc/skel/.config/kdeglobals 2>/dev/null || true
+cp -f /etc/xdg/kcminputrc /etc/skel/.config/kcminputrc 2>/dev/null || true
+cp -f /etc/xdg/kwinrc /etc/skel/.config/kwinrc 2>/dev/null || true
 
-# 2. Configuration GTK 3 & GTK 4 (Thème sombre + Papirus Dark si installé)
+# 2. Configuration GTK 3 & GTK 4
 mkdir -p /etc/gtk-3.0 /etc/gtk-4.0
 cat << GTK_SETTINGS_EOF > /etc/gtk-3.0/settings.ini
 [Settings]
 gtk-theme-name = Adwaita-dark
 gtk-application-prefer-dark-theme = 1
-gtk-icon-theme-name = Papirus-Dark
-gtk-cursor-theme-name = Breeze_Snow
+gtk-icon-theme-name = ${iconTheme}
+gtk-cursor-theme-name = ${cursorTheme}
+gtk-font-name = ${uiFont} 10
 GTK_SETTINGS_EOF
 
 cp -f /etc/gtk-3.0/settings.ini /etc/gtk-4.0/settings.ini 2>/dev/null || true
@@ -431,17 +599,263 @@ mkdir -p /etc/skel/.config/gtk-3.0 /etc/skel/.config/gtk-4.0
 cp -f /etc/gtk-3.0/settings.ini /etc/skel/.config/gtk-3.0/settings.ini 2>/dev/null || true
 cp -f /etc/gtk-3.0/settings.ini /etc/skel/.config/gtk-4.0/settings.ini 2>/dev/null || true
 
-# 3. DConf Interface Sombre & Accent Color (GNOME / Libadwaita)
+# 3. Thème de curseur par défaut (X11 & Wayland)
+mkdir -p /usr/share/icons/default
+cat << CURSOR_DEF_EOF > /usr/share/icons/default/index.theme
+[Icon Theme]
+Name=Default
+Comment=Default Cursor Theme
+Inherits=${cursorTheme}
+CURSOR_DEF_EOF
+
+# 4. Configuration XFCE (xsettings & xfwm4)
+mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml
+cat << XFSETTINGS_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xsettings" version="1.0">
+  <property name="Net" type="empty">
+    <property name="ThemeName" type="string" value="Adwaita-dark"/>
+    <property name="IconThemeName" type="string" value="${iconTheme}"/>
+  </property>
+  <property name="Gtk" type="empty">
+    <property name="CursorThemeName" type="string" value="${cursorTheme}"/>
+    <property name="FontName" type="string" value="${uiFont} 10"/>
+    <property name="MonospaceFontName" type="string" value="${monoFont} 10"/>
+  </property>
+</channel>
+XFSETTINGS_EOF
+
+cat << XFWM4_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="button_layout" type="string" value="${buttonsOnLeft ? 'CHM|' : 'O|HMC'}"/>
+    <property name="theme" type="string" value="Default-hdpi"/>
+  </property>
+</channel>
+XFWM4_EOF
+
+# 5. DConf Interface Sombre & Accent Color (GNOME / Libadwaita / Cinnamon)
 cat << DCONF_THEME_EOF > /etc/dconf/db/local.d/02-theme
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 gtk-theme='Adwaita-dark'
-icon-theme='Papirus-Dark'
+icon-theme='${iconTheme}'
+cursor-theme='${cursorTheme}'
+font-name='${uiFont} 10'
+monospace-font-name='${monoFont} 10'
 accent-color='${gnomeAccent}'
+
+[org/gnome/desktop/wm/preferences]
+button-layout='${buttonsOnLeft ? 'close,minimize,maximize:' : 'appmenu:minimize,maximize,close'}'
 DCONF_THEME_EOF
 if command -v dconf &>/dev/null; then
     dconf update 2>/dev/null || true
 fi
+`;
+}
+
+/**
+ * Configure les règles Fontconfig par défaut (/etc/fonts/local.conf)
+ */
+export function generateFontconfigCmd(recipe: OSRecipe): string {
+  const uiFont = mapFontFamilyName(recipe.branding.fontFamily);
+  const monoFont = mapMonoFontFamilyName(recipe.branding.monoFontFamily);
+
+  return `# ==============================================================================
+# Configuration Fontconfig Locale (/etc/fonts/local.conf)
+# ==============================================================================
+mkdir -p /etc/fonts
+cat << 'FONTS_CONF_EOF' > /etc/fonts/local.conf
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <!-- Priorité pour police sans-serif (Interface) -->
+  <alias>
+    <family>sans-serif</family>
+    <prefer>
+      <family>${uiFont}</family>
+      <family>DejaVu Sans</family>
+      <family>Noto Sans</family>
+    </prefer>
+  </alias>
+  <!-- Priorité pour police monospace (Terminal & Code) -->
+  <alias>
+    <family>monospace</family>
+    <prefer>
+      <family>${monoFont}</family>
+      <family>DejaVu Sans Mono</family>
+      <family>monospace</family>
+    </prefer>
+  </alias>
+</fontconfig>
+FONTS_CONF_EOF
+
+if command -v fc-cache &>/dev/null; then
+    fc-cache -f 2>/dev/null || true
+fi
+`;
+}
+
+/**
+ * Configure la palette de couleurs des terminaux (Kitty, Alacritty, XFCE Terminal)
+ */
+export function generateTerminalThemeCmd(recipe: OSRecipe): string {
+  const scheme = recipe.branding.terminalColorScheme || 'tokyo-night';
+  const monoFont = mapMonoFontFamilyName(recipe.branding.monoFontFamily);
+
+  // Définition des palettes de couleurs complètes (bg, fg, 16 couleurs ANSI)
+  type Palette = { bg: string; fg: string; c0: string; c1: string; c2: string; c3: string; c4: string; c5: string; c6: string; c7: string };
+  const palettes: Record<string, Palette> = {
+    'tokyo-night': { bg: '#1a1b26', fg: '#c0caf5', c0: '#15161e', c1: '#f7768e', c2: '#9ece6a', c3: '#e0af68', c4: '#7aa2f7', c5: '#bb9af7', c6: '#7dcfff', c7: '#a9b1d6' },
+    'catppuccin-mocha': { bg: '#1e1e2e', fg: '#cdd6f4', c0: '#45475a', c1: '#f38ba8', c2: '#a6e3a1', c3: '#f9e2af', c4: '#89b4fa', c5: '#cba6f7', c6: '#94e2d5', c7: '#bac2de' },
+    'dracula': { bg: '#282a36', fg: '#f8f8f2', c0: '#21222c', c1: '#ff5555', c2: '#50fa7b', c3: '#f1fa8c', c4: '#bd93f9', c5: '#ff79c6', c6: '#8be9fd', c7: '#f8f8f2' },
+    'nord': { bg: '#2e3440', fg: '#d8dee9', c0: '#3b4252', c1: '#bf616a', c2: '#a3be8c', c3: '#ebcb8b', c4: '#81a1c1', c5: '#b48ead', c6: '#88c0d0', c7: '#e5e9f0' },
+    'gruvbox-dark': { bg: '#282828', fg: '#ebdbb2', c0: '#282828', c1: '#cc241d', c2: '#98971a', c3: '#d79921', c4: '#458588', c5: '#b16286', c6: '#689d6a', c7: '#a89984' },
+    'cyberpunk-neon': { bg: '#080811', fg: '#00ffcc', c0: '#0e101a', c1: '#ff0055', c2: '#39ff14', c3: '#ffe600', c4: '#00e5ff', c5: '#ff007f', c6: '#00ffff', c7: '#ffffff' },
+  };
+
+  const pal = palettes[scheme] || palettes['tokyo-night'];
+
+  return `# ==============================================================================
+# Thème de Terminal & Palette de Couleurs (${scheme})
+# ==============================================================================
+echo -e "\${BLUE}[BRANDING] Configuration du theme terminal (${scheme})...\${NC}"
+
+# 1. Kitty Terminal
+mkdir -p /etc/xdg/kitty /etc/skel/.config/kitty
+cat << 'KITTY_THEME_EOF' > /etc/xdg/kitty/kitty.conf
+# OSForge Studio - Theme: ${scheme}
+font_family      ${monoFont}
+font_size        11.0
+background       ${pal.bg}
+foreground       ${pal.fg}
+cursor           ${pal.fg}
+selection_background ${pal.c4}
+selection_foreground ${pal.bg}
+color0  ${pal.c0}
+color1  ${pal.c1}
+color2  ${pal.c2}
+color3  ${pal.c3}
+color4  ${pal.c4}
+color5  ${pal.c5}
+color6  ${pal.c6}
+color7  ${pal.c7}
+KITTY_THEME_EOF
+cp -f /etc/xdg/kitty/kitty.conf /etc/skel/.config/kitty/kitty.conf 2>/dev/null || true
+
+# 2. Alacritty Terminal
+mkdir -p /etc/xdg/alacritty /etc/skel/.config/alacritty
+cat << 'ALACRITTY_THEME_EOF' > /etc/xdg/alacritty/alacritty.toml
+[font]
+size = 11.0
+[font.normal]
+family = "${monoFont}"
+
+[colors.primary]
+background = "${pal.bg}"
+foreground = "${pal.fg}"
+
+[colors.normal]
+black   = "${pal.c0}"
+red     = "${pal.c1}"
+green   = "${pal.c2}"
+yellow  = "${pal.c3}"
+blue    = "${pal.c4}"
+magenta = "${pal.c5}"
+cyan    = "${pal.c6}"
+white   = "${pal.c7}"
+ALACRITTY_THEME_EOF
+cp -f /etc/xdg/alacritty/alacritty.toml /etc/skel/.config/alacritty/alacritty.toml 2>/dev/null || true
+
+# 3. XFCE Terminal
+mkdir -p /etc/xdg/xfce4/terminal /etc/skel/.config/xfce4/terminal
+cat << 'XFCETERM_EOF' > /etc/xdg/xfce4/terminal/terminalrc
+[Configuration]
+FontName=${monoFont} 10
+ColorPalette=${pal.c0};${pal.c1};${pal.c2};${pal.c3};${pal.c4};${pal.c5};${pal.c6};${pal.c7};${pal.c0};${pal.c1};${pal.c2};${pal.c3};${pal.c4};${pal.c5};${pal.c6};${pal.c7}
+ColorBackground=${pal.bg}
+ColorForeground=${pal.fg}
+ColorCursor=${pal.fg}
+XFCETERM_EOF
+cp -f /etc/xdg/xfce4/terminal/terminalrc /etc/skel/.config/xfce4/terminal/terminalrc 2>/dev/null || true
+`;
+}
+
+/**
+ * Configure les alias shell de productivité (/etc/profile.d/99-osforge-aliases.sh)
+ */
+export function generateProAliasesCmd(recipe: OSRecipe): string {
+  if (recipe.branding.enableProAliases === false) {
+    return '# [Branding] Aliases pro désactivés';
+  }
+
+  const pkgMgr = recipe.distro === 'arch' || recipe.distro === 'cachyos' ? 'pacman -Syu'
+    : recipe.distro === 'fedora' || recipe.distro === 'rocky' ? 'dnf upgrade --refresh'
+    : recipe.distro === 'alpine' ? 'apk update && apk upgrade'
+    : recipe.distro === 'opensuse' ? 'zypper refresh && zypper update'
+    : recipe.distro === 'void' ? 'xbps-install -Su'
+    : 'apt update && apt upgrade -y';
+
+  return `# ==============================================================================
+# Raccourcis & Aliases Shell Pro (/etc/profile.d/99-osforge-aliases.sh)
+# ==============================================================================
+cat << 'ALIASES_EOF' > /etc/profile.d/99-osforge-aliases.sh
+#!/bin/sh
+# Aliases de navigation et confort
+alias ll='ls -la --color=auto 2>/dev/null || ls -la'
+alias la='ls -A --color=auto 2>/dev/null || ls -A'
+alias l='ls -CF --color=auto 2>/dev/null || ls -CF'
+alias grep='grep --color=auto'
+alias df='df -h'
+alias free='free -h'
+alias cls='clear'
+
+# Utilitaires système en 1 mot
+alias ports='netstat -tulanp 2>/dev/null || ss -tulanp 2>/dev/null || lsof -i'
+alias myip='curl -sSL https://ifconfig.me/ip 2>/dev/null || hostname -I | cut -d" " -f1'
+alias memtop='ps aux --sort=-%mem 2>/dev/null | head -n 11'
+alias cputop='ps aux --sort=-%cpu 2>/dev/null | head -n 11'
+alias sysupdate='sudo ${pkgMgr}'
+ALIASES_EOF
+chmod +x /etc/profile.d/99-osforge-aliases.sh
+`;
+}
+
+/**
+ * Configure le carillon audio ou son de démarrage (/etc/xdg/autostart/)
+ */
+export function generateStartupSoundCmd(recipe: OSRecipe): string {
+  if (!recipe.branding.enableStartupSound) {
+    return '# [Branding] Son de démarrage non activé';
+  }
+
+  return `# ==============================================================================
+# Son de Démarrage / Chime Audio de Bienvenue
+# ==============================================================================
+mkdir -p /usr/local/bin /etc/xdg/autostart
+cat << 'SOUND_SCRIPT_EOF' > /usr/local/bin/osforge-startup-sound.sh
+#!/bin/sh
+sleep 1
+if command -v pw-play >/dev/null 2>&1; then
+    pw-play /usr/share/sounds/freedesktop/stereo/service-login.oga 2>/dev/null || true
+elif command -v paplay >/dev/null 2>&1; then
+    paplay /usr/share/sounds/freedesktop/stereo/service-login.oga 2>/dev/null || true
+elif command -v aplay >/dev/null 2>&1; then
+    aplay /usr/share/sounds/alsa/Front_Center.wav 2>/dev/null || true
+fi
+SOUND_SCRIPT_EOF
+chmod +x /usr/local/bin/osforge-startup-sound.sh
+
+cat << 'SOUND_DESKTOP_EOF' > /etc/xdg/autostart/osforge-startup-sound.desktop
+[Desktop Entry]
+Type=Application
+Name=Startup Chime
+Exec=/usr/local/bin/osforge-startup-sound.sh
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+SOUND_DESKTOP_EOF
 `;
 }
 
@@ -621,6 +1035,14 @@ ${generateOsReleaseCmd(recipe, baseId)}
 ${generateWallpaperSetupCmd(recipe)}
 
 ${generateGlobalThemeCmd(recipe)}
+
+${generateFontconfigCmd(recipe)}
+
+${generateTerminalThemeCmd(recipe)}
+
+${generateProAliasesCmd(recipe)}
+
+${generateStartupSoundCmd(recipe)}
 
 ${generateFastfetchMotdCmd(recipe)}
 

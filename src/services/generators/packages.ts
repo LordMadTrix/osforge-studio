@@ -442,5 +442,85 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('fastfetch');
   }
 
+  // Thèmes d'icônes personnalisés
+  const iconTheme = recipe.branding.iconTheme;
+  if (iconTheme === 'papirus-dark' || iconTheme === 'papirus-light') {
+    pkgs.push('papirus-icon-theme');
+  } else if (iconTheme === 'breeze-dark' || iconTheme === 'breeze') {
+    if (isDebianLike || isFedoraLike || distroId === 'opensuse') {
+      pkgs.push('breeze-icon-theme');
+    } else if (isArchLike || distroId === 'alpine' || distroId === 'void') {
+      pkgs.push('breeze-icons');
+    }
+  } else if (iconTheme === 'adwaita') {
+    pkgs.push('adwaita-icon-theme');
+  } else if (iconTheme === 'yaru-dark' && isDebianLike) {
+    pkgs.push('yaru-theme-icon');
+  }
+
+  // Thèmes de curseurs personnalisés
+  const cursorTheme = recipe.branding.cursorTheme;
+  if (cursorTheme === 'bibata-modern' && isDebianLike) {
+    pkgs.push('bibata-cursor-theme');
+  } else if (cursorTheme === 'breeze') {
+    if (isArchLike) {
+      pkgs.push('xcursor-breeze');
+    } else if (isDebianLike || isFedoraLike || distroId === 'opensuse') {
+      pkgs.push('breeze-cursor-theme');
+    }
+  } else if (cursorTheme === 'adwaita') {
+    if (isArchLike) {
+      pkgs.push('adwaita-cursors');
+    } else if (isFedoraLike) {
+      pkgs.push('adwaita-cursor-theme');
+    } else {
+      pkgs.push('adwaita-icon-theme');
+    }
+  } else if (cursorTheme === 'dmz-black' && isDebianLike) {
+    pkgs.push('dmz-cursor-theme');
+  }
+
+  // Polices d'interface (Sans-Serif)
+  const font = recipe.branding.fontFamily;
+  if (font === 'inter') {
+    if (isDebianLike) pkgs.push('fonts-inter');
+    else if (isArchLike) pkgs.push('inter-font');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('inter-fonts');
+    else if (distroId === 'alpine') pkgs.push('font-inter');
+  } else if (font === 'roboto') {
+    if (isDebianLike) pkgs.push('fonts-roboto');
+    else if (isArchLike) pkgs.push('ttf-roboto');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('google-roboto-fonts');
+    else if (distroId === 'alpine') pkgs.push('font-roboto');
+  } else if (font === 'cantarell') {
+    if (isDebianLike) pkgs.push('fonts-cantarell');
+    else pkgs.push('cantarell-fonts');
+  } else if (font === 'dejavu') {
+    if (isDebianLike) pkgs.push('fonts-dejavu');
+    else if (isArchLike) pkgs.push('ttf-dejavu');
+    else if (isFedoraLike) pkgs.push('dejavu-sans-fonts');
+    else if (distroId === 'alpine') pkgs.push('font-dejavu');
+    else pkgs.push('dejavu-fonts');
+  }
+
+  // Polices Monospace / Terminal
+  const mono = recipe.branding.monoFontFamily;
+  if (mono === 'jetbrains-mono') {
+    if (isDebianLike) pkgs.push('fonts-jetbrains-mono');
+    else if (isArchLike) pkgs.push('ttf-jetbrains-mono');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('jetbrains-mono-fonts');
+    else if (distroId === 'alpine' || distroId === 'void') pkgs.push('font-jetbrains-mono');
+  } else if (mono === 'fira-code') {
+    if (isDebianLike) pkgs.push('fonts-firacode');
+    else if (isArchLike) pkgs.push('ttf-fira-code');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('fira-code-fonts');
+    else if (distroId === 'alpine') pkgs.push('font-fira-code');
+  } else if (mono === 'hack') {
+    if (isDebianLike) pkgs.push('fonts-hack');
+    else if (isArchLike) pkgs.push('ttf-hack');
+    else if (isFedoraLike || distroId === 'opensuse') pkgs.push('hack-fonts');
+    else if (distroId === 'alpine') pkgs.push('font-hack');
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }

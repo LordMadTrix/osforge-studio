@@ -13,6 +13,10 @@ import {
   generateFastfetchMotdCmd,
   generatePlymouthCmd,
   generateGrubThemeCmd,
+  generateFontconfigCmd,
+  generateTerminalThemeCmd,
+  generateProAliasesCmd,
+  generateStartupSoundCmd,
   generateBrandingChrootCommands,
 } from './branding';
 import { resolvePackageList } from './packages';
@@ -230,15 +234,134 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(fullCmd).toContain('plymouth-set-default-theme');
       expect(fullCmd).toContain('/boot/grub/themes');
     });
+
+    it('generateWallpaperSvg : génère les 4 nouveaux thèmes (nordic_frost, sunset_synthwave, emerald_forest, tokyo_neon)', () => {
+      const rFrost = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'nordic_frost' } });
+      expect(generateWallpaperSvg(rFrost)).toContain('NORDIC FROST');
+
+      const rSynth = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'sunset_synthwave' } });
+      expect(generateWallpaperSvg(rSynth)).toContain('SYNTHWAVE');
+
+      const rEmerald = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'emerald_forest' } });
+      expect(generateWallpaperSvg(rEmerald)).toContain('EMERALD BIO-CORE');
+
+      const rTokyo = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'tokyo_neon' } });
+      expect(generateWallpaperSvg(rTokyo)).toContain('TOKYO NIGHT');
+    });
+
+    it('generateGlobalThemeCmd : configure les icônes, curseurs, polices et disposition des boutons à gauche', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          iconTheme: 'papirus-dark',
+          cursorTheme: 'bibata-modern',
+          fontFamily: 'inter',
+          monoFontFamily: 'jetbrains-mono',
+          windowButtonsPosition: 'left',
+        },
+      });
+      const cmd = generateGlobalThemeCmd(recipe);
+      expect(cmd).toContain('gtk-icon-theme-name = Papirus-Dark');
+      expect(cmd).toContain('gtk-cursor-theme-name = Bibata-Modern-Classic');
+      expect(cmd).toContain('gtk-font-name = Inter 10');
+      expect(cmd).toContain('/usr/share/icons/default/index.theme');
+      expect(cmd).toContain('ButtonsOnLeft=XAI');
+      expect(cmd).toContain("button-layout='close,minimize,maximize:'");
+      expect(cmd).toContain('value="CHM|"');
+    });
+
+    it('generateFontconfigCmd : génère le fichier local.conf avec les polices UI et Monospace', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          fontFamily: 'inter',
+          monoFontFamily: 'jetbrains-mono',
+        },
+      });
+      const cmd = generateFontconfigCmd(recipe);
+      expect(cmd).toContain('/etc/fonts/local.conf');
+      expect(cmd).toContain('<family>Inter</family>');
+      expect(cmd).toContain('<family>JetBrains Mono</family>');
+      expect(cmd).toContain('fc-cache');
+    });
+
+    it('generateTerminalThemeCmd : génère les palettes pour Kitty, Alacritty et XFCE Terminal', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          terminalColorScheme: 'tokyo-night',
+          monoFontFamily: 'jetbrains-mono',
+        },
+      });
+      const cmd = generateTerminalThemeCmd(recipe);
+      expect(cmd).toContain('/etc/xdg/kitty/kitty.conf');
+      expect(cmd).toContain('background       #1a1b26');
+      expect(cmd).toContain('/etc/xdg/alacritty/alacritty.toml');
+      expect(cmd).toContain('background = "#1a1b26"');
+      expect(cmd).toContain('/etc/xdg/xfce4/terminal/terminalrc');
+      expect(cmd).toContain('ColorBackground=#1a1b26');
+    });
+
+    it('generateProAliasesCmd : génère les raccourcis shell pro dans /etc/profile.d/', () => {
+      const recipe = makeRecipe({ distro: 'debian' });
+      const cmd = generateProAliasesCmd(recipe);
+      expect(cmd).toContain('/etc/profile.d/99-osforge-aliases.sh');
+      expect(cmd).toContain("alias ll='ls -la");
+      expect(cmd).toContain("alias ports='netstat");
+      expect(cmd).toContain("alias myip='curl");
+      expect(cmd).toContain("alias sysupdate='sudo apt update && apt upgrade -y'");
+    });
+
+    it('generateStartupSoundCmd : crée le script et l’entrée autostart desktop si activé', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          enableStartupSound: true,
+        },
+      });
+      const cmd = generateStartupSoundCmd(recipe);
+      expect(cmd).toContain('/usr/local/bin/osforge-startup-sound.sh');
+      expect(cmd).toContain('/etc/xdg/autostart/osforge-startup-sound.desktop');
+      expect(cmd).toContain('service-login.oga');
+    });
   });
 
-  describe('Résolution des Paquets Système de Branding', () => {
-    it('resolvePackageList inclut plymouth, plymouth-themes et fastfetch si configurés', () => {
-      const recipe = makeRecipe();
+  describe('Résolution des Paquets Système de Branding & Personnalisation', () => {
+    it('resolvePackageList inclut plymouth, fastfetch, icônes et polices sur mesure', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          iconTheme: 'papirus-dark',
+          cursorTheme: 'bibata-modern',
+          fontFamily: 'inter',
+          monoFontFamily: 'jetbrains-mono',
+        },
+      });
       const pkgs = resolvePackageList(recipe);
       expect(pkgs).toContain('plymouth');
-      expect(pkgs).toContain('plymouth-themes');
       expect(pkgs).toContain('fastfetch');
+      expect(pkgs).toContain('papirus-icon-theme');
+      expect(pkgs).toContain('bibata-cursor-theme');
+      expect(pkgs).toContain('fonts-inter');
+      expect(pkgs).toContain('fonts-jetbrains-mono');
+    });
+
+    it('resolvePackageList résout correctement les paquets sous Arch Linux', () => {
+      const recipe = makeRecipe({
+        distro: 'arch',
+        branding: {
+          ...makeRecipe().branding,
+          iconTheme: 'breeze',
+          cursorTheme: 'breeze',
+          fontFamily: 'inter',
+          monoFontFamily: 'jetbrains-mono',
+        },
+      });
+      const pkgs = resolvePackageList(recipe);
+      expect(pkgs).toContain('breeze-icons');
+      expect(pkgs).toContain('xcursor-breeze');
+      expect(pkgs).toContain('inter-font');
+      expect(pkgs).toContain('ttf-jetbrains-mono');
     });
   });
 });

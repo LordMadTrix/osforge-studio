@@ -333,13 +333,14 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
             />
           </h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* 1. Accent Color */}
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
                 {lang === 'fr' ? 'Couleur d’Accentuation Système' : 'System Accent Color'}
               </label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                {['#0ea5e9', '#84a05c', '#a855f7', '#f59e0b', '#ec4899', '#f43f5e', '#6366f1'].map(color => (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {['#0ea5e9', '#84a05c', '#a855f7', '#f59e0b', '#ec4899', '#f43f5e', '#6366f1', '#10b981', '#14b8a6', '#e11d48'].map(color => (
                   <button
                     key={color}
                     onClick={() => onChange({
@@ -353,46 +354,215 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                       border: recipe.branding.accentColor === color ? '2px solid #ffffff' : '2px solid transparent',
                       cursor: 'pointer',
                       boxShadow: recipe.branding.accentColor === color ? '0 0 10px ' + color : 'none',
+                      transition: 'transform 0.15s ease',
                     }}
+                    title={color}
                   />
                 ))}
               </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                {lang === 'fr' ? 'Fond d’Écran & Style Graphique' : 'Wallpaper Preset & Style'}
-              </label>
-              <select
-                className="input-select"
-                value={recipe.branding.wallpaperPreset || 'minimal'}
-                onChange={(e) => onChange({
-                  branding: { ...recipe.branding, wallpaperPreset: e.target.value }
-                })}
-              >
-                <option value="minimal">Minimal Slate (Ardoise sobre & géométrie épurée)</option>
-                <option value="cyberpunk">Cyberpunk Neon (Grille synthwave & soleil néon)</option>
-                <option value="matrix">Matrix Hacker (Pluie numérique verte)</option>
-                <option value="gaming_rog">Gaming ROG (Fibre de carbone & rouge gamer)</option>
-                <option value="deep_space">Deep Space (Cosmos, nébuleuse & étoiles)</option>
-              </select>
+            {/* 2. Wallpaper & Style */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  {lang === 'fr' ? 'Fond d’Écran Vectoriel HD (1920x1080)' : 'Vector HD Wallpaper Preset'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.branding.wallpaperPreset || 'minimal'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, wallpaperPreset: e.target.value }
+                  })}
+                >
+                  <option value="minimal">Minimal Slate (Ardoise sobre & géométrie épurée)</option>
+                  <option value="nordic_frost">Nordic Frost (Glacier arctique & aurore #88c0d0)</option>
+                  <option value="sunset_synthwave">Sunset Synthwave (Soleil rétro 80s & grille)</option>
+                  <option value="emerald_forest">Emerald Forest (Bio-matrice émeraude #10b981)</option>
+                  <option value="tokyo_neon">Tokyo Neon (Pluie tokyoïte & halo violet)</option>
+                  <option value="cyberpunk">Cyberpunk Neon (Grille synthwave & soleil néon)</option>
+                  <option value="matrix">Matrix Hacker (Pluie numérique verte)</option>
+                  <option value="gaming_rog">Gaming ROG (Fibre de carbone & rouge gamer)</option>
+                  <option value="deep_space">Deep Space (Cosmos, nébuleuse & étoiles)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  {lang === 'fr' ? 'URL Fond d’Écran Personnalisé (Optionnel)' : 'Custom Wallpaper Image URL (Optional)'}
+                </label>
+                <input
+                  type="text"
+                  className="input-text"
+                  value={recipe.branding.customWallpaperUrl || ''}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, customWallpaperUrl: e.target.value }
+                  })}
+                  placeholder="https://example.com/wallpaper.png"
+                />
+              </div>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                {lang === 'fr' ? 'URL Fond d’Écran Personnalisé (Optionnel)' : 'Custom Wallpaper Image URL (Optional)'}
-              </label>
-              <input
-                type="text"
-                className="input-text"
-                value={recipe.branding.customWallpaperUrl || ''}
-                onChange={(e) => onChange({
-                  branding: { ...recipe.branding, customWallpaperUrl: e.target.value }
-                })}
-                placeholder="https://example.com/wallpaper.png"
-              />
+            {/* 3. Icon Theme & Cursor Theme */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  🎨 {lang === 'fr' ? 'Pack d’Icônes Système' : 'System Icon Theme'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.branding.iconTheme || 'papirus-dark'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, iconTheme: e.target.value as any }
+                  })}
+                >
+                  <option value="papirus-dark">Papirus Dark (Recommandé - Moderne & SVG)</option>
+                  <option value="papirus-light">Papirus Light (Clair & épuré)</option>
+                  <option value="breeze-dark">Breeze Dark (KDE Plasma Flat officiel)</option>
+                  <option value="breeze">Breeze Light (KDE Clair officiel)</option>
+                  <option value="adwaita">Adwaita (GNOME Standard)</option>
+                  <option value="yaru-dark">Yaru Dark (Ubuntu Style)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  👆 {lang === 'fr' ? 'Thème de Curseur Souris' : 'Mouse Cursor Theme'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.branding.cursorTheme || 'breeze'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, cursorTheme: e.target.value as any }
+                  })}
+                >
+                  <option value="breeze">Breeze Cursors (Haute visibilité / Universel)</option>
+                  <option value="bibata-modern">Bibata Modern Classic (Material arrondi)</option>
+                  <option value="adwaita">Adwaita Cursor (GNOME Standard)</option>
+                  <option value="dmz-black">DMZ Black (Classique Linux)</option>
+                </select>
+              </div>
             </div>
 
+            {/* 4. Fonts: Interface & Monospace */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  🔤 {lang === 'fr' ? 'Police d’Interface (Sans-Serif)' : 'Interface Font (Sans-Serif)'}
+                </label>
+                <select
+                  className="input-select font-mono"
+                  value={recipe.branding.fontFamily || 'inter'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, fontFamily: e.target.value as any }
+                  })}
+                >
+                  <option value="inter">Inter (Recommandé - Écrans & Lisibilité UI)</option>
+                  <option value="roboto">Roboto (Material Design universel)</option>
+                  <option value="cantarell">Cantarell (Standard GNOME moderne)</option>
+                  <option value="dejavu">DejaVu Sans (Robuste & complet)</option>
+                  <option value="jetbrains-mono">JetBrains Mono (Style hacker pro)</option>
+                  <option value="fira-code">Fira Code (Moderne)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  ⌨️ {lang === 'fr' ? 'Police Terminal & Code (Monospace)' : 'Terminal & Code Font (Monospace)'}
+                </label>
+                <select
+                  className="input-select font-mono"
+                  value={recipe.branding.monoFontFamily || 'jetbrains-mono'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, monoFontFamily: e.target.value as any }
+                  })}
+                >
+                  <option value="jetbrains-mono">JetBrains Mono (Ligatures & clarté dev)</option>
+                  <option value="fira-code">Fira Code (Ligatures programmation)</option>
+                  <option value="hack">Hack (Standard sysadmin lisible)</option>
+                  <option value="cascadia-code">Cascadia Code (Microsoft Terminal)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 5. Terminal Color Scheme & Window Buttons Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  🖥️ {lang === 'fr' ? 'Palette Terminal (Kitty, Alacritty, XFCE)' : 'Terminal Color Scheme'}
+                </label>
+                <select
+                  className="input-select font-mono"
+                  value={recipe.branding.terminalColorScheme || 'tokyo-night'}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, terminalColorScheme: e.target.value as any }
+                  })}
+                >
+                  <option value="tokyo-night">Tokyo Night (Bleu nuit néon cyberpunk)</option>
+                  <option value="catppuccin-mocha">Catppuccin Mocha (Pastel doux moderne)</option>
+                  <option value="dracula">Dracula (Anthracite & violet gothique)</option>
+                  <option value="nord">Nord (Bleu glacier arctique apaisant)</option>
+                  <option value="gruvbox-dark">Gruvbox Dark (Rétro chaud confortable)</option>
+                  <option value="cyberpunk-neon">Cyberpunk Neon (Noir pur & cyan/magenta)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  🪟 {lang === 'fr' ? 'Disposition des Boutons de Fenêtres' : 'Window Controls Position'}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => onChange({
+                      branding: { ...recipe.branding, windowButtonsPosition: 'right' }
+                    })}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      fontSize: '0.76rem',
+                      border: (!recipe.branding.windowButtonsPosition || recipe.branding.windowButtonsPosition === 'right')
+                        ? '1px solid #38bdf8'
+                        : '1px solid var(--border-subtle)',
+                      background: (!recipe.branding.windowButtonsPosition || recipe.branding.windowButtonsPosition === 'right')
+                        ? 'rgba(56, 189, 248, 0.15)'
+                        : 'rgba(15, 23, 42, 0.6)',
+                      color: (!recipe.branding.windowButtonsPosition || recipe.branding.windowButtonsPosition === 'right')
+                        ? '#38bdf8'
+                        : 'var(--text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    👉 {lang === 'fr' ? 'À Droite (Standard)' : 'Right (Standard)'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange({
+                      branding: { ...recipe.branding, windowButtonsPosition: 'left' }
+                    })}
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      fontSize: '0.76rem',
+                      border: recipe.branding.windowButtonsPosition === 'left'
+                        ? '1px solid #38bdf8'
+                        : '1px solid var(--border-subtle)',
+                      background: recipe.branding.windowButtonsPosition === 'left'
+                        ? 'rgba(56, 189, 248, 0.15)'
+                        : 'rgba(15, 23, 42, 0.6)',
+                      color: recipe.branding.windowButtonsPosition === 'left'
+                        ? '#38bdf8'
+                        : 'var(--text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    👈 {lang === 'fr' ? 'À Gauche (macOS)' : 'Left (macOS)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. Plymouth Theme */}
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
                 {lang === 'fr' ? 'Thème Plymouth (Boot Splash)' : 'Plymouth Splash Theme'}
@@ -413,8 +583,9 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
               </select>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+            {/* 7. Feature Toggles */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-main)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={recipe.branding.enableCustomOsRelease !== false}
@@ -422,10 +593,10 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                     branding: { ...recipe.branding, enableCustomOsRelease: e.target.checked }
                   })}
                 />
-                <span>{lang === 'fr' ? 'Identité Système (/etc/os-release & Logo dans les Paramètres)' : 'System Identity (/etc/os-release & Settings Logo)'}</span>
+                <span>{lang === 'fr' ? 'Identité Système (/etc/os-release & Pixmap)' : 'System Identity (/etc/os-release)'}</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-main)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={recipe.branding.enableFastfetchMotd !== false}
@@ -433,10 +604,10 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                     branding: { ...recipe.branding, enableFastfetchMotd: e.target.checked }
                   })}
                 />
-                <span>{lang === 'fr' ? 'Bannière Terminal & Fastfetch aux couleurs de l’OS' : 'Terminal Banner & Fastfetch in OS Colors'}</span>
+                <span>{lang === 'fr' ? 'Bannière Terminal & Fastfetch aux couleurs OS' : 'Terminal Banner & Fastfetch in OS Colors'}</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-main)', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={Boolean(recipe.branding.enableGrubTheme)}
@@ -444,7 +615,29 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                     branding: { ...recipe.branding, enableGrubTheme: e.target.checked }
                   })}
                 />
-                <span>{lang === 'fr' ? 'Thème GRUB 2 Graphique HD avec fond coordonné' : 'HD Graphical GRUB 2 Theme with matching background'}</span>
+                <span>{lang === 'fr' ? 'Thème GRUB 2 Graphique HD Coordonné' : 'HD Graphical GRUB 2 Theme'}</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={recipe.branding.enableProAliases !== false}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, enableProAliases: e.target.checked }
+                  })}
+                />
+                <span>{lang === 'fr' ? 'Pack Raccourcis & Aliases Shell Pro (sysupdate, ports...)' : 'Pro Shell Aliases (sysupdate, ports...)'}</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-main)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(recipe.branding.enableStartupSound)}
+                  onChange={(e) => onChange({
+                    branding: { ...recipe.branding, enableStartupSound: e.target.checked }
+                  })}
+                />
+                <span>{lang === 'fr' ? 'Son de Démarrage / Chime Audio au login' : 'Startup Sound Chime on Login'}</span>
               </label>
             </div>
           </div>
