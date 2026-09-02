@@ -442,6 +442,15 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('fastfetch');
   }
 
+  // Profil Passerelle Réseau & Sécurité Domestique OOB
+  if (recipe.enableNetworkSecurityGateway) {
+    if (isDebianLike) {
+      pkgs.push('wireguard', 'wireguard-tools', 'fail2ban', 'cockpit', 'curl', 'tar');
+    } else if (isFedoraLike || isArchLike) {
+      pkgs.push('wireguard-tools', 'fail2ban', 'cockpit', 'curl', 'tar');
+    }
+  }
+
   // Thèmes d'icônes personnalisés
   const iconTheme = recipe.branding.iconTheme;
   if (iconTheme === 'papirus-dark' || iconTheme === 'papirus-light') {

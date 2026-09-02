@@ -189,4 +189,54 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(script).toContain('rootflags=subvol=@');
     });
   });
+
+  describe('8. Mode OS Immuable (RootFS Read-Only + OverlayFS en RAM)', () => {
+    it('génère le hook initramfs 01_overlay_root et la bannière de sécurité', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        enableImmutableRootfs: true,
+        enableSelectivePersistence: true,
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/initramfs-tools/scripts/init-bottom/01_overlay_root');
+      expect(script).toContain('mount -t tmpfs -o "size=75%,mode=0755" tmpfs /run/overlay');
+      expect(script).toContain('mount -t overlay overlay -o lowerdir=${rootmnt},upperdir=/run/overlay/upper,workdir=/run/overlay/work ${rootmnt}');
+      expect(script).toContain('/etc/profile.d/01-immutable-banner.sh');
+      expect(script).toContain('mkdir -p /home/testuser/Persistent');
+    });
+  });
+
+  describe('9. Dépôts Officiels Tiers Modernes (APT Keyrings /etc/apt/keyrings/)', () => {
+    it('configure les clés GPG et les sources deb822 pour VSCodium, Docker CE et WineHQ', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        thirdPartyRepos: ['vscodium', 'docker_ce', 'winehq'],
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/apt/keyrings/vscodium-archive-keyring.gpg');
+      expect(script).toContain('/etc/apt/sources.list.d/vscodium.sources');
+      expect(script).toContain('/etc/apt/keyrings/docker.gpg');
+      expect(script).toContain('/etc/apt/sources.list.d/docker.sources');
+      expect(script).toContain('dpkg --add-architecture i386');
+      expect(script).toContain('/etc/apt/keyrings/winehq-archive.key');
+      expect(script).toContain('/etc/apt/sources.list.d/winehq.sources');
+    });
+  });
+
+  describe('10. Profil Passerelle Réseau & Sécurité Domestique OOB (AdGuard Home + VPN + Cockpit)', () => {
+    it('installe AdGuard Home, active WireGuard et configure le routage IP', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        enableNetworkSecurityGateway: true,
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/sysctl.d/99-gateway.conf');
+      expect(script).toContain('net.ipv4.ip_forward = 1');
+      expect(script).toContain('AdGuardHome_linux_amd64.tar.gz');
+      expect(script).toContain('/opt/AdGuardHome/AdGuardHome -s install');
+      expect(script).toContain('systemctl enable cockpit.socket');
+      expect(script).toContain('systemctl enable fail2ban');
+    });
+  });
 });
+

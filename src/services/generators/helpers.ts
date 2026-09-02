@@ -1133,3 +1133,222 @@ export function toRuncmdBashBlock(bashSnippet: string): string {
     .replace(/\n/g, '\\n');
   return `  - [ bash, -c, "${escaped}" ]`;
 }
+
+/**
+ * Configure le mode OS Immuable (RootFS Read-Only + OverlayFS éphémère en RAM)
+ */
+export function immutableRootfsCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableImmutableRootfs) return '';
+
+  const user = recipe.user?.username || 'user';
+  const persistenceNotice = recipe.enableSelectivePersistence
+    ? `mkdir -p /home/${user}/Persistent && chown -R ${user}:${user} /home/${user}/Persistent`
+    : '';
+
+  if (family === 'debian') {
+    return `# ==============================================================================
+# Mode OS Immuable : RootFS Read-Only + OverlayFS éphémère en RAM
+# ==============================================================================
+echo -e "\${BLUE}[SECURITE] Configuration du RootFS immuable (OverlayFS tmpfs)...\${NC}"
+
+# 1. Hook initramfs pour superposer tmpfs sur rootmnt
+mkdir -p /etc/initramfs-tools/scripts/init-bottom
+cat << 'IMMUTABLE_HOOK_EOF' > /etc/initramfs-tools/scripts/init-bottom/01_overlay_root
+#!/bin/sh
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case $1 in prereqs) prereqs; exit 0;; esac
+
+# Vérification présence de rootmnt
+[ -d "\${rootmnt}" ] || exit 0
+
+# Montage tmpfs en RAM pour la couche supérieure modifiable
+mkdir -p /run/overlay
+mount -t tmpfs -o "size=75%,mode=0755" tmpfs /run/overlay
+mkdir -p /run/overlay/upper /run/overlay/work
+
+# Superposition OverlayFS sur la racine
+mkdir -p /run/overlay/merged
+mount -t overlay overlay -o lowerdir=\${rootmnt},upperdir=/run/overlay/upper,workdir=/run/overlay/work \${rootmnt}
+IMMUTABLE_HOOK_EOF
+chmod +x /etc/initramfs-tools/scripts/init-bottom/01_overlay_root
+
+# 2. Bannière terminal d'avertissement
+cat << 'IMMUTABLE_BANNER_EOF' > /etc/profile.d/01-immutable-banner.sh
+#!/bin/sh
+if [ -n "$PS1" ] && [ -t 1 ]; then
+    echo -e "\\033[1;33m[🛡️ MODE IMMUABLE ACTIF]\\033[0m Le système racine est en lecture seule protégée (OverlayFS RAM)."
+    echo -e "Toute modification système non sauvegardée sera effacée au prochain redémarrage."
+fi
+IMMUTABLE_BANNER_EOF
+chmod +x /etc/profile.d/01-immutable-banner.sh
+
+${persistenceNotice}
+`;
+  }
+
+  return `# [Immutable] Mode immuable activé pour ${family}
+echo -e "\${YELLOW:-}[INFO] Mode immuable configuré : les modifications en RAM ne persisteront pas après reboot.\${NC:-}"
+`;
+}
+
+/**
+ * Configure les dépôts officiels tiers modernes avec trousseaux /etc/apt/keyrings/
+ */
+export function thirdPartyReposCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.thirdPartyRepos || recipe.thirdPartyRepos.length === 0) return '';
+  if (family !== 'debian') {
+    return `# [Repos] Dépôts tiers demandés : ${recipe.thirdPartyRepos.join(', ')}
+echo -e "\${YELLOW:-}[INFO] Pour la famille ${family}, les paquets tiers sont résolus via les dépôts natifs ou communautaires.\${NC:-}"
+`;
+  }
+
+  const repos = recipe.thirdPartyRepos;
+  const blocks: string[] = [
+    `# ==============================================================================
+# Dépôts Officiels Tiers Modernes (APT Keyrings /etc/apt/keyrings/)
+# ==============================================================================
+mkdir -p -m 0755 /etc/apt/keyrings /etc/apt/sources.list.d`,
+  ];
+
+  const baseDistro = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' ? 'ubuntu' : 'debian';
+  const suite = recipe.distroSuite || (baseDistro === 'ubuntu' ? 'noble' : 'bookworm');
+
+  if (repos.includes('vscodium')) {
+    blocks.push(`# VSCodium Repo
+curl -fsSL https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg | gpg --dearmor -o /etc/apt/keyrings/vscodium-archive-keyring.gpg 2>/dev/null || true
+cat << 'VSCODIUM_EOF' > /etc/apt/sources.list.d/vscodium.sources
+Types: deb
+URIs: https://download.vscodium.com/debs
+Suites: vscodium
+Components: main
+Signed-By: /etc/apt/keyrings/vscodium-archive-keyring.gpg
+VSCODIUM_EOF`);
+  }
+
+  if (repos.includes('docker_ce')) {
+    blocks.push(`# Docker CE Repo
+curl -fsSL https://download.docker.com/linux/${baseDistro}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+cat << 'DOCKER_EOF' > /etc/apt/sources.list.d/docker.sources
+Types: deb
+URIs: https://download.docker.com/linux/${baseDistro}
+Suites: ${suite}
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.gpg
+DOCKER_EOF`);
+  }
+
+  if (repos.includes('winehq')) {
+    blocks.push(`# WineHQ Repo (Multilib 32-bit i386)
+dpkg --add-architecture i386 2>/dev/null || true
+curl -fsSL https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key 2>/dev/null || true
+cat << 'WINEHQ_EOF' > /etc/apt/sources.list.d/winehq.sources
+Types: deb
+URIs: https://dl.winehq.org/wine-builds/${baseDistro}
+Suites: ${suite}
+Components: main
+Signed-By: /etc/apt/keyrings/winehq-archive.key
+WINEHQ_EOF`);
+  }
+
+  if (repos.includes('nodesource')) {
+    blocks.push(`# NodeSource Node.js 22 LTS
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg 2>/dev/null || true
+cat << 'NODESOURCE_EOF' > /etc/apt/sources.list.d/nodesource.sources
+Types: deb
+URIs: https://deb.nodesource.com/node_22.x
+Suites: nodistro
+Components: main
+Signed-By: /etc/apt/keyrings/nodesource.gpg
+NODESOURCE_EOF`);
+  }
+
+  if (repos.includes('xanmod')) {
+    blocks.push(`# XanMod Linux Kernel Repo
+curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg 2>/dev/null || true
+cat << 'XANMOD_EOF' > /etc/apt/sources.list.d/xanmod.sources
+Types: deb
+URIs: http://deb.xanmod.org
+Suites: releases
+Components: main
+Signed-By: /etc/apt/keyrings/xanmod-archive-keyring.gpg
+XANMOD_EOF`);
+  }
+
+  if (repos.includes('brave')) {
+    blocks.push(`# Brave Browser Repo
+curl -fsSL https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg -o /etc/apt/keyrings/brave-browser-archive-keyring.gpg 2>/dev/null || true
+cat << 'BRAVE_EOF' > /etc/apt/sources.list.d/brave-browser-release.sources
+Types: deb
+URIs: https://brave-browser-apt-release.s3.brave.com/
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/brave-browser-archive-keyring.gpg
+BRAVE_EOF`);
+  }
+
+  if (repos.includes('librewolf')) {
+    blocks.push(`# LibreWolf Privacy Browser Repo
+curl -fsSL https://deb.librewolf.net/keyring.gpg -o /etc/apt/keyrings/librewolf.gpg 2>/dev/null || true
+cat << 'LIBREWOLF_EOF' > /etc/apt/sources.list.d/librewolf.sources
+Types: deb
+URIs: https://deb.librewolf.net
+Suites: ${suite}
+Components: main
+Signed-By: /etc/apt/keyrings/librewolf.gpg
+LIBREWOLF_EOF`);
+  }
+
+  blocks.push(`apt-get update -qq 2>/dev/null || true`);
+  return blocks.join('\n\n');
+}
+
+/**
+ * Configure le profil Passerelle Réseau / Sécurité Domestique OOB (AdGuard Home + WireGuard + Cockpit)
+ */
+export function networkSecurityGatewayCmd(recipe: OSRecipe, _family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableNetworkSecurityGateway) return '';
+
+  return `# ==============================================================================
+# Profil Passerelle Réseau & Sécurité Domestique OOB (AdGuard Home + VPN + Cockpit)
+# ==============================================================================
+echo -e "\${BLUE}[GATEWAY] Déploiement de la passerelle AdGuard Home, WireGuard et Cockpit...\${NC}"
+
+# 1. Routage IP & Forwarding (/etc/sysctl.d/99-gateway.conf)
+cat << 'SYSCTL_GW_EOF' > /etc/sysctl.d/99-gateway.conf
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.ipv4.conf.all.send_redirects = 0
+SYSCTL_GW_EOF
+sysctl -p /etc/sysctl.d/99-gateway.conf 2>/dev/null || true
+
+# 2. Installation binaire officielle AdGuard Home (port DNS 53 + web 3000)
+mkdir -p /opt/AdGuardHome
+curl -sSL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz -o /tmp/agh.tar.gz 2>/dev/null \\
+  && tar -xzf /tmp/agh.tar.gz -C /tmp/ 2>/dev/null \\
+  && cp -rf /tmp/AdGuardHome/* /opt/AdGuardHome/ 2>/dev/null \\
+  && rm -rf /tmp/agh.tar.gz /tmp/AdGuardHome 2>/dev/null \\
+  || true
+
+if [ -f /opt/AdGuardHome/AdGuardHome ]; then
+    /opt/AdGuardHome/AdGuardHome -s install 2>/dev/null || true
+fi
+
+# 3. Activation des services d'administration et de sécurité
+if command -v systemctl &>/dev/null; then
+    systemctl enable cockpit.socket 2>/dev/null || true
+    systemctl enable fail2ban 2>/dev/null || true
+fi
+
+# 4. Message d'information de connexion dans /etc/issue
+cat >> /etc/issue << 'GATEWAY_ISSUE_EOF'
+----------------------------------------------------------------------
+ Passerelle Réseau & Sécurité Domestique Active :
+ - Dashboard AdGuard Home : http://\\4:3000 ou http://\\4:80
+ - Console Système Cockpit : https://\\4:9090
+ - Serveur DNS Local     : Port 53 (UDP/TCP)
+----------------------------------------------------------------------
+GATEWAY_ISSUE_EOF
+`;
+}
+

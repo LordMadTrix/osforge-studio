@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { OSRecipe, DisplayManagerId } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { ContextTip } from './ContextTip';
@@ -8,6 +8,7 @@ import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
 import { BootPreviewSimulator } from './BootPreviewSimulator';
+import { LiveDesktopSimulator } from './LiveDesktopSimulator';
 
 interface DesktopSelectorProps {
   recipe: OSRecipe;
@@ -18,6 +19,7 @@ interface DesktopSelectorProps {
 }
 
 export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
+  const [previewSimulatorTab, setPreviewSimulatorTab] = useState<'boot' | 'desktop'>('boot');
   const { desktops: liveDesktops } = useLiveVersions();
   const displayManagers: { id: DisplayManagerId; name: string; desc: string; tipFr: string; tipEn: string }[] = [
     {
@@ -584,8 +586,55 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
               </select>
             </div>
 
-            {/* Simulateur Interactif en Direct de Boot Plymouth & GRUB */}
-            <BootPreviewSimulator recipe={recipe} lang={lang} />
+            {/* Switcher Simulateur Interactif : Boot vs Bureau Live */}
+            <div style={{ marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px', marginBottom: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSimulatorTab('boot')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: previewSimulatorTab === 'boot' ? 700 : 500,
+                    background: previewSimulatorTab === 'boot' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                    color: previewSimulatorTab === 'boot' ? 'var(--cyan)' : 'var(--text-muted)',
+                    border: previewSimulatorTab === 'boot' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  🎬 {lang === 'fr' ? 'Démarrage (Boot & Plymouth)' : 'Boot (Plymouth & GRUB)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSimulatorTab('desktop')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: previewSimulatorTab === 'desktop' ? 700 : 500,
+                    background: previewSimulatorTab === 'desktop' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                    color: previewSimulatorTab === 'desktop' ? 'var(--cyan)' : 'var(--text-muted)',
+                    border: previewSimulatorTab === 'desktop' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  🖥️ {lang === 'fr' ? `Bureau Graphique (${recipe.desktop.toUpperCase()})` : `Live Desktop (${recipe.desktop.toUpperCase()})`}
+                </button>
+              </div>
+
+              {previewSimulatorTab === 'boot' ? (
+                <BootPreviewSimulator recipe={recipe} lang={lang} />
+              ) : (
+                <LiveDesktopSimulator recipe={recipe} lang={lang} />
+              )}
+            </div>
 
             {/* 7. Feature Toggles */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>

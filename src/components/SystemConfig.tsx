@@ -838,6 +838,45 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
                 </span>
               </label>
             )}
+
+            {/* Mode OS Immuable & Persistance Sélective */}
+            <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                <label className="toggle-switch" style={{ marginTop: '2px' }}>
+                  <input
+                    type="checkbox"
+                    checked={recipe.enableImmutableRootfs ?? false}
+                    onChange={(e) => onChange({ enableImmutableRootfs: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    🛡️ {lang === 'fr' ? 'Mode « OS Immuable » (RootFS Read-Only + OverlayFS en RAM)' : 'Immutable OS Mode (RootFS Read-Only + RAM OverlayFS)'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {lang === 'fr'
+                      ? 'La racine système est montée en lecture seule stricte couplée à un tmpfs en RAM. À chaque redémarrage, le système redevient 100% vierge et propre (anti-malware, banques, bornes).'
+                      : 'Root filesystem is mounted strictly read-only backed by a RAM tmpfs. On every reboot, the OS resets to pristine state (anti-malware, kiosk, kiosk).'}
+                  </div>
+                </div>
+              </label>
+
+              {recipe.enableImmutableRootfs && (
+                <div style={{ marginLeft: '46px', marginTop: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={recipe.enableSelectivePersistence ?? false}
+                      onChange={(e) => onChange({ enableSelectivePersistence: e.target.checked })}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-main)' }}>
+                      📁 {lang === 'fr' ? 'Activer un dossier de persistance sélective (/home/$user/Persistent)' : 'Enable selective persistence directory (/home/$user/Persistent)'}
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

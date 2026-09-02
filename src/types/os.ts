@@ -253,6 +253,13 @@ export interface OSRecipe {
   enableKioskMode?: boolean;
   filesystem?: 'ext4' | 'btrfs';
   enableBtrfsSnapshots?: boolean;
+  enableImmutableRootfs?: boolean;
+  enableSelectivePersistence?: boolean;
+  enableUsbPersistence?: boolean;
+  persistenceSizeMb?: number;
+  thirdPartyRepos?: ('vscodium' | 'docker_ce' | 'winehq' | 'nodesource' | 'xanmod' | 'brave' | 'librewolf')[];
+  enableNetworkSecurityGateway?: boolean;
+  gatewayServices?: ('adguard_home' | 'wireguard_server' | 'fail2ban' | 'cockpit')[];
   network?: NetworkConfig;
   security: SecurityConfig;
   customServices: CustomService[];

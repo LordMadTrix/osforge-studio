@@ -16,7 +16,8 @@ import {
   generateUniversalLauncherSh,
   generateIpxeScript,
   generatePxeServerScript,
-  generateVentoyJson
+  generateVentoyJson,
+  generateUsbFlashScript
 } from '../services/scriptGenerators';
 import { copyShareableLink } from '../services/recipeSharing';
 import { ContextTip } from './ContextTip';
@@ -105,6 +106,18 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       lang: 'json',
       content: generateVentoyJson(recipe),
       desc: lang === 'fr' ? 'Configuration Ventoy pour l’amorçage automatique et l’injection de scripts sur clé USB.' : 'Ventoy auto-install and multi-boot configuration.',
+    },
+    'flash-usb.sh': {
+      title: 'flash-usb.sh (Gravure USB Sécurisée + Persistance Linux/macOS)',
+      lang: 'bash',
+      content: generateUsbFlashScript(recipe, 'bash'),
+      desc: lang === 'fr' ? 'Grave votre ISO sur clé USB et configure automatiquement une partition de persistance pour sauvegarder vos fichiers en session Live.' : 'Flashes ISO to USB and configures persistence partition.',
+    },
+    'flash-usb.bat': {
+      title: 'flash-usb.bat (Assistant de Gravure USB Windows)',
+      lang: 'bat',
+      content: generateUsbFlashScript(recipe, 'powershell'),
+      desc: lang === 'fr' ? 'Assistant de détection des clés USB et gravure sécurisée sous Windows.' : 'Windows USB detection and flashing assistant.',
     },
     'github-actions.yml': {
       title: '.github/workflows/build-iso.yml',

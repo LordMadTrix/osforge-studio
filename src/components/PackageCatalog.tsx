@@ -666,6 +666,101 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             </div>
           )}
         </div>
+
+        {/* Third-party Official Repos Card */}
+        <div style={{
+          padding: '14px',
+          background: (recipe.thirdPartyRepos && recipe.thirdPartyRepos.length > 0) ? 'rgba(168, 85, 247, 0.12)' : 'rgba(10, 15, 28, 0.5)',
+          borderRadius: '8px',
+          border: (recipe.thirdPartyRepos && recipe.thirdPartyRepos.length > 0) ? '1px solid #a855f7' : '1px solid var(--border-subtle)',
+          transition: 'all 0.15s ease',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>📦</span>
+                <span>{lang === 'fr' ? 'Dépôts Officiels Tiers & PPA (Modern Keyrings)' : 'Third-Party Official Repos (Modern Keyrings)'}</span>
+                <span className="badge badge-purple" style={{ fontSize: '0.62rem' }}>APT Keyrings</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Active les trousseaux GPG signés dans /etc/apt/keyrings/ et sources deb822 sans apt-key déprécié'
+                  : 'Enables signed GPG keyrings in /etc/apt/keyrings/ and deb822 sources'}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px', marginTop: '10px' }}>
+            {[
+              { id: 'vscodium', label: 'VSCodium (IDE Libre)' },
+              { id: 'docker_ce', label: 'Docker CE (Engine & CLI)' },
+              { id: 'winehq', label: 'WineHQ (Gaming / Multilib i386)' },
+              { id: 'nodesource', label: 'NodeSource (Node.js 22 LTS)' },
+              { id: 'xanmod', label: 'Noyau XanMod (Low-latency)' },
+              { id: 'brave', label: 'Brave Browser (Anti-trackers)' },
+              { id: 'librewolf', label: 'LibreWolf (Hardened Firefox)' },
+            ].map(repoItem => {
+              const activeRepos = recipe.thirdPartyRepos || [];
+              const isChecked = activeRepos.includes(repoItem.id as any);
+              return (
+                <label key={repoItem.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.74rem', color: '#e2e8f0' }}>
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...activeRepos, repoItem.id as any]
+                        : activeRepos.filter(r => r !== repoItem.id);
+                      onChange({ thirdPartyRepos: next });
+                    }}
+                  />
+                  <span>{repoItem.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Network Security Gateway Card */}
+        <div style={{
+          padding: '14px',
+          background: recipe.enableNetworkSecurityGateway ? 'rgba(239, 68, 68, 0.12)' : 'rgba(10, 15, 28, 0.5)',
+          borderRadius: '8px',
+          border: recipe.enableNetworkSecurityGateway ? '1px solid #ef4444' : '1px solid var(--border-subtle)',
+          transition: 'all 0.15s ease',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: recipe.enableNetworkSecurityGateway ? '10px' : '0' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem', color: recipe.enableNetworkSecurityGateway ? '#f87171' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🛡️</span>
+                <span>{lang === 'fr' ? 'Profil Passerelle Réseau & Sécurité Domestique OOB' : 'Network Security & Gateway Profile OOB'}</span>
+                <span className="badge badge-red" style={{ fontSize: '0.62rem' }}>Passerelle</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Installe AdGuard Home natif (DNS Port 53 & Web 3000), WireGuard Server, Cockpit (Port 9090) et routage IP'
+                  : 'Installs native AdGuard Home (DNS 53 & Web 3000), WireGuard Server, Cockpit (9090) and IP forwarding'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableNetworkSecurityGateway ?? false}
+                onChange={(e) => onChange({ enableNetworkSecurityGateway: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {recipe.enableNetworkSecurityGateway && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.74rem', color: '#e2e8f0' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '5px' }}>✓ AdGuard Home (Bloqueur DNS global port 53)</div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '5px' }}>✓ WireGuard VPN (Serveur distant port 51820)</div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '5px' }}>✓ Console Cockpit Web (HTTPS port 9090)</div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '6px 10px', borderRadius: '5px' }}>✓ Routage IPv4/IPv6 Forwarding activé</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 3. Package Selection Grid */}

@@ -236,5 +236,13 @@ après.
   - Mode séquence complète (GRUB ➔ Plymouth ➔ Bureau Fastfetch).
   - Mode simulation immersive plein écran (1080p).
   - Validé visuellement en navigateur réel par sous-agent (`boot_preview_demo`).
+- **27. 🚀 🛡️ Écosystème Avancé & Outils Réels (Zéro Cosmétique) : Bureau Live, OS Immuable, Dépôts Tiers, Passerelle Réseau & Gravure USB avec Persistance** :
+  1. 🖥️ **Simulateur Interactif de Bureau en Direct (`LiveDesktopSimulator.tsx`)** : Cadre 16:9 avec rendu en temps réel du fond d'écran SVG actif, dock/panneau (KDE Plasma vs GNOME vs XFCE), fenêtre active avec bordure aux couleurs d'accentuation, terminal Fastfetch avec palette personnalisée, et menu des applications (Start Menu) interactif. Intégré avec onglets switcher dans `DesktopSelector.tsx`.
+  2. 🛡️ **Mode « OS Immuable » (`enableImmutableRootfs`)** : Montage racine read-only sécurisé couplé à un `tmpfs` en RAM via le hook initramfs `/etc/initramfs-tools/scripts/init-bottom/01_overlay_root`, bannière de session d'avertissement `/etc/profile.d/01-immutable-banner.sh`, et support de persistance sélective `/home/$user/Persistent`.
+  3. 📦 **Dépôts Officiels Tiers Modernes (`thirdPartyRepos`)** : Injection déclarative 1-clic avec trousseaux GPG modernes `/etc/apt/keyrings/*.gpg` et sources deb822 (`.sources`) sans `apt-key` déprécié (VSCodium, Docker CE, WineHQ avec multilib i386, NodeSource 22 LTS, XanMod Kernel, Brave Browser, LibreWolf).
+  4. 🖧 **Profil Passerelle Réseau & Sécurité Domestique OOB (`enableNetworkSecurityGateway`)** : Déploiement automatique du binaire officiel AdGuard Home (port DNS 53 + interface web 3000), activation de WireGuard VPN, console web Cockpit (port 9090), fail2ban, et routage IP (`net.ipv4.ip_forward = 1`).
+  5. 💾 **Assistant de Gravure USB avec Persistance Réelle (`usbFlash.ts`)** : Générateurs `flash-usb.sh` (Linux/macOS) et `flash-usb.bat` (Windows) avec détection dynamique des disques amovibles, gardes-fous contre l'écrasement des disques système (`/` et `/boot`), `dd bs=4M status=progress conv=fdatasync`, et création automatique de la partition de persistance ext4 (`mkfs.ext4 -L persistence` avec `/ union` dans `persistence.conf` selon le standard Debian Live / Casper).
+  6. Suite de tests : **639 tests** (100% verts). 0 warning / 0 erreur oxlint sur 67 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+

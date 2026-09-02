@@ -42,6 +42,9 @@ import {
   heroicSetupCmd,
   metasploitSetupCmd,
   firstbootTriggerCmd,
+  immutableRootfsCmd,
+  thirdPartyReposCmd,
+  networkSecurityGatewayCmd,
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
 
@@ -507,6 +510,9 @@ ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
 ${heroicSetupCmd(recipe, 'debian')}
 ${metasploitSetupCmd(recipe, 'debian')}
+${thirdPartyReposCmd(recipe, 'debian')}
+${immutableRootfsCmd(recipe, 'debian')}
+${networkSecurityGatewayCmd(recipe, 'debian')}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}
