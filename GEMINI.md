@@ -251,6 +251,12 @@ après.
   - Adaptation dynamique de `build.sh` (`debian.ts` et `nonDebian.ts`) pour injecter le miroir local `file:/var/cache/offline-cache` avec `[trusted=yes]`, timeout réseau minimal et suppression des sources distantes.
   - Carte de configuration dédiée dans `SystemConfig.tsx` et onglet dédié dans `RecipeInspector.tsx`.
   - Suite de tests : **646 tests** (100% verts). 0 warning / 0 erreur oxlint sur 70 fichiers.
+- **30. 🎯 🧠 Sonde Matérielle Réelle & Conseiller Intelligent de Distribution (Hardware Audit & Distro Recommender)** :
+  - Moteur `hardwareAuditor.ts` : sonde locale des cœurs processeur (`hardwareConcurrency`), de la mémoire vive (`deviceMemory`), détection du GPU matériel via WebGL (`WEBGL_debug_renderer_info` : NVIDIA GeForce, AMD Radeon, Intel Iris, Apple Metal) et détection du type d'appareil (PC portable avec batterie vs PC fixe).
+  - Algorithme d'analyse et de recommandation ciblé (PC Gaming ➔ MadOS ROG avec Ubuntu/Arch + KDE + XanMod + Pilotes GPU ; PC Faible Puissance ➔ ForgeOS Ultra-Light avec Debian 13 + XFCE + ZRAM ; Station de Travail ➔ ForgeOS Pro avec Debian 13 + KDE Plasma + Flatpak).
+  - Bouton direct d'application de la recette en 1 clic dans l'UI (`HardwareAuditModal.tsx`).
+  - Générateurs de scripts d'audit matériel en profondeur pour machines cibles physiques (`audit-hardware.sh` et `audit-hardware.bat`).
+  - Suite de tests : **651 tests** (100% verts). 0 warning / 0 erreur oxlint sur 73 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

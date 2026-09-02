@@ -4,7 +4,7 @@
 
 [![Patreon](https://img.shields.io/badge/Patreon-LordMad-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/LordMad)
 [![GitHub Pages](https://img.shields.io/badge/Web_App-En_Ligne-06b6d4?style=for-the-badge&logo=githubpages&logoColor=white)](https://lordmadtrix.github.io/osforge-studio/)
-[![Tests Vitest](https://img.shields.io/badge/Tests-646%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
+[![Tests Vitest](https://img.shields.io/badge/Tests-651%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
 [![Oxlint](https://img.shields.io/badge/Oxlint-0%20Warning%20/%200%20Erreur-84cc16?style=for-the-badge&logo=oxc&logoColor=white)](https://github.com/LordMadTrix/osforge-studio)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -222,6 +222,19 @@ Compilez votre distribution Linux sur des machines complètement déconnectées 
 - **Indexation Locale Réelle** : Génération des métadonnées du dépôt miroir local (`dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz` pour Debian, `repo-add` pour Arch, `createrepo_c` pour Fedora/RPM).
 - **Archive Autonome `.tar.gz`** : Bundle facilement transférable sur clé USB ou disque externe vers la machine isolée.
 - **Compilation 100% Hors-Ligne dans `build.sh`** : Configuration automatique des sources `file:/var/cache/offline-cache` avec `[trusted=yes]`, timeout minimal d'acquisition et suppression de tout appel réseau externe.
+
+---
+
+## 🎯 AUDIT MATÉRIEL & CONSEILLER DE DISTRIBUTION EN DIRECT
+
+Ne devinez plus quelle distribution ou quel bureau convient à votre machine :
+- **Sonde Matérielle Réelle (Web API & WebGL)** : Analyse en direct des cœurs CPU (`hardwareConcurrency`), de la mémoire vive (`deviceMemory`), de la carte graphique dédiée ou intégrée via `WEBGL_debug_renderer_info` (NVIDIA, AMD, Intel, Apple), et du type d'appareil (PC portable sur batterie vs station fixe).
+- **Moteur de Recommandation Argumenté** :
+  - **PC Gaming / Gros GPU** ➔ Stack MadOS ROG (Ubuntu 24.04 / Arch, KDE Plasma, noyau XanMod, pilotes GPU propriétaires, Steam GamepadUI, TCP BBR+).
+  - **PC Ancien / Faible Puissance (< 4 Go RAM)** ➔ ForgeOS Ultra-Light (Debian 13 + XFCE, ZRAM swap compressé et TLP).
+  - **Station Moderne / Dev** ➔ ForgeOS Pro Workstation (Debian 13 + KDE Plasma + Flatpak).
+- **Application en 1-Clic** : Bouton direct ajustant l'intégralité de la recette aux capacités réelles du matériel.
+- **Scripts d'Audit Physique CLI** : Génération et téléchargement direct de `audit-hardware.sh` (Linux) et `audit-hardware.bat` (Windows) pour auditer une machine distante.
 
 ---
 

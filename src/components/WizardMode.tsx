@@ -44,6 +44,7 @@ interface WizardModeProps {
   onStartBuild: () => void;
   onSwitchToExpert: () => void;
   onOpenScreenshots?: (targetId?: string) => void;
+  onOpenAudit?: () => void;
   lang: 'fr' | 'en';
 }
 
@@ -78,6 +79,7 @@ export const WizardMode: React.FC<WizardModeProps> = ({
   onStartBuild,
   onSwitchToExpert,
   onOpenScreenshots,
+  onOpenAudit,
   lang,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -250,6 +252,41 @@ export const WizardMode: React.FC<WizardModeProps> = ({
                   : 'Select the profile matching your use case. We will preconfigure the best components for you.'}
               </p>
             </div>
+
+            {onOpenAudit && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(56, 189, 248, 0.08))',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                borderRadius: '10px',
+                padding: '12px 16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ fontSize: '1.4rem' }}>🎯</div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f1f5f9' }}>
+                      {lang === 'fr' ? 'Vous hésitez ? Laissez l’Audit Matériel choisir pour vous' : 'Not sure? Let the Hardware Audit decide for you'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {lang === 'fr' ? 'Sonde instantanée de votre CPU, RAM et GPU pour recommander la distribution parfaite.' : 'Instant probe of your CPU, RAM, and GPU to recommend the ideal distro.'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onOpenAudit}
+                  className="btn btn-primary"
+                  style={{ padding: '6px 14px', fontSize: '0.78rem', fontWeight: 700 }}
+                >
+                  <span>{lang === 'fr' ? 'Lancer l’Audit Matériel' : 'Run Hardware Audit'}</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '14px' }}>
               {WIZARD_INTENTS.map((intent) => {

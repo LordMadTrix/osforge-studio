@@ -203,8 +203,8 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({ isOpen, on
               </div>
               <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
                 {lang === 'fr'
-                  ? 'Architecture, vision d\'ingénierie et catalogue des 28 chantiers majeurs créés par LordMadTrix'
-                  : 'Architecture, engineering vision, and catalog of all 28 major milestones by LordMadTrix'}
+                  ? 'Architecture, vision d\'ingénierie et catalogue des 30 chantiers majeurs créés par LordMadTrix'
+                  : 'Architecture, engineering vision, and catalog of all 30 major milestones by LordMadTrix'}
               </p>
             </div>
           </div>
@@ -238,9 +238,9 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({ isOpen, on
           borderBottom: '1px solid var(--border-subtle)',
         }}>
           {[
-            { icon: <CheckCircle2 size={16} color="#10b981" />, val: '646 Tests', label: 'Vitest 100% Verts' },
-            { icon: <ShieldCheck size={16} color="#84cc16" />, val: '0 Warning', label: 'Oxlint sur 70 fichiers' },
-            { icon: <Layers size={16} color="#38bdf8" />, val: '28 Chantiers', label: '100% Réels & Câblés' },
+            { icon: <CheckCircle2 size={16} color="#10b981" />, val: '651 Tests', label: 'Vitest 100% Verts' },
+            { icon: <ShieldCheck size={16} color="#84cc16" />, val: '0 Warning', label: 'Oxlint sur 73 fichiers' },
+            { icon: <Layers size={16} color="#38bdf8" />, val: '30 Chantiers', label: '100% Réels & Câblés' },
             { icon: <Globe size={16} color="#c084fc" />, val: '13 Distros', label: 'Debian, Arch, Fedora, etc.' },
             { icon: <HardDrive size={16} color="#f59e0b" />, val: '10 Formats', label: 'ISO, QCOW2, AMI, WSL2...' },
           ].map((stat, idx) => (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Share2, Check, BookOpen } from 'lucide-react';
+import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Share2, Check, BookOpen, Activity } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
 import { calculateResourceEstimate } from '../services/resourceEstimator';
@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenScreenshots: () => void;
   onOpenVersionChecker: () => void;
   onOpenPresentation?: () => void;
+  onOpenAudit?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -32,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScreenshots,
   onOpenVersionChecker,
   onOpenPresentation,
+  onOpenAudit,
   activeTab,
   setActiveTab,
   uiMode,
@@ -317,6 +319,19 @@ export const Header: React.FC<HeaderProps> = ({
             <Lightbulb size={13} />
             <span>{lang === 'fr' ? 'Astuces' : 'Tips'}</span>
           </button>
+
+          {/* Hardware Audit Button */}
+          {onOpenAudit && (
+            <button
+              onClick={onOpenAudit}
+              className="btn btn-secondary"
+              style={{ padding: '5px 9px', fontSize: '0.78rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+              title={lang === 'fr' ? 'Auditer le matériel de votre machine et recommander la meilleure distribution' : 'Audit hardware and recommend the best Linux distro'}
+            >
+              <Activity size={13} />
+              <span>{lang === 'fr' ? 'Audit' : 'Audit'}</span>
+            </button>
+          )}
 
           {/* Presentation & Showcase Button */}
           {onOpenPresentation && (

@@ -25,6 +25,7 @@ const QuickLauncherModal = lazy(() => import('./components/QuickLauncherModal').
 const ScreenshotPreviewModal = lazy(() => import('./components/ScreenshotPreviewModal').then(m => ({ default: m.ScreenshotPreviewModal })));
 const VersionCheckerModal = lazy(() => import('./components/VersionCheckerModal').then(m => ({ default: m.VersionCheckerModal })));
 const PresentationModal = lazy(() => import('./components/PresentationModal').then(m => ({ default: m.PresentationModal })));
+const HardwareAuditModal = lazy(() => import('./components/HardwareAuditModal').then(m => ({ default: m.HardwareAuditModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -92,6 +93,7 @@ export const App: React.FC = () => {
   const [isScreenshotsOpen, setIsScreenshotsOpen] = useState<boolean>(false);
   const [isVersionCheckerOpen, setIsVersionCheckerOpen] = useState<boolean>(false);
   const [isPresentationOpen, setIsPresentationOpen] = useState<boolean>(false);
+  const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
   const [previewDesktopId, setPreviewDesktopId] = useState<string | undefined>(undefined);
 
@@ -140,6 +142,7 @@ export const App: React.FC = () => {
         onOpenScreenshots={() => handleOpenScreenshots()}
         onOpenVersionChecker={() => setIsVersionCheckerOpen(true)}
         onOpenPresentation={() => setIsPresentationOpen(true)}
+        onOpenAudit={() => setIsAuditOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -167,6 +170,7 @@ export const App: React.FC = () => {
             onStartBuild={() => setIsBuildOpen(true)}
             onSwitchToExpert={() => setUiMode('expert')}
             onOpenScreenshots={handleOpenScreenshots}
+            onOpenAudit={() => setIsAuditOpen(true)}
             lang={lang}
           />
         )}
@@ -410,6 +414,14 @@ export const App: React.FC = () => {
           isOpen={isPresentationOpen}
           onClose={() => setIsPresentationOpen(false)}
           lang={lang}
+        />
+
+        <HardwareAuditModal
+          isOpen={isAuditOpen}
+          onClose={() => setIsAuditOpen(false)}
+          onApplyRecipe={handleUpdateRecipe}
+          lang={lang}
+          currentRecipe={recipe}
         />
       </Suspense>
     </div>
