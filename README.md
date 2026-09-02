@@ -4,7 +4,7 @@
 
 [![Patreon](https://img.shields.io/badge/Patreon-LordMad-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/LordMad)
 [![GitHub Pages](https://img.shields.io/badge/Web_App-En_Ligne-06b6d4?style=for-the-badge&logo=githubpages&logoColor=white)](https://lordmadtrix.github.io/osforge-studio/)
-[![Tests Vitest](https://img.shields.io/badge/Tests-639%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
+[![Tests Vitest](https://img.shields.io/badge/Tests-646%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
 [![Oxlint](https://img.shields.io/badge/Oxlint-0%20Warning%20/%200%20Erreur-84cc16?style=for-the-badge&logo=oxc&logoColor=white)](https://github.com/LordMadTrix/osforge-studio)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -212,6 +212,16 @@ Générez des clés USB prêtes pour un usage quotidien avec persistance des fic
   - **Gardes-fous stricts** : Vérification dynamique interdisant formellement de sélectionner le disque hébergeant `/` ou `/boot`.
   - Gravure directe de l'ISO avec affichage de la progression en temps réel (`dd status=progress conv=fdatasync`).
   - **Partition de Persistance Casper / Debian Live** : Partitionnement automatique de l'espace restant sur la clé, formatage `mkfs.ext4 -F -L persistence` et injection du fichier `/persistence.conf` (`/ union`). Vos documents et réglages sont conservés entre chaque redémarrage Live !
+
+---
+
+## 🌐 MODE RÉSEAU ISOLÉ & DÉPÔTS HORS-LIGNE (AIR-GAPPED BUILDER)
+
+Compilez votre distribution Linux sur des machines complètement déconnectées d'Internet ou en environnement hautement sécurisé (salle blanche, bunker, réseau isolé) :
+- **Script Autonome `bundle-offline-cache.sh`** : À lancer sur une machine connectée pour pré-télécharger l'intégralité des paquets et dépendances nécessaires sans les installer (`apt-get --download-only`, `pacman -Syw`, `dnf download --resolve --alldeps`).
+- **Indexation Locale Réelle** : Génération des métadonnées du dépôt miroir local (`dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz` pour Debian, `repo-add` pour Arch, `createrepo_c` pour Fedora/RPM).
+- **Archive Autonome `.tar.gz`** : Bundle facilement transférable sur clé USB ou disque externe vers la machine isolée.
+- **Compilation 100% Hors-Ligne dans `build.sh`** : Configuration automatique des sources `file:/var/cache/offline-cache` avec `[trusted=yes]`, timeout minimal d'acquisition et suppression de tout appel réseau externe.
 
 ---
 

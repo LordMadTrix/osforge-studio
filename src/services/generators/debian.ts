@@ -47,6 +47,7 @@ import {
   networkSecurityGatewayCmd,
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
+import { offlineRepoConfigCmd } from './offlineCache';
 
 export function generateDebianBuildScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
@@ -318,6 +319,7 @@ mount --bind /dev/pts "\${ROOTFS_DIR}/dev/pts"
 mount --bind /proc "\${ROOTFS_DIR}/proc"
 mount --bind /sys "\${ROOTFS_DIR}/sys"
 
+${offlineRepoConfigCmd(recipe, 'debian')}
 # Script de configuration exécuté à l'intérieur du chroot
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e

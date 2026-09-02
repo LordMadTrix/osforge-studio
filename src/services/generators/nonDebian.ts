@@ -44,6 +44,7 @@ import {
   metasploitSetupCmd,
   firstbootTriggerCmd,
 } from './helpers';
+import { offlineRepoConfigCmd } from './offlineCache';
 
 export const NON_DEBIAN_LABELS: Record<string, string> = {
   arch: 'Arch Linux',
@@ -494,7 +495,7 @@ mount --bind /dev "\${ROOTFS_DIR}/dev"
 mount --bind /dev/pts "\${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
 mount --bind /proc "\${ROOTFS_DIR}/proc"
 mount --bind /sys "\${ROOTFS_DIR}/sys"
-${config.diskImageInitrdRegenCmd ? `
+${offlineRepoConfigCmd(recipe, family)}${config.diskImageInitrdRegenCmd ? `
 chroot "\${ROOTFS_DIR}" ${config.diskImageInitrdRegenCmd}
 ` : ''}
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/sh
@@ -787,6 +788,7 @@ mount --bind /dev/pts "\${ROOTFS_DIR}/dev/pts" 2>/dev/null || true
 mount --bind /proc "\${ROOTFS_DIR}/proc"
 mount --bind /sys "\${ROOTFS_DIR}/sys"
 
+${offlineRepoConfigCmd(recipe, family)}
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/sh
 set -e
 ${config.updateCmd}

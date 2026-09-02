@@ -877,6 +877,46 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
                 </div>
               )}
             </div>
+
+            {/* Mode Réseau Isolé & Dépôts Hors-Ligne (Air-Gapped Builder) */}
+            <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                <label className="toggle-switch" style={{ marginTop: '2px' }}>
+                  <input
+                    type="checkbox"
+                    checked={recipe.enableOfflineCache ?? false}
+                    onChange={(e) => onChange({ enableOfflineCache: e.target.checked })}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    🌐 {lang === 'fr' ? 'Mode « Réseau Isolé / Dépôts Hors-Ligne » (Air-Gapped Builder)' : 'Air-Gapped / Offline Local Repository Mode'}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {lang === 'fr'
+                      ? 'Configure le script de build pour compiler l’OS sans aucune connexion Internet via un miroir local file:///. Génère aussi le script bundle-offline-cache.sh pour pré-télécharger tous les paquets.'
+                      : 'Configures build script to compile the OS without internet using a local file:/// mirror. Also generates bundle-offline-cache.sh to pre-download packages.'}
+                  </div>
+                </div>
+              </label>
+
+              {recipe.enableOfflineCache && (
+                <div style={{ marginLeft: '46px', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {lang === 'fr' ? 'Dossier du cache local :' : 'Local cache path:'}
+                  </span>
+                  <input
+                    type="text"
+                    className="input-custom"
+                    style={{ maxWidth: '240px', padding: '4px 8px', fontSize: '0.75rem' }}
+                    value={recipe.offlineCachePath || './offline-cache'}
+                    onChange={(e) => onChange({ offlineCachePath: e.target.value })}
+                    placeholder="./offline-cache"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

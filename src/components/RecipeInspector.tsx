@@ -17,7 +17,8 @@ import {
   generateIpxeScript,
   generatePxeServerScript,
   generateVentoyJson,
-  generateUsbFlashScript
+  generateUsbFlashScript,
+  generateOfflineCacheBundleScript
 } from '../services/scriptGenerators';
 import { copyShareableLink } from '../services/recipeSharing';
 import { ContextTip } from './ContextTip';
@@ -118,6 +119,12 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       lang: 'bat',
       content: generateUsbFlashScript(recipe, 'powershell'),
       desc: lang === 'fr' ? 'Assistant de détection des clés USB et gravure sécurisée sous Windows.' : 'Windows USB detection and flashing assistant.',
+    },
+    'bundle-cache.sh': {
+      title: 'bundle-cache.sh (Mise en Cache Hors-Ligne & Air-Gapped)',
+      lang: 'bash',
+      content: generateOfflineCacheBundleScript(recipe),
+      desc: lang === 'fr' ? 'Télécharge et indexe l’ensemble des paquets nécessaires pour compiler votre OS sans accès Internet en salle blanche.' : 'Downloads and indexes all packages for offline air-gapped builds.',
     },
     'github-actions.yml': {
       title: '.github/workflows/build-iso.yml',

@@ -246,6 +246,11 @@ après.
 - **28. 📖 🏛️ Intégration de la Présentation Complète du Projet (README.md & PresentationModal)** :
   - `README.md` entièrement restructuré pour présenter la vision complète, les 9 piliers et 27 chantiers majeurs, le dual-mode UX, les simulateurs, le design system, les formats cloud et la gravure USB avec persistance.
   - Composant `src/components/PresentationModal.tsx` accessible via le bouton `🏛️ Présentation` dans le Header (`Header.tsx`) avec compteurs temps réel, filtrage par catégorie et liens communauté.
+- **29. 🌐 📦 Mode Réseau Isolé & Dépôts Hors-Ligne (Air-Gapped Builder)** :
+  - Générateur `bundle-offline-cache.sh` (`offlineCache.ts`) permettant de pré-télécharger et indexer l'ensemble des paquets de la recette sur machine connectée (`apt-get --download-only`, `dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz`, `debootstrap --download-only`, `pacman -Syw`, `repo-add`, `dnf download --resolve --alldeps`, `createrepo_c`) et création d'une archive `.tar.gz`.
+  - Adaptation dynamique de `build.sh` (`debian.ts` et `nonDebian.ts`) pour injecter le miroir local `file:/var/cache/offline-cache` avec `[trusted=yes]`, timeout réseau minimal et suppression des sources distantes.
+  - Carte de configuration dédiée dans `SystemConfig.tsx` et onglet dédié dans `RecipeInspector.tsx`.
+  - Suite de tests : **646 tests** (100% verts). 0 warning / 0 erreur oxlint sur 70 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 
