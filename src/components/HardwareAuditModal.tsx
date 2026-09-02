@@ -16,6 +16,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
+import { saveAs } from 'file-saver';
 import {
   detectHardwareProfile,
   analyzeAndRecommend,
@@ -99,15 +100,12 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
 
   const handleDownloadCli = () => {
     const filename = cliPlatform === 'bash' ? 'audit-hardware.sh' : 'audit-hardware.bat';
-    const blob = new Blob([cliScript], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const mimeType = cliPlatform === 'bash' ? 'text/x-shellscript;charset=utf-8' : 'application/x-bat;charset=utf-8';
+    const content = cliPlatform === 'bat'
+      ? cliScript.replace(/\r?\n/g, '\r\n')
+      : cliScript.replace(/\r\n/g, '\n');
+    const blob = new Blob([content], { type: mimeType });
+    saveAs(blob, filename);
   };
 
   return (

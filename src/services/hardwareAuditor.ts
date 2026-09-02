@@ -349,22 +349,23 @@ echo   🔍 OSForge Studio — Rapport d'Audit Matériel Windows
 echo ====================================================================
 echo.
 echo [1/5] Informations Processeur (CPU) :
-wmic cpu get name,numberofcores,numberoflogicalprocessors,maxclockspeed /format:list
+powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Select-Object -Property Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed | Format-List" 2>nul || wmic cpu get name,numberofcores,numberoflogicalprocessors,maxclockspeed /format:list
 echo.
 echo [2/5] Mémoire Vive (RAM) :
-wmic computersystem get totalphysicalmemory /format:list
+powershell -NoProfile -Command "Get-CimInstance Win32_ComputerSystem | Select-Object -Property @{Name='TotalPhysicalMemoryGB';Expression={[math]::Round($_.TotalPhysicalMemory/1GB, 2)}} | Format-List" 2>nul || wmic computersystem get totalphysicalmemory /format:list
 echo.
 echo [3/5] Carte Graphique (GPU) :
-wmic path win32_videocontroller get name,adapterram,driverversion /format:list
+powershell -NoProfile -Command "Get-CimInstance Win32_VideoController | Select-Object -Property Name, DriverVersion, @{Name='AdapterRAM_MB';Expression={[math]::Round($_.AdapterRAM/1MB, 2)}} | Format-List" 2>nul || wmic path win32_videocontroller get name,adapterram,driverversion /format:list
 echo.
 echo [4/5] Disques et Stockage :
-wmic logicaldisk get caption,description,freespace,size /format:list
+powershell -NoProfile -Command "Get-CimInstance Win32_LogicalDisk | Select-Object -Property DeviceID, VolumeName, @{Name='SizeGB';Expression={[math]::Round($_.Size/1GB, 2)}}, @{Name='FreeSpaceGB';Expression={[math]::Round($_.FreeSpace/1GB, 2)}} | Format-Table -AutoSize" 2>nul || wmic logicaldisk get caption,description,freespace,size /format:list
 echo.
 echo [5/5] Type d'Amorçage (UEFI vs BIOS) :
-bcdedit | findstr /i "path"
+powershell -NoProfile -Command "if (Test-Path HKLM:\\System\\CurrentControlSet\\Control\\SecureBoot\\State) { 'Amorçage UEFI détecté' } else { 'Amorçage Legacy BIOS détecté' }" 2>nul || bcdedit | findstr /i "path"
 echo.
 echo ====================================================================
 echo Audit terminé ! Vous pouvez reporter ces informations dans OSForge Studio.
+echo.
 pause
 `;
   }
