@@ -229,5 +229,12 @@ après.
   6. 🐚 **Raccourcis & Aliases Shell Pro** : `/etc/profile.d/99-osforge-aliases.sh` injectant des commandes productivité (`sysupdate` adapté par distro, `ports`, `myip`, `memtop`, `cputop`, `ll`, `la`).
   7. 🔊 **Son de Démarrage / Chime de Bienvenue** : Script `/usr/local/bin/osforge-startup-sound.sh` et entrée autostart `/etc/xdg/autostart/osforge-startup-sound.desktop`.
   8. Suite de tests : 24 tests unitaires dédiés dans `src/services/generators/branding.test.ts`. Total suite : **631 tests**.
+- **26. 🎬 📟 Simulateur Interactif en Direct du Boot (Plymouth & GRUB 2 HD)** :
+  - Composant `src/components/BootPreviewSimulator.tsx` intégré directement sous le sélecteur Plymouth dans `DesktopSelector.tsx`.
+  - Aperçu en direct et temps réel des thèmes Plymouth (`spinner`, `bgrt`, `fade-in`, `tribar`, `cyberpunk`, `matrix`, `minimal`) synchronisé instantanément avec le nom de l'OS, l'édition et la couleur d'accentuation.
+  - Mode menu GRUB 2 HD fidèle à la configuration générée avec compte à rebours interactif.
+  - Mode séquence complète (GRUB ➔ Plymouth ➔ Bureau Fastfetch).
+  - Mode simulation immersive plein écran (1080p).
+  - Validé visuellement en navigateur réel par sous-agent (`boot_preview_demo`).
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

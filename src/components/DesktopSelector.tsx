@@ -7,6 +7,7 @@ import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon, Rss
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
+import { BootPreviewSimulator } from './BootPreviewSimulator';
 
 interface DesktopSelectorProps {
   recipe: OSRecipe;
@@ -582,6 +583,9 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                 <option value="matrix">Matrix Glow</option>
               </select>
             </div>
+
+            {/* Simulateur Interactif en Direct de Boot Plymouth & GRUB */}
+            <BootPreviewSimulator recipe={recipe} lang={lang} />
 
             {/* 7. Feature Toggles */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px', marginTop: '6px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
