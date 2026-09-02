@@ -242,7 +242,10 @@ après.
   3. 📦 **Dépôts Officiels Tiers Modernes (`thirdPartyRepos`)** : Injection déclarative 1-clic avec trousseaux GPG modernes `/etc/apt/keyrings/*.gpg` et sources deb822 (`.sources`) sans `apt-key` déprécié (VSCodium, Docker CE, WineHQ avec multilib i386, NodeSource 22 LTS, XanMod Kernel, Brave Browser, LibreWolf).
   4. 🖧 **Profil Passerelle Réseau & Sécurité Domestique OOB (`enableNetworkSecurityGateway`)** : Déploiement automatique du binaire officiel AdGuard Home (port DNS 53 + interface web 3000), activation de WireGuard VPN, console web Cockpit (port 9090), fail2ban, et routage IP (`net.ipv4.ip_forward = 1`).
   5. 💾 **Assistant de Gravure USB avec Persistance Réelle (`usbFlash.ts`)** : Générateurs `flash-usb.sh` (Linux/macOS) et `flash-usb.bat` (Windows) avec détection dynamique des disques amovibles, gardes-fous contre l'écrasement des disques système (`/` et `/boot`), `dd bs=4M status=progress conv=fdatasync`, et création automatique de la partition de persistance ext4 (`mkfs.ext4 -L persistence` avec `/ union` dans `persistence.conf` selon le standard Debian Live / Casper).
-  6. Suite de tests : **639 tests** (100% verts). 0 warning / 0 erreur oxlint sur 67 fichiers.
+  6. Suite de tests : **639 tests** (100% verts). 0 warning / 0 erreur oxlint sur 68 fichiers.
+- **28. 📖 🏛️ Intégration de la Présentation Complète du Projet (README.md & PresentationModal)** :
+  - `README.md` entièrement restructuré pour présenter la vision complète, les 9 piliers et 27 chantiers majeurs, le dual-mode UX, les simulateurs, le design system, les formats cloud et la gravure USB avec persistance.
+  - Composant `src/components/PresentationModal.tsx` accessible via le bouton `🏛️ Présentation` dans le Header (`Header.tsx`) avec compteurs temps réel, filtrage par catégorie et liens communauté.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

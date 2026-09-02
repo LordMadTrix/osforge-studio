@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Share2, Check } from 'lucide-react';
+import { Layers, Sparkles, Wand2, Download, Search, Lightbulb, Image as ImageIcon, Zap, Heart, Share2, Check, BookOpen } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
 import { calculateResourceEstimate } from '../services/resourceEstimator';
@@ -13,6 +13,7 @@ interface HeaderProps {
   onOpenLauncher: () => void;
   onOpenScreenshots: () => void;
   onOpenVersionChecker: () => void;
+  onOpenPresentation?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -30,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLauncher,
   onOpenScreenshots,
   onOpenVersionChecker,
+  onOpenPresentation,
   activeTab,
   setActiveTab,
   uiMode,
@@ -315,6 +317,19 @@ export const Header: React.FC<HeaderProps> = ({
             <Lightbulb size={13} />
             <span>{lang === 'fr' ? 'Astuces' : 'Tips'}</span>
           </button>
+
+          {/* Presentation & Showcase Button */}
+          {onOpenPresentation && (
+            <button
+              onClick={onOpenPresentation}
+              className="btn btn-secondary"
+              style={{ padding: '5px 9px', fontSize: '0.78rem', color: '#c084fc', borderColor: 'rgba(192, 132, 252, 0.3)' }}
+              title={lang === 'fr' ? 'Présentation complète du projet et des 27 chantiers' : 'Complete project showcase and 27 milestones'}
+            >
+              <BookOpen size={13} />
+              <span>{lang === 'fr' ? 'Présentation' : 'Showcase'}</span>
+            </button>
+          )}
 
           {/* Presets Gallery */}
           <button onClick={onOpenPresets} className="btn btn-secondary" style={{ padding: '5px 9px', fontSize: '0.78rem' }}>

@@ -24,6 +24,7 @@ const TipsModal = lazy(() => import('./components/TipsModal').then(m => ({ defau
 const QuickLauncherModal = lazy(() => import('./components/QuickLauncherModal').then(m => ({ default: m.QuickLauncherModal })));
 const ScreenshotPreviewModal = lazy(() => import('./components/ScreenshotPreviewModal').then(m => ({ default: m.ScreenshotPreviewModal })));
 const VersionCheckerModal = lazy(() => import('./components/VersionCheckerModal').then(m => ({ default: m.VersionCheckerModal })));
+const PresentationModal = lazy(() => import('./components/PresentationModal').then(m => ({ default: m.PresentationModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -90,6 +91,7 @@ export const App: React.FC = () => {
   const [isLauncherOpen, setIsLauncherOpen] = useState<boolean>(false);
   const [isScreenshotsOpen, setIsScreenshotsOpen] = useState<boolean>(false);
   const [isVersionCheckerOpen, setIsVersionCheckerOpen] = useState<boolean>(false);
+  const [isPresentationOpen, setIsPresentationOpen] = useState<boolean>(false);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
   const [previewDesktopId, setPreviewDesktopId] = useState<string | undefined>(undefined);
 
@@ -137,6 +139,7 @@ export const App: React.FC = () => {
         onOpenLauncher={() => setIsLauncherOpen(true)}
         onOpenScreenshots={() => handleOpenScreenshots()}
         onOpenVersionChecker={() => setIsVersionCheckerOpen(true)}
+        onOpenPresentation={() => setIsPresentationOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -400,6 +403,12 @@ export const App: React.FC = () => {
           isOpen={isTipsOpen}
           onClose={() => setIsTipsOpen(false)}
           onNavigateTab={handleNavigateFromTip}
+          lang={lang}
+        />
+
+        <PresentationModal
+          isOpen={isPresentationOpen}
+          onClose={() => setIsPresentationOpen(false)}
           lang={lang}
         />
       </Suspense>
