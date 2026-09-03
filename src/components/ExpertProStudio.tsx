@@ -222,8 +222,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
   return (
     <div style={{
       display: 'flex',
-      height: 'calc(100vh - 65px)',
-      background: '#07090e',
+      height: 'calc(100vh - 48px)',
+      background: '#090d16',
       color: 'var(--text-main)',
       overflow: 'hidden',
       position: 'relative',
@@ -233,10 +233,10 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       {/* 1. SIDEBAR NAVIGATION HIÉRARCHIQUE (MASTER)                              */}
       {/* ========================================================================= */}
       <aside style={{
-        width: isSidebarCollapsed ? '64px' : '280px',
-        minWidth: isSidebarCollapsed ? '64px' : '280px',
-        borderRight: '1px solid var(--border-subtle)',
-        background: 'rgba(11, 14, 22, 0.95)',
+        width: isSidebarCollapsed ? '60px' : '270px',
+        minWidth: isSidebarCollapsed ? '60px' : '270px',
+        borderRight: '1px solid rgba(255, 255, 255, 0.07)',
+        background: '#0d131f',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -244,8 +244,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       }}>
         {/* En-tête Sidebar */}
         <div style={{
-          padding: '12px 14px',
-          borderBottom: '1px solid var(--border-subtle)',
+          padding: '10px 14px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -719,8 +719,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       <aside style={{
         width: isHudCollapsed ? '44px' : '310px',
         minWidth: isHudCollapsed ? '44px' : '310px',
-        borderLeft: '1px solid var(--border-subtle)',
-        background: 'rgba(11, 14, 22, 0.96)',
+        borderLeft: '1px solid rgba(255, 255, 255, 0.07)',
+        background: '#0d131f',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -729,8 +729,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       }}>
         {/* Toggle HUD */}
         <div style={{
-          padding: '12px 14px',
-          borderBottom: '1px solid var(--border-subtle)',
+          padding: '10px 14px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isHudCollapsed ? 'center' : 'space-between',

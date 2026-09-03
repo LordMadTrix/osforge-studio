@@ -145,8 +145,8 @@ export const App: React.FC = () => {
         setLang={setLang}
       />
 
-      {/* Real-time Status Banner */}
-      <StatsBanner recipe={recipe} lang={lang} />
+      {/* Real-time Status Banner (Shown in Wizard Mode) */}
+      {uiMode === 'wizard' && <StatsBanner recipe={recipe} lang={lang} />}
 
       {/* Main Workspace Container */}
       <main style={{
@@ -193,8 +193,9 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer style={{
+      {/* Footer (Shown in Wizard Mode) */}
+      {uiMode === 'wizard' && (
+        <footer style={{
         borderTop: '1px solid var(--border-subtle)',
         background: 'rgba(12, 10, 9, 0.95)',
         padding: '14px 24px',
@@ -292,6 +293,7 @@ export const App: React.FC = () => {
           </div>
         </div>
       </footer>
+      )}
 
       {/* Modals */}
       <Suspense fallback={null}>

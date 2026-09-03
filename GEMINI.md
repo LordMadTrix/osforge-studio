@@ -271,9 +271,16 @@ après.
     2. Zone centrale aérée (Workbench) affichant uniquement les contrôles du sous-menu actif avec titre, fil d'Ariane et boutons de navigation séquentielle `← Section Précédente / Section Suivante →`.
     3. Volet droit HUD en temps réel rétractable : carte d'identité de l'OS avec accent color dynamique, miniature du bureau et simulation de terminal, jauges d'estimation de RAM (~450 Mo) et de taille d'image (~1.8 Go), jauge de posture de sécurité (0-100 pts), checklist de recette et bouton permanent `🚀 Compiler l'Image`.
   - Validation visuelle automatique par sous-agent Playwright dans le navigateur (`expert_studio_layout.png`).
+- **33. 💎 🎨 Look & Feel Pro Vercel / Linear (Header Épuré 48px, Dropdown Outils & Plein Écran 100vh)** :
+  - Réduction de l'en-tête `Header.tsx` à une hauteur ultra-compacte (48px) et élimination complète de l'effet "zoo d'emojis".
+  - Regroupement des 10 boutons éparpillés dans un menu d'actions compact `Outils ▾` (Presets, IA Copilot, Sonde PC, Captures, Versions, Guides, Présentation).
+  - Suppression de la barre d'onglets du haut en mode Expert (élimination du doublon avec la barre latérale).
+  - Conditionnement de `StatsBanner` et du grand footer au seul mode Wizard : le mode Expert s'exécute désormais en **véritable plein écran immersif (100vh)** comme VS Code ou Proxmox VE.
+  - Validation empirique par enregistrement vidéo et captures d'écran Playwright dans le navigateur (`pro_clean_ui_demo_*.webp`).
   - Suite de tests : **654 tests** (100% verts). 0 warning / 0 erreur oxlint sur 74 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
 
 
