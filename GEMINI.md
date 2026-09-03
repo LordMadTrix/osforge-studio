@@ -285,7 +285,11 @@ après.
   - **Isolation des démons debootstrap/apt** : injection temporaire de `/usr/sbin/policy-rc.d` (`exit 101`) et suppression finale, empêchant les services (`dbus`, `pulseaudio`, `systemd`) de crasher ou de verrouiller le chroot.
   - **Libération préalable des processus** : appel à `fuser -k -m "${ROOTFS_DIR}"` avant les démontages `/dev`, `/proc` et `/sys`.
   - **Vérification bloquante du noyau** : contrôle d'existence explicite de `${ISO_DIR}/live/vmlinuz` et `initrd` avec message d'erreur clair avant packaging GRUB/xorriso.
-  - **Détection résiliente multi-distro de GRUB** : recherche dynamique de `cdboot.img` et `boot_hybrid.img` (`find /usr/lib/grub /usr/share/grub`) avec fallback sans échec sur xorriso.
+- **35. 📸 🖥️ Mode Aperçu Direct Bureau (Focus Lightbox & Zéro Encombrement)** :
+  - **Focus direct sur le desktop sélectionné** : le clic sur « Aperçu » d'une carte bureau ouvre désormais instantanément la capture d'écran HD du bureau ciblé sans forcer l'utilisateur à voir l'ensemble des autres bureaux/distros (« voir un screen du desktop directement et pas tous »).
+  - **Élimination de l'encombrement visuel** : masquage automatique du carrousel de pilules multiples en mode focus direct, image plein cadre maximisée (jusqu'à 65vh) avec attribution Wikimedia Commons / licence libre.
+  - **En-tête & Actions contextuelles** : titre exact du bureau avec badge de type (ex: `Wayland Tiling WM`, `Full Desktop`), consommation RAM estimée, bouton `Choisir ce bureau`, bouton `Voir tous les bureaux (Galerie)` pour revenir à la vue globale si désiré.
+  - **Architecture React propre** : dérivation d'état pure dans `ScreenshotPreviewModal.tsx` sans effets secondaires synchrones (`0 warning oxlint`).
   - **Suite de tests : 659 tests (100% verts)**. 0 warning / 0 erreur oxlint sur 74 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

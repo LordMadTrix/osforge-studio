@@ -114,11 +114,16 @@ export const App: React.FC = () => {
 
   const handleOpenScreenshots = (targetDistroOrDesktopId?: string) => {
     if (targetDistroOrDesktopId) {
-      if (DISTROS.some(d => d.id === targetDistroOrDesktopId)) {
-        setPreviewDistroId(targetDistroOrDesktopId);
-      } else if (DESKTOPS.some(de => de.id === targetDistroOrDesktopId)) {
+      if (DESKTOPS.some(de => de.id === targetDistroOrDesktopId)) {
         setPreviewDesktopId(targetDistroOrDesktopId);
+        setPreviewDistroId(undefined);
+      } else if (DISTROS.some(d => d.id === targetDistroOrDesktopId)) {
+        setPreviewDistroId(targetDistroOrDesktopId);
+        setPreviewDesktopId(undefined);
       }
+    } else {
+      setPreviewDistroId(undefined);
+      setPreviewDesktopId(undefined);
     }
     setIsScreenshotsOpen(true);
   };
