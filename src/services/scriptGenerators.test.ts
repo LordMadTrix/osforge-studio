@@ -3844,7 +3844,46 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
     expect(script).toContain('loop.max_loop=8 max_loop=8');
     expect(script).toContain('update-initramfs -u -k all');
   });
+
+  describe('Robustesse des scripts de compilation .bat et .sh — Zéro régression, résilience multi-environnements', () => {
+    it('generateBuildScript (Debian/Ubuntu) : injecte policy-rc.d pour bloquer les démons dans le chroot et le nettoie à la fin', () => {
+      const script = generateBuildScript(makeRecipe({ distro: 'debian', outputFormat: 'iso_hybrid' }));
+      expect(script).toContain("cat << 'POLICY_EOF' > /usr/sbin/policy-rc.d");
+      expect(script).toContain('exit 101');
+      expect(script).toContain('rm -f /usr/sbin/policy-rc.d');
+      expect(script).toContain('fuser -k -m "${ROOTFS_DIR}"');
+    });
+
+    it('generateBuildScript (Debian/Ubuntu) : vérifie impérativement la présence de vmlinuz et initrd et gère cdboot.img / boot_hybrid.img de manière résiliente', () => {
+      const script = generateBuildScript(makeRecipe({ distro: 'ubuntu', outputFormat: 'iso_hybrid' }));
+      expect(script).toContain('[ERREUR FATALE] Impossible de trouver l\'image du noyau Linux (vmlinuz)');
+      expect(script).toContain('[ERREUR FATALE] Impossible de trouver le fichier initrd');
+      expect(script).toContain('CDBOOT_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name cdboot.img');
+      expect(script).toContain('BOOT_HYBRID_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name boot_hybrid.img');
+      expect(script).toContain('${ISOHYBRID_MBR_OPT}');
+    });
+
+    it('generateAutoBuildBat : intègre cd /d "%~dp0", test direct WSL_OK et suppression automatique des retours chariot CRLF (sed)', () => {
+      const bat = generateAutoBuildBat(makeRecipe({ distro: 'debian' }));
+      expect(bat).toContain('cd /d "%~dp0"');
+      expect(bat).toContain('wsl -u root -- echo WSL_OK');
+      expect(bat).toContain("sed -i 's/\\\\r$//' build.sh");
+      expect(bat).toContain('tee -a auto-build.log');
+    });
+
+    it('generateUniversalLauncherBat : intègre cd /d "%~dp0", exécution root WSL et conversion CRLF', () => {
+      const bat = generateUniversalLauncherBat(makeRecipe({ distro: 'debian' }));
+      expect(bat).toContain('cd /d "%~dp0"');
+      expect(bat).toContain('wsl -u root --');
+      expect(bat).toContain("sed -i 's/\\\\r$//' build.sh");
+      expect(bat).toContain('tee build.log');
+    });
+
+    it('generateWslInstallerBat : intègre cd /d "%~dp0", recherche flexible de tar.gz et printf POSIX', () => {
+      const bat = generateWslInstallerBat(makeRecipe({ distro: 'debian' }));
+      expect(bat).toContain('cd /d "%~dp0"');
+      expect(bat).toContain('for %%f in (dist\\*rootfs*.tar.gz)');
+      expect(bat).toContain("printf '[boot]\\nsystemd=true");
+    });
+  });
 });
-
-
-

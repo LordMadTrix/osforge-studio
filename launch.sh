@@ -51,6 +51,7 @@ show_menu() {
             ;;
         4)
             echo "Compilation de l'ISO Linux (sauvegarde dans build.log)..."
+            sed -i 's/\r$//' build.sh 2>/dev/null || true
             chmod +x build.sh
             sudo ./build.sh 2>&1 | tee build.log
             echo "Logs enregistrés dans build.log"
@@ -65,10 +66,12 @@ show_menu() {
             show_menu
             ;;
         6)
-            ISO_FILE=$(find dist -name "*.iso" | head -n 1)
+            ISO_FILE=$(find dist -name "*.iso" 2>/dev/null | head -n 1)
             if [ -n "$ISO_FILE" ]; then
                 echo "Lancement de QEMU avec $ISO_FILE..."
-                qemu-system-x86_64 -cdrom "$ISO_FILE" -m 4G -enable-kvm -vga virtio -smp 4
+                KVM_ARG=""
+                [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"
+                qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -m 4G -vga virtio -smp 4
             else
                 echo "Aucun fichier .iso trouvé dans dist/. Compilez d'abord l'image (Choix 4 ou 5)."
             fi

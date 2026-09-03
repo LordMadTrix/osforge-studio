@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 title OSForge Studio - Lanceur de Projet
 cls
 
@@ -113,14 +114,21 @@ echo   Compilation de l'ISO Linux via WSL2 / Bash
 echo   (Les logs seront automatiquement enregistres dans build.log)
 echo ===============================================================================
 echo.
-wsl --status >nul 2>&1
+wsl -u root -- echo WSL_OK >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [ERREUR] WSL2 n'est pas active sur votre machine.
+    echo [ERREUR] WSL2 n'est pas actif ou aucune distribution Linux n'est installee.
+    echo Utilisez l'option [8] pour initialiser automatiquement l'environnement.
     pause
     goto MENU
 )
-echo Execution de build.sh dans WSL2...
-wsl bash -c "chmod +x build.sh && sudo ./build.sh 2>&1 | tee build.log"
+if not exist "build.sh" (
+    echo [ERREUR] build.sh est absent de ce dossier.
+    pause
+    goto MENU
+)
+echo Execution de build.sh dans WSL2 en mode root (sans mot de passe)...
+echo.
+wsl -u root -- bash -c "sed -i 's/\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
 echo.
 echo [INFO] Les logs complets ont ete sauvegardes dans : build.log
 pause

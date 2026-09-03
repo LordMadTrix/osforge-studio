@@ -174,6 +174,18 @@ INITRD_SRC=$(readlink -f "\${ROOTFS_DIR}/boot/initrd.img" 2>/dev/null || true)
 [ -n "$INITRD_SRC" ] && [ -f "$INITRD_SRC" ] || INITRD_SRC=$(find "\${ROOTFS_DIR}/boot" -maxdepth 1 -type f \\( -name 'initrd.img-*' -o -name 'initramfs-*' \\) ! -name '*.old' 2>/dev/null | sort | head -1)
 [ -n "$INITRD_SRC" ] && cp "$INITRD_SRC" "\${ISO_DIR}/live/initrd"
 
+# Vérification impérative de présence du noyau et de l'initrd pour un boot garanti
+if [ ! -f "\${ISO_DIR}/live/vmlinuz" ]; then
+    echo -e "\${RED}[ERREUR FATALE] Impossible de trouver l'image du noyau Linux (vmlinuz) dans \${ROOTFS_DIR}/boot !\${NC}"
+    echo -e "\${YELLOW}Vérifiez que le paquet linux-image a bien été installé.\${NC}"
+    exit 1
+fi
+if [ ! -f "\${ISO_DIR}/live/initrd" ]; then
+    echo -e "\${RED}[ERREUR FATALE] Impossible de trouver le fichier initrd dans \${ROOTFS_DIR}/boot !\${NC}"
+    echo -e "\${YELLOW}Vérifiez que initramfs-tools et live-boot ont bien été générés.\${NC}"
+    exit 1
+fi
+
 cat << 'GRUB_CONFIG_EOF' > "\${ISO_DIR}/boot/grub/grub.cfg"
 set default=0
 set timeout=3
@@ -214,7 +226,14 @@ grub-mkstandalone \\
   --fonts="" \\
   "boot/grub/grub.cfg=\${ISO_DIR}/boot/grub/grub.cfg"
 
-cat /usr/lib/grub/i386-pc/cdboot.img "\${ISO_DIR}/boot/grub/i386-pc/core.img" > "\${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+# Recherche résiliente de cdboot.img (compatibilité multi-distributions hôtes)
+CDBOOT_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name cdboot.img 2>/dev/null | head -1 || true)
+if [ -n "$CDBOOT_IMG" ] && [ -f "$CDBOOT_IMG" ]; then
+    cat "$CDBOOT_IMG" "\${ISO_DIR}/boot/grub/i386-pc/core.img" > "\${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+else
+    echo -e "\${YELLOW}[AVERTISSEMENT] cdboot.img introuvable : utilisation directe de core.img\${NC}"
+    cp "\${ISO_DIR}/boot/grub/i386-pc/core.img" "\${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+fi
 
 # 2. Image d'amorce UEFI autonome (bootx64.efi)
 grub-mkstandalone \\
@@ -226,6 +245,13 @@ grub-mkstandalone \\
   --fonts="" \\
   "boot/grub/grub.cfg=\${ISO_DIR}/boot/grub/grub.cfg"
 
+# Recherche résiliente de boot_hybrid.img pour l'amorce MBR hybride
+BOOT_HYBRID_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name boot_hybrid.img 2>/dev/null | head -1 || true)
+ISOHYBRID_MBR_OPT=""
+if [ -n "$BOOT_HYBRID_IMG" ] && [ -f "$BOOT_HYBRID_IMG" ]; then
+    ISOHYBRID_MBR_OPT="-isohybrid-mbr $BOOT_HYBRID_IMG"
+fi
+
 echo -e "\${YELLOW}[7/7] 📀 Création de l'image ISO hybride amorçable (BIOS + UEFI)...\${NC}"
 xorriso -as mkisofs \\
   -iso-level 3 \\
@@ -234,7 +260,7 @@ xorriso -as mkisofs \\
   -eltorito-boot boot/grub/i386-pc/eltorito.img \\
     -no-emul-boot -boot-load-size 4 -boot-info-table \\
   --eltorito-catalog boot/grub/boot.cat \\
-  -isohybrid-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \\
+  \${ISOHYBRID_MBR_OPT} \\
   -output "\${OUTPUT_DIR}/${isoName}" \\
   "\${ISO_DIR}"
 
@@ -324,6 +350,13 @@ ${offlineRepoConfigCmd(recipe, 'debian')}
 cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
+
+# Empêche les démons de démarrer pendant la compilation dans le chroot
+cat << 'POLICY_EOF' > /usr/sbin/policy-rc.d
+#!/bin/sh
+exit 101
+POLICY_EOF
+chmod +x /usr/sbin/policy-rc.d
 ${(recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') && (recipe.selectedPackages.includes('firefox') || recipe.desktop === 'web_kiosk') ? `
 # Sur Ubuntu (et Mint, qui hérite ici du même dépôt de base), "firefox" en apt n'est qu'un
 # paquet de transition vers snap (vérifié en live : l'installation "réussit" silencieusement
@@ -570,9 +603,15 @@ FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
 ${recipe.firstBootScript ? firstbootTriggerCmd('debian') : ''}
 
+# Suppression de la politique temporaire anti-démons
+rm -f /usr/sbin/policy-rc.d
+
 CHROOT_EOF
 
 echo -e "\${YELLOW}[4/7] 🧹 Nettoyage des montages du RootFS...\${NC}"
+# Arrêt des processus résiduels pouvant maintenir les montages occupés
+fuser -k -m "\${ROOTFS_DIR}" 2>/dev/null || true
+sleep 1
 umount -lf "\${ROOTFS_DIR}/sys" || true
 umount -lf "\${ROOTFS_DIR}/proc" || true
 umount -lf "\${ROOTFS_DIR}/dev/pts" || true

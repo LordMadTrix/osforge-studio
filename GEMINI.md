@@ -277,7 +277,16 @@ après.
   - Suppression de la barre d'onglets du haut en mode Expert (élimination du doublon avec la barre latérale).
   - Conditionnement de `StatsBanner` et du grand footer au seul mode Wizard : le mode Expert s'exécute désormais en **véritable plein écran immersif (100vh)** comme VS Code ou Proxmox VE.
   - Validation empirique par enregistrement vidéo et captures d'écran Playwright dans le navigateur (`pro_clean_ui_demo_*.webp`).
-  - Suite de tests : **654 tests** (100% verts). 0 warning / 0 erreur oxlint sur 74 fichiers.
+- **34. 🛡️ 🛠️ Audit Intégral & Blindage des Scripts de Compilation (.bat et .sh)** :
+  - **Élimination du crash CRLF** : conversion systématique `sed -i 's/\r$//' build.sh` insérée dans tous les scripts hôtes (`auto-build.bat`, `launch.bat`, `launch.sh`, `auto-build.sh`, `launchers.ts`) pour neutraliser les retours chariot Windows générés par Git/Notepad/archives ZIP.
+  - **Correction du CWD Windows (`cd /d "%~dp0"`)** : ajout en tête de tous les batchs (`auto-build.bat`, `launch.bat`, `run-live-windows.bat`, `install-wsl.bat`), évitant le ciblage involontaire de `C:\Windows\System32` lors d'un clic droit « Exécuter en tant qu'administrateur ».
+  - **Détection WSL2 directe et robuste** : remplacement du parsing fragile UTF-16-LE de `wsl -l -q` par un test direct `wsl -u root -- echo WSL_OK`, éliminant les faux négatifs.
+  - **Affichage console live & streaming** : exécution de la compilation avec `tee -a auto-build.log` au lieu de la redirection muette `>>log`, offrant un feedback visuel étape par étape sans sensation de blocage.
+  - **Isolation des démons debootstrap/apt** : injection temporaire de `/usr/sbin/policy-rc.d` (`exit 101`) et suppression finale, empêchant les services (`dbus`, `pulseaudio`, `systemd`) de crasher ou de verrouiller le chroot.
+  - **Libération préalable des processus** : appel à `fuser -k -m "${ROOTFS_DIR}"` avant les démontages `/dev`, `/proc` et `/sys`.
+  - **Vérification bloquante du noyau** : contrôle d'existence explicite de `${ISO_DIR}/live/vmlinuz` et `initrd` avec message d'erreur clair avant packaging GRUB/xorriso.
+  - **Détection résiliente multi-distro de GRUB** : recherche dynamique de `cdboot.img` et `boot_hybrid.img` (`find /usr/lib/grub /usr/share/grub`) avec fallback sans échec sur xorriso.
+  - **Suite de tests : 659 tests (100% verts)**. 0 warning / 0 erreur oxlint sur 74 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

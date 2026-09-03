@@ -23,6 +23,13 @@ cat << 'CHROOT_SCRIPT' | chroot "${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
+# Empêche les démons de démarrer automatiquement dans le chroot
+cat << 'POLICY_EOF' > /usr/sbin/policy-rc.d
+#!/bin/sh
+exit 101
+POLICY_EOF
+chmod +x /usr/sbin/policy-rc.d
+
 echo "fr_FR.UTF-8 UTF-8" > /etc/locale.gen
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
@@ -63,9 +70,12 @@ LIVE_CONF
 
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/*
+rm -f /usr/sbin/policy-rc.d
 CHROOT_SCRIPT
 
 echo -e "\033[0;33m[3/7] 🧹 Démontage des systèmes virtuels...\033[0m"
+fuser -k -m "${ROOTFS_DIR}" 2>/dev/null || true
+sleep 1
 umount -lf "${ROOTFS_DIR}/sys" || true
 umount -lf "${ROOTFS_DIR}/proc" || true
 umount -lf "${ROOTFS_DIR}/dev/pts" || true
@@ -76,8 +86,13 @@ mkdir -p "${ISO_DIR}/live"
 mksquashfs "${ROOTFS_DIR}" "${ISO_DIR}/live/filesystem.squashfs" -comp xz -e boot
 
 echo -e "\033[0;33m[5/7] 📦 Préparation du noyau Linux et Initrd...\033[0m"
-cp "${ROOTFS_DIR}/boot"/vmlinuz* "${ISO_DIR}/live/vmlinuz"
-cp "${ROOTFS_DIR}/boot"/initrd.img* "${ISO_DIR}/live/initrd"
+cp "${ROOTFS_DIR}/boot"/vmlinuz* "${ISO_DIR}/live/vmlinuz" 2>/dev/null || true
+cp "${ROOTFS_DIR}/boot"/initrd.img* "${ISO_DIR}/live/initrd" 2>/dev/null || true
+
+if [ ! -f "${ISO_DIR}/live/vmlinuz" ] || [ ! -f "${ISO_DIR}/live/initrd" ]; then
+    echo -e "\033[0;31m[ERREUR FATALE] Noyau ou initrd introuvable dans ${ROOTFS_DIR}/boot !\033[0m"
+    exit 1
+fi
 
 echo -e "\033[0;33m[6/7] 🖲️ Configuration GRUB avec recherche automatique de la racine...\033[0m"
 mkdir -p "${ISO_DIR}/boot/grub/i386-pc" "${ISO_DIR}/EFI/BOOT"
@@ -113,7 +128,12 @@ grub-mkstandalone \
   --modules="linux normal iso9660 biosdisk search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
   --locales="" --fonts="" "boot/grub/grub.cfg=${ISO_DIR}/boot/grub/grub.cfg"
 
-cat /usr/lib/grub/i386-pc/cdboot.img "${ISO_DIR}/boot/grub/i386-pc/core.img" > "${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+CDBOOT_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name cdboot.img 2>/dev/null | head -1 || true)
+if [ -n "$CDBOOT_IMG" ] && [ -f "$CDBOOT_IMG" ]; then
+    cat "$CDBOOT_IMG" "${ISO_DIR}/boot/grub/i386-pc/core.img" > "${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+else
+    cp "${ISO_DIR}/boot/grub/i386-pc/core.img" "${ISO_DIR}/boot/grub/i386-pc/eltorito.img"
+fi
 
 grub-mkstandalone \
   --format=x86_64-efi \
@@ -121,6 +141,12 @@ grub-mkstandalone \
   --install-modules="linux normal iso9660 search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
   --modules="linux normal iso9660 search search_fs_file search_label part_msdos part_gpt all_video font gfxterm" \
   --locales="" --fonts="" "boot/grub/grub.cfg=${ISO_DIR}/boot/grub/grub.cfg"
+
+BOOT_HYBRID_IMG=$(find /usr/lib/grub /usr/share/grub /usr/local/lib/grub -name boot_hybrid.img 2>/dev/null | head -1 || true)
+ISOHYBRID_MBR_OPT=""
+if [ -n "$BOOT_HYBRID_IMG" ] && [ -f "$BOOT_HYBRID_IMG" ]; then
+    ISOHYBRID_MBR_OPT="-isohybrid-mbr $BOOT_HYBRID_IMG"
+fi
 
 echo -e "\033[0;33m[7/7] 📀 Création de l'ISO hybride amorçable (BIOS + UEFI)...\033[0m"
 xorriso -as mkisofs \
@@ -130,7 +156,7 @@ xorriso -as mkisofs \
   -eltorito-boot boot/grub/i386-pc/eltorito.img \
     -no-emul-boot -boot-load-size 4 -boot-info-table \
   --eltorito-catalog boot/grub/boot.cat \
-  -isohybrid-mbr /usr/lib/grub/i386-pc/boot_hybrid.img \
+  ${ISOHYBRID_MBR_OPT} \
   -output "${OUTPUT_DIR}/mados-1.0-x86_64.iso" \
   "${ISO_DIR}"
 

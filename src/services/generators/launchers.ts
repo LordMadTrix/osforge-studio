@@ -128,6 +128,8 @@ export function generateWslInstallerBat(recipe: OSRecipe): string {
   const distroName = recipe.branding.osName.replace(/[^a-zA-Z0-9]/g, '');
 
   return `@echo off
+setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 chcp 65001 >nul
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 REM ==============================================================================
@@ -152,14 +154,16 @@ if %ERRORLEVEL% NEQ 0 (
 
 set DISTRO_NAME=${distroName}
 set INSTALL_DIR=%USERPROFILE%\\WSL\\%DISTRO_NAME%
-set TAR_FILE=dist\\rootfs.tar.gz
+set TAR_FILE=
 
-if not exist "%TAR_FILE%" (
-    if exist "dist\\filesystem.squashfs" (
-        set TAR_FILE=dist\\filesystem.squashfs
-    ) else (
-        echo [INFO] Le fichier rootfs.tar.gz sera généré ou utilisé depuis dist\\
-    )
+for %%f in (dist\\*rootfs*.tar.gz) do set TAR_FILE=%%f
+if "%TAR_FILE%"=="" for %%f in (dist\\*.tar.gz) do set TAR_FILE=%%f
+if "%TAR_FILE%"=="" if exist "dist\\filesystem.squashfs" set TAR_FILE=dist\\filesystem.squashfs
+
+if "%TAR_FILE%"=="" (
+    echo [ERREUR] Aucun fichier archive rootfs (.tar.gz) trouve dans dist\\
+    pause
+    exit /b 1
 )
 
 echo [1/3] Création du dossier d'installation : %INSTALL_DIR%
@@ -173,7 +177,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [3/3] Configuration du support Systemd et utilisateur par défaut (%DISTRO_NAME%)...
-wsl -d %DISTRO_NAME% -u root bash -c "echo '[boot]\\nsystemd=true\\n[user]\\ndefault='${shQuote(recipe.user.username)} > /etc/wsl.conf"
+wsl -d %DISTRO_NAME% -u root bash -c "printf '[boot]\\nsystemd=true\\n[user]\\ndefault='${shQuote(recipe.user.username)}'\\n' > /etc/wsl.conf"
 
 echo.
 echo =====================================================================
@@ -228,6 +232,7 @@ export function generateLiveWindowsBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 title ${batEscapePercent(recipe.branding.osName)} - Machine Virtuelle QEMU (Live RAM & Accélération WHPX)
 cls
@@ -493,6 +498,7 @@ export function generateAutoBuildBat(recipe: OSRecipe): string {
 
   return `@echo off
 setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 title ${batEscapePercent(recipe.branding.osName)} - Compilation 100% Automatique
 cls
@@ -506,8 +512,14 @@ echo   Toutes les etapes s'enchainent sans intervention. Logs : %LOG_FILE%
 echo ===============================================================================
 echo.
 
-:: [1/5] Verification / installation de WSL2
-echo [1/5] Verification de WSL2...
+:: [1/5] Verification directe de WSL2
+echo [1/5] Verification de l'environnement Linux WSL2...
+wsl -u root -- echo WSL_OK >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] WSL2 et distribution Linux operationnels.
+    goto WSL_READY
+)
+
 wsl --status >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [INFO] WSL2 n'est pas actif. Installation automatique en cours...
@@ -520,30 +532,26 @@ if %ERRORLEVEL% NEQ 0 (
     pause
     exit /b 0
 )
-echo [OK] WSL2 est actif.
+
+echo [INFO] Installation d'Ubuntu par defaut dans WSL2...
+wsl --install -d Ubuntu --no-launch >>"%LOG_FILE%" 2>&1
+
+:WSL_READY
 echo.
 
-:: [2/5] Verification / installation d'une distribution WSL par defaut
-echo [2/5] Verification de la distribution Linux WSL...
-wsl -l -q >nul 2>&1
-set DISTRO_COUNT=0
-for /f %%d in ('wsl -l -q 2^>nul ^| findstr /r /v "^$"') do set /a DISTRO_COUNT+=1
-if %DISTRO_COUNT% EQU 0 (
-    echo [INFO] Aucune distribution WSL trouvee. Installation automatique d'Ubuntu...
-    echo [%DATE% %TIME%] Installation d'Ubuntu dans WSL2 >> "%LOG_FILE%"
-    wsl --install -d Ubuntu --no-launch >>"%LOG_FILE%" 2>&1
-    if %ERRORLEVEL% NEQ 0 (
-        echo [ERREUR] Echec de l'installation d'Ubuntu dans WSL2. Voir %LOG_FILE%.
-        pause
-        exit /b 1
-    )
+:: [2/5] Verification du script build.sh
+echo [2/5] Verification des fichiers du projet...
+if not exist "build.sh" (
+    echo [ERREUR] Le fichier build.sh est absent de ce repertoire.
+    pause
+    exit /b 1
 )
-echo [OK] Distribution WSL disponible.
+echo [OK] Script build.sh detecte.
 echo.
 
 :: [3/5] Installation des dependances de compilation
 echo [3/5] Installation des dependances de compilation ISO dans WSL2...
-wsl -u root -- bash -c "apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync" >>"%LOG_FILE%" 2>&1
+wsl -u root -- bash -c "export DEBIAN_FRONTEND=noninteractive; apt-get update -y && apt-get install -y debootstrap xorriso mtools grub-pc-bin grub-efi-amd64-bin grub-common squashfs-tools dosfstools rsync" >>"%LOG_FILE%" 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo [ERREUR] Echec de l'installation des dependances. Voir %LOG_FILE%.
     pause
@@ -552,12 +560,10 @@ if %ERRORLEVEL% NEQ 0 (
 echo [OK] Dependances installees.
 echo.
 
-:: ---------------------------------------------------------------------------
-:: [4/5] Compilation de l'ISO (execute en root, aucun mot de passe sudo requis)
-:: ---------------------------------------------------------------------------
+:: [4/5] Compilation de l'ISO (avec affichage direct et conversion CRLF)
 echo [4/5] Compilation de l'ISO en cours (peut prendre plusieurs minutes)...
 echo [%DATE% %TIME%] Lancement de build.sh en root >> "%LOG_FILE%"
-wsl -u root -- bash -c "chmod +x build.sh && ./build.sh" >>"%LOG_FILE%" 2>&1
+wsl -u root -- bash -c "sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee -a auto-build.log"
 if %ERRORLEVEL% NEQ 0 (
     echo [ERREUR] La compilation a echoue. Consultez %LOG_FILE% pour le detail.
     pause
@@ -681,8 +687,9 @@ echo ""
 # [2/4] Compilation de l'ISO
 # ------------------------------------------------------------------------------
 echo -e "\${YELLOW}[2/4] Compilation de l'ISO en cours (peut prendre plusieurs minutes)...\${NC}"
+sed -i 's/\\\\r$//' build.sh 2>/dev/null || true
 chmod +x build.sh
-sudo ./build.sh >> "\${LOG_FILE}" 2>&1
+sudo ./build.sh 2>&1 | tee -a "\${LOG_FILE}"
 echo -e "\${GREEN}[OK] Compilation terminée. Image disponible dans dist/\${NC}"
 echo ""
 
@@ -724,7 +731,9 @@ if [ -z "\${ISO_FILE}" ]; then
     echo "Format de sortie \\"${recipe.outputFormat}\\" : pas d'image ISO à tester via QEMU (le test Live RAM automatique n'est disponible que pour le format \\"ISO hybride\\")."
 elif command -v qemu-system-x86_64 &>/dev/null; then
     echo "Lancement du test Live RAM (fermez la fenêtre QEMU quand vous avez fini)..."
-    qemu-system-x86_64 -cdrom "\${ISO_FILE}" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+    KVM_ARG=""
+    [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"
+    qemu-system-x86_64 -cdrom "\${ISO_FILE}" $KVM_ARG -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 else
     echo "QEMU non disponible : lancez run-live-windows.bat ou installez QEMU manuellement pour tester."
 fi
@@ -737,6 +746,7 @@ fi
 export function generateUniversalLauncherBat(recipe: OSRecipe): string {
   return `@echo off
 setlocal EnableDelayedExpansion
+cd /d "%~dp0"
 title OSForge Studio - Lanceur ${batEscapePercent(recipe.branding.osName)}
 cls
 
@@ -796,8 +806,8 @@ cls
 echo ===============================================================================
 echo   Compilation locale via WSL2 / Bash
 echo ===============================================================================
-echo Lancement de la compilation dans WSL2...
-wsl bash -c "chmod +x build.sh && sudo ./build.sh"
+echo Lancement de la compilation dans WSL2 en mode root...
+wsl -u root -- bash -c "sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
 pause
 goto MENU
 
@@ -867,8 +877,9 @@ show_menu() {
     case $choice in
         1)
             echo "Lancement de la compilation locale..."
+            sed -i 's/\\\\r$//' build.sh 2>/dev/null || true
             chmod +x build.sh
-            sudo ./build.sh
+            sudo ./build.sh 2>&1 | tee build.log
             read -rp "Appuyez sur Entrée pour continuer..."
             show_menu
             ;;
@@ -882,7 +893,9 @@ show_menu() {
         3)
             if [ -f "dist/${isoName}" ]; then
                 echo "Lancement de QEMU..."
-                qemu-system-x86_64 -cdrom "dist/${isoName}" -m 4G -enable-kvm -vga virtio -smp 4
+                KVM_ARG=""
+                [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"
+                qemu-system-x86_64 $KVM_ARG -cdrom "dist/${isoName}" -m 4G -vga virtio -smp 4
             else
                 echo "L'image ISO dist/${isoName} n'existe pas encore. Veuillez d'abord compiler l'image (Choix 1 ou 2)."
                 read -rp "Appuyez sur Entrée pour continuer..."
