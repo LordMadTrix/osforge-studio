@@ -408,6 +408,11 @@ ${fetchOrWriteScript}
 if [ -f "/usr/share/backgrounds/${slug}-wallpaper.svg" ]; then
     cp -f "/usr/share/backgrounds/${slug}-wallpaper.svg" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.svg" 2>/dev/null || true
     WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.svg"
+    # Fallback rasterise PNG si rsvg-convert est disponible
+    if command -v rsvg-convert &>/dev/null; then
+        rsvg-convert -w 1920 -h 1080 "/usr/share/backgrounds/${slug}-wallpaper.svg" -o "/usr/share/backgrounds/${slug}-wallpaper.png" 2>/dev/null || true
+        cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.png" 2>/dev/null || true
+    fi
 else
     cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.png" 2>/dev/null || true
     WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.png"
@@ -424,22 +429,60 @@ cat << 'METADATA_EOF' > "/usr/share/wallpapers/${slug}/metadata.json"
 }
 METADATA_EOF
 
-# 1. Intégration GNOME / Cinnamon (via DConf local)
-mkdir -p /etc/dconf/db/local.d
+# 1. Configuration des thèmes par défaut KDE Plasma (Breeze / BreezeDark defaults)
+for BREEZE_DIR in /usr/share/plasma/look-and-feel/org.kde.breeze*.desktop/contents; do
+    if [ -d "$BREEZE_DIR" ]; then
+        if [ -f "$BREEZE_DIR/defaults" ]; then
+            sed -i "s|^defaultWallpaperTheme=.*|defaultWallpaperTheme=${slug}|" "$BREEZE_DIR/defaults" 2>/dev/null || true
+            grep -q 'defaultWallpaperTheme' "$BREEZE_DIR/defaults" 2>/dev/null || echo "defaultWallpaperTheme=${slug}" >> "$BREEZE_DIR/defaults"
+        else
+            printf "[Wallpaper]\\ndefaultWallpaperTheme=${slug}\\n" > "$BREEZE_DIR/defaults" 2>/dev/null || true
+        fi
+    fi
+done
+
+# Script de mise à jour du layout Plasma (exécuté par plasma-shell au 1er boot)
+mkdir -p /usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates
+cat << 'PLASMA_UPDATE_EOF' > /usr/share/plasma/shells/org.kde.plasma.desktop/contents/updates/00-osforge-theme.js
+var allDesktops = desktops();
+for (var i = 0; i < allDesktops.length; i++) {
+    var d = allDesktops[i];
+    d.wallpaperPlugin = "org.kde.image";
+    d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");
+    d.writeConfig("Image", "file:///usr/share/backgrounds/${slug}-wallpaper.svg");
+}
+PLASMA_UPDATE_EOF
+
+# 2. Profil DConf système indispensable (GNOME / Cinnamon / MATE)
+mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
+cat << 'DCONF_PROFILE_EOF' > /etc/dconf/profile/user
+user-db:user
+system-db:local
+DCONF_PROFILE_EOF
+
 cat << DCONF_BG_EOF > /etc/dconf/db/local.d/01-background
 [org/gnome/desktop/background]
-picture-uri='file://\${WALLPAPER_TARGET}'
-picture-uri-dark='file://\${WALLPAPER_TARGET}'
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-uri-dark='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
 picture-options='zoom'
 primary-color='#000000'
 secondary-color='#000000'
+
+[org/cinnamon/desktop/background]
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-options='zoom'
+
+[org/mate/desktop/background]
+picture-filename='/usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-options='zoom'
 DCONF_BG_EOF
+
 if command -v dconf &>/dev/null; then
     dconf update 2>/dev/null || true
 fi
 
-# 2. Intégration XFCE
-mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml
+# 3. Intégration XFCE (Multi-moniteurs physique & virtuel QEMU/VirtualBox)
+mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml
 cat << XFCE_BG_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-desktop" version="1.0">
@@ -447,7 +490,36 @@ cat << XFCE_BG_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
     <property name="screen0" type="empty">
       <property name="monitor0" type="empty">
         <property name="workspace0" type="empty">
-          <property name="image-path" type="string" value="\${WALLPAPER_TARGET}"/>
+          <property name="image-path" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="last-image" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="image-style" type="int" value="5"/>
+        </property>
+      </property>
+      <property name="monitorVirtual1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-path" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="last-image" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="image-style" type="int" value="5"/>
+        </property>
+      </property>
+      <property name="monitorVirtual-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-path" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="last-image" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="image-style" type="int" value="5"/>
+        </property>
+      </property>
+      <property name="monitorHDMI-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-path" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="last-image" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="image-style" type="int" value="5"/>
+        </property>
+      </property>
+      <property name="monitoreDP-1" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="image-path" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
+          <property name="last-image" type="string" value="/usr/share/backgrounds/${slug}-wallpaper.svg"/>
           <property name="image-style" type="int" value="5"/>
         </property>
       </property>
@@ -455,16 +527,36 @@ cat << XFCE_BG_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
   </property>
 </channel>
 XFCE_BG_EOF
+cp -f /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml 2>/dev/null || true
 
-# 3. Intégration SDDM (KDE Login Greeter)
-mkdir -p /usr/share/sddm/themes/breeze/components/artwork
-if [ -d /usr/share/sddm/themes/breeze ]; then
-    cp -f "\${WALLPAPER_TARGET}" /usr/share/sddm/themes/breeze/components/artwork/background.svg 2>/dev/null || true
-fi
+# 4. Intégration LXQt et LXDE
+mkdir -p /etc/xdg/pcmanfm-qt/lxqt /etc/skel/.config/pcmanfm-qt/lxqt
+cat << LXQT_WALL_EOF > /etc/xdg/pcmanfm-qt/lxqt/settings.conf
+[General]
+WallpaperMode=stretch
+Wallpaper=/usr/share/backgrounds/${slug}-wallpaper.svg
+LXQT_WALL_EOF
+cp -f /etc/xdg/pcmanfm-qt/lxqt/settings.conf /etc/skel/.config/pcmanfm-qt/lxqt/settings.conf 2>/dev/null || true
 
-# 4. Intégration LightDM Greeter
+mkdir -p /etc/xdg/pcmanfm/default /etc/skel/.config/pcmanfm/default
+cat << LXDE_WALL_EOF > /etc/xdg/pcmanfm/default/pcmanfm.conf
+[desktop]
+wallpaper_mode=stretch
+wallpaper=/usr/share/backgrounds/${slug}-wallpaper.svg
+LXDE_WALL_EOF
+cp -f /etc/xdg/pcmanfm/default/pcmanfm.conf /etc/skel/.config/pcmanfm/default/pcmanfm.conf 2>/dev/null || true
+
+# 5. Intégration SDDM (KDE Login Greeter)
+mkdir -p /usr/share/sddm/themes/breeze/components/artwork /usr/share/sddm/themes/debian-breeze/components/artwork
+for SDDM_DIR in /usr/share/sddm/themes/*breeze*/components/artwork; do
+    if [ -d "$SDDM_DIR" ]; then
+        cp -f "$WALLPAPER_TARGET" "$SDDM_DIR/background.svg" 2>/dev/null || cp -f "$WALLPAPER_TARGET" "$SDDM_DIR/background.png" 2>/dev/null || true
+    fi
+done
+
+# 6. Intégration LightDM Greeter
 if [ -f /etc/lightdm/lightdm-gtk-greeter.conf ]; then
-    sed -i "s|^#\\?background=.*|background = \${WALLPAPER_TARGET}|" /etc/lightdm/lightdm-gtk-greeter.conf 2>/dev/null || true
+    sed -i "s|^#\\?background=.*|background = $WALLPAPER_TARGET|" /etc/lightdm/lightdm-gtk-greeter.conf 2>/dev/null || true
 fi
 `;
 }
@@ -552,6 +644,8 @@ mkdir -p /etc/xdg
 cat << KDEGLOBALS_EOF >> /etc/xdg/kdeglobals
 [General]
 AccentColor=${rgb.r},${rgb.g},${rgb.b}
+LastUsedCustomAccentColor=${rgb.r},${rgb.g},${rgb.b}
+accentColorFromWallpaper=false
 ColorScheme=BreezeDark
 font=${uiFont},10,-1,5,50,0,0,0,0,0
 fixed=${monoFont},10,-1,5,50,0,0,0,0,0
@@ -609,7 +703,7 @@ Inherits=${cursorTheme}
 CURSOR_DEF_EOF
 
 # 4. Configuration XFCE (xsettings & xfwm4)
-mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml
+mkdir -p /etc/xdg/xfce4/xfconf/xfce-perchannel-xml /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml
 cat << XFSETTINGS_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xsettings" version="1.0">
@@ -624,6 +718,7 @@ cat << XFSETTINGS_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
   </property>
 </channel>
 XFSETTINGS_EOF
+cp -f /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml 2>/dev/null || true
 
 cat << XFWM4_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -634,8 +729,9 @@ cat << XFWM4_EOF > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
   </property>
 </channel>
 XFWM4_EOF
+cp -f /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml /etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml 2>/dev/null || true
 
-# 5. DConf Interface Sombre & Accent Color (GNOME / Libadwaita / Cinnamon)
+# 5. DConf Interface Sombre & Accent Color (GNOME / Libadwaita / Cinnamon / MATE)
 cat << DCONF_THEME_EOF > /etc/dconf/db/local.d/02-theme
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
@@ -648,9 +744,107 @@ accent-color='${gnomeAccent}'
 
 [org/gnome/desktop/wm/preferences]
 button-layout='${buttonsOnLeft ? 'close,minimize,maximize:' : 'appmenu:minimize,maximize,close'}'
+
+[org/cinnamon/desktop/interface]
+gtk-theme='Adwaita-dark'
+icon-theme='${iconTheme}'
+cursor-theme='${cursorTheme}'
+font-name='${uiFont} 10'
+monospace-font-name='${monoFont} 10'
+
+[org/mate/desktop/interface]
+gtk-theme='Adwaita-dark'
+icon-theme='${iconTheme}'
+cursor-theme='${cursorTheme}'
+font-name='${uiFont} 10'
+monospace-font-name='${monoFont} 10'
 DCONF_THEME_EOF
+
 if command -v dconf &>/dev/null; then
     dconf update 2>/dev/null || true
+fi
+`;
+}
+
+/**
+ * Configure un lanceur d'application Autostart Freedesktop pour forcer l'application
+ * des thèmes, couleurs et fonds d'écran à l'ouverture de la session graphique utilisateur.
+ */
+export function generateAutostartThemeCmd(recipe: OSRecipe): string {
+  const slug = sanitizeOsSlug(recipe.branding.osName);
+  const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
+  const gnomeAccent = hexToGnomeAccent(accent);
+  const iconTheme = mapIconThemeName(recipe.branding.iconTheme);
+  const cursorTheme = mapCursorThemeName(recipe.branding.cursorTheme);
+  const username = recipe.user?.username || 'forge';
+
+  return `# ==============================================================================
+# Script Autostart Universel d'Application du Thème & Design System
+# ==============================================================================
+echo -e "\${BLUE}[BRANDING] Deploiement de l'autostart d'application du theme...\${NC}"
+mkdir -p /usr/local/bin /etc/xdg/autostart /etc/skel/.config/autostart
+
+cat << 'AUTOSTART_SH_EOF' > /usr/local/bin/osforge-apply-theme.sh
+#!/bin/sh
+# OSForge Studio - Application dynamique des composants visuels au login
+WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.svg"
+[ -f "$WALLPAPER" ] || WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.png"
+
+# 1. KDE Plasma (plasma-apply-*)
+if command -v plasma-apply-wallpaperimage >/dev/null 2>&1 && [ -f "$WALLPAPER" ]; then
+    plasma-apply-wallpaperimage "$WALLPAPER" >/dev/null 2>&1 || true
+fi
+if command -v plasma-apply-colorscheme >/dev/null 2>&1; then
+    plasma-apply-colorscheme BreezeDark >/dev/null 2>&1 || true
+fi
+if command -v plasma-apply-cursortheme >/dev/null 2>&1; then
+    plasma-apply-cursortheme "${cursorTheme}" >/dev/null 2>&1 || true
+fi
+
+# 2. GNOME / Cinnamon / MATE (gsettings au niveau utilisateur actif)
+if command -v gsettings >/dev/null 2>&1; then
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' >/dev/null 2>&1 || true
+    gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark' >/dev/null 2>&1 || true
+    gsettings set org.gnome.desktop.interface icon-theme '${iconTheme}' >/dev/null 2>&1 || true
+    gsettings set org.gnome.desktop.interface cursor-theme '${cursorTheme}' >/dev/null 2>&1 || true
+    gsettings set org.gnome.desktop.interface accent-color '${gnomeAccent}' >/dev/null 2>&1 || true
+    if [ -f "$WALLPAPER" ]; then
+        gsettings set org.gnome.desktop.background picture-uri "file://$WALLPAPER" >/dev/null 2>&1 || true
+        gsettings set org.gnome.desktop.background picture-uri-dark "file://$WALLPAPER" >/dev/null 2>&1 || true
+        gsettings set org.cinnamon.desktop.background picture-uri "file://$WALLPAPER" >/dev/null 2>&1 || true
+    fi
+fi
+
+# 3. XFCE (xfconf-query au niveau utilisateur actif)
+if command -v xfconf-query >/dev/null 2>&1 && [ -f "$WALLPAPER" ]; then
+    for prop in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -E 'last-image$|image-path$'); do
+        xfconf-query -c xfce4-desktop -p "$prop" -s "$WALLPAPER" >/dev/null 2>&1 || true
+    done
+    xfconf-query -c xsettings -p /Net/ThemeName -s "Adwaita-dark" >/dev/null 2>&1 || true
+    xfconf-query -c xsettings -p /Net/IconThemeName -s "${iconTheme}" >/dev/null 2>&1 || true
+    xfconf-query -c xsettings -p /Gtk/CursorThemeName -s "${cursorTheme}" >/dev/null 2>&1 || true
+fi
+AUTOSTART_SH_EOF
+chmod +x /usr/local/bin/osforge-apply-theme.sh
+
+cat << 'AUTOSTART_DESKTOP_EOF' > /etc/xdg/autostart/osforge-branding.desktop
+[Desktop Entry]
+Type=Application
+Name=OSForge Branding Enforcer
+Comment=Applique les couleurs et themes au demarrage de session
+Exec=/usr/local/bin/osforge-apply-theme.sh
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-phase=2
+AUTOSTART_DESKTOP_EOF
+
+cp -f /etc/xdg/autostart/osforge-branding.desktop /etc/skel/.config/autostart/osforge-branding.desktop 2>/dev/null || true
+
+# Synchronisation du squelette /etc/skel vers le home utilisateur principal s'il existe deja
+if [ -d "/home/${username}" ]; then
+    cp -rn /etc/skel/. "/home/${username}/" 2>/dev/null || true
+    chown -R "${username}:${username}" "/home/${username}" 2>/dev/null || true
 fi
 `;
 }
@@ -1045,6 +1239,8 @@ ${generateProAliasesCmd(recipe)}
 ${generateStartupSoundCmd(recipe)}
 
 ${generateFastfetchMotdCmd(recipe)}
+
+${generateAutostartThemeCmd(recipe)}
 
 ${generatePlymouthCmd(recipe)}
 

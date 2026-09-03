@@ -6,7 +6,6 @@ import {
   sanitizeKernelCmdline,
   dmEnableCmd,
   localeSetupCmd,
-  osReleaseCmd,
   userSshSetupCmd,
   networkConfigCmd,
   vpnConfigCmd,
@@ -36,6 +35,7 @@ import {
   metasploitSetupCmd,
   firstbootTriggerCmd,
 } from './helpers';
+import { generateBrandingChrootCommands } from './branding';
 
 export function generateRpiSdScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
@@ -115,7 +115,7 @@ cat << 'HOSTS' > /etc/hosts
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
 
-${osReleaseCmd(recipe, 'debian')}
+${generateBrandingChrootCommands(recipe, 'debian')}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime
 ${localeSetupCmd(recipe, 'debian')}
@@ -124,6 +124,12 @@ if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
     useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
     echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
     ${recipe.user.sudo ? `usermod -aG sudo ${shQuote(recipe.user.username)}` : ''}
+fi
+
+# Synchronisation du squelette /etc/skel vers le home utilisateur
+if [ -d "/home/${shQuote(recipe.user.username)}" ]; then
+    cp -rn /etc/skel/. "/home/${shQuote(recipe.user.username)}/" 2>/dev/null || true
+    chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} "/home/${shQuote(recipe.user.username)}" 2>/dev/null || true
 fi
 echo "root:toor" | chpasswd
 

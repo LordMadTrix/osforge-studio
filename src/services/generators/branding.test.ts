@@ -17,6 +17,7 @@ import {
   generateTerminalThemeCmd,
   generateProAliasesCmd,
   generateStartupSoundCmd,
+  generateAutostartThemeCmd,
   generateBrandingChrootCommands,
 } from './branding';
 import { resolvePackageList } from './packages';
@@ -165,8 +166,11 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       const cmd = generateWallpaperSetupCmd(recipe);
       expect(cmd).toContain('/usr/share/backgrounds/steammachineos-wallpaper.svg');
       expect(cmd).toContain('/usr/share/wallpapers/steammachineos/metadata.json');
+      expect(cmd).toContain('/etc/dconf/profile/user');
       expect(cmd).toContain('/etc/dconf/db/local.d/01-background');
-      expect(cmd).toContain('picture-uri=\'file://${WALLPAPER_TARGET}\'');
+      expect(cmd).toContain("picture-uri='file:///usr/share/backgrounds/steammachineos-wallpaper.svg'");
+      expect(cmd).not.toContain('${WALLPAPER_TARGET}');
+      expect(cmd).toContain('defaultWallpaperTheme=steammachineos');
       expect(cmd).toContain('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml');
       expect(cmd).toContain('/usr/share/sddm/themes/breeze/components/artwork');
       expect(cmd).toContain('/etc/lightdm/lightdm-gtk-greeter.conf');
@@ -189,6 +193,8 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       const cmd = generateGlobalThemeCmd(recipe);
       expect(cmd).toContain('/etc/xdg/kdeglobals');
       expect(cmd).toContain('AccentColor=255,0,60');
+      expect(cmd).toContain('LastUsedCustomAccentColor=255,0,60');
+      expect(cmd).toContain('accentColorFromWallpaper=false');
       expect(cmd).toContain('ColorScheme=BreezeDark');
       expect(cmd).toContain('/etc/gtk-3.0/settings.ini');
       expect(cmd).toContain('/etc/gtk-4.0/settings.ini');
@@ -230,6 +236,8 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(fullCmd).toContain('/etc/os-release');
       expect(fullCmd).toContain('/usr/share/backgrounds');
       expect(fullCmd).toContain('/etc/xdg/kdeglobals');
+      expect(fullCmd).toContain('/usr/local/bin/osforge-apply-theme.sh');
+      expect(fullCmd).toContain('/etc/xdg/autostart/osforge-branding.desktop');
       expect(fullCmd).toContain('/etc/fastfetch');
       expect(fullCmd).toContain('plymouth-set-default-theme');
       expect(fullCmd).toContain('/boot/grub/themes');
@@ -362,6 +370,44 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(pkgs).toContain('xcursor-breeze');
       expect(pkgs).toContain('inter-font');
       expect(pkgs).toContain('ttf-jetbrains-mono');
+    });
+
+    it('resolvePackageList inclut librsvg2-common et dconf-cli sur Debian pour les bureaux graphiques', () => {
+      const debianRecipe = makeRecipe({ distro: 'debian', desktop: 'kde' });
+      const pkgs = resolvePackageList(debianRecipe);
+      expect(pkgs).toContain('librsvg2-common');
+      expect(pkgs).toContain('dconf-cli');
+    });
+
+    it('resolvePackageList n inclut pas librsvg2-common si desktop="none"', () => {
+      const headlessRecipe = makeRecipe({ distro: 'debian', desktop: 'none' });
+      const pkgs = resolvePackageList(headlessRecipe);
+      expect(pkgs).not.toContain('librsvg2-common');
+      expect(pkgs).not.toContain('dconf-cli');
+    });
+  });
+
+  describe('Autostart Universel de Session Graphique (Application Garantie)', () => {
+    it('generateAutostartThemeCmd : produit le script osforge-apply-theme.sh et le fichier .desktop', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS',
+          accentColor: '#ff003c',
+          iconTheme: 'papirus-dark',
+          cursorTheme: 'bibata-modern',
+        },
+      });
+      const cmd = generateAutostartThemeCmd(recipe);
+      expect(cmd).toContain('/usr/local/bin/osforge-apply-theme.sh');
+      expect(cmd).toContain('/etc/xdg/autostart/osforge-branding.desktop');
+      expect(cmd).toContain('plasma-apply-wallpaperimage');
+      expect(cmd).toContain('plasma-apply-colorscheme BreezeDark');
+      expect(cmd).toContain('plasma-apply-cursortheme "Bibata-Modern-Classic"');
+      expect(cmd).toContain('gsettings set org.gnome.desktop.interface color-scheme \'prefer-dark\'');
+      expect(cmd).toContain('gsettings set org.gnome.desktop.interface icon-theme \'Papirus-Dark\'');
+      expect(cmd).toContain('xfconf-query -c xfce4-desktop');
+      expect(cmd).toContain('X-KDE-autostart-phase=2');
     });
   });
 });

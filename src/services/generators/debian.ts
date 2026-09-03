@@ -473,6 +473,12 @@ if ! id ${shQuote(recipe.user.username)} &>/dev/null; then
     ${recipe.user.sudo ? `usermod -aG sudo ${shQuote(recipe.user.username)}` : ''}
 fi
 
+# Synchronisation du squelette /etc/skel vers le home utilisateur
+if [ -d "/home/${shQuote(recipe.user.username)}" ]; then
+    cp -rn /etc/skel/. "/home/${shQuote(recipe.user.username)}/" 2>/dev/null || true
+    chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} "/home/${shQuote(recipe.user.username)}" 2>/dev/null || true
+fi
+
 # Mot de passe Root
 echo "root:toor" | chpasswd
 

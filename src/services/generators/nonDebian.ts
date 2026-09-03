@@ -45,6 +45,7 @@ import {
   firstbootTriggerCmd,
 } from './helpers';
 import { offlineRepoConfigCmd } from './offlineCache';
+import { generateBrandingChrootCommands } from './branding';
 
 export const NON_DEBIAN_LABELS: Record<string, string> = {
   arch: 'Arch Linux',
@@ -512,7 +513,7 @@ cat << 'HOSTS' > /etc/hosts
 ::1         localhost ip6-localhost ip6-loopback
 HOSTS
 
-${osReleaseCmd(recipe, family === 'suse' ? 'opensuse' : family)}
+${generateBrandingChrootCommands(recipe, family === 'suse' ? 'opensuse' : family)}
 
 ln -sf /usr/share/zoneinfo/${recipe.timezone} /etc/localtime 2>/dev/null || true
 ${localeSetupCmd(recipe, family)}
@@ -531,6 +532,12 @@ echo "KEYMAP=${xkb.layout}" > /etc/vconsole.conf 2>/dev/null || true
 if ! id ${shQuote(recipe.user.username)} >/dev/null 2>&1; then
     useradd -m -s ${shQuote(recipe.user.shell)} -c ${shQuote(recipe.user.fullName)} ${shQuote(recipe.user.username)}
     echo ${shQuote(recipe.user.username)}:${shQuote(recipe.user.password || 'forge')} | chpasswd
+fi
+
+# Synchronisation du squelette /etc/skel vers le home utilisateur
+if [ -d "/home/${shQuote(recipe.user.username)}" ]; then
+    cp -rn /etc/skel/. "/home/${shQuote(recipe.user.username)}/" 2>/dev/null || true
+    chown -R ${shQuote(recipe.user.username)}:${shQuote(recipe.user.username)} "/home/${shQuote(recipe.user.username)}" 2>/dev/null || true
 fi
 echo "root:toor" | chpasswd
 

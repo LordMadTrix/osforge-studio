@@ -531,5 +531,20 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     else if (distroId === 'alpine') pkgs.push('font-hack');
   }
 
+  // Support des images vectorielles SVG et de la configuration DConf système
+  if (recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk') {
+    if (isDebianLike) {
+      pkgs.push('librsvg2-common', 'dconf-cli');
+    } else if (isArchLike) {
+      pkgs.push('librsvg', 'dconf');
+    } else if (isFedoraLike) {
+      pkgs.push('librsvg2', 'dconf');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('librsvg-2-2', 'dconf');
+    } else if (distroId === 'alpine' || distroId === 'void') {
+      pkgs.push('librsvg', 'dconf');
+    }
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }

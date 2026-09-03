@@ -482,7 +482,7 @@ chown -R ${shQuote(username)}:${shQuote(username)} /home/${shQuote(username)}/.d
 }
 
 export function customServicesCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
-  if (!recipe.customServices.length) return '';
+  if (!recipe.customServices?.length) return '';
   if (family === 'alpine' || family === 'void') {
     return `echo -e "\${YELLOW:-}[INFO] ${recipe.customServices.length} service(s) personnalisé(s) non câblé(s) sur cette distribution : le générateur ne produit que de vrais fichiers systemd .service, non lus par OpenRC (Alpine) ni runit (Void).\${NC:-}" 2>/dev/null || true`;
   }

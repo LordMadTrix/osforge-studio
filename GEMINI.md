@@ -256,7 +256,16 @@ après.
   - Algorithme d'analyse et de recommandation ciblé (PC Gaming ➔ MadOS ROG avec Ubuntu/Arch + KDE + XanMod + Pilotes GPU ; PC Faible Puissance ➔ ForgeOS Ultra-Light avec Debian 13 + XFCE + ZRAM ; Station de Travail ➔ ForgeOS Pro avec Debian 13 + KDE Plasma + Flatpak).
   - Bouton direct d'application de la recette en 1 clic dans l'UI (`HardwareAuditModal.tsx`).
   - Générateurs de scripts d'audit matériel en profondeur pour machines cibles physiques (`audit-hardware.sh` et `audit-hardware.bat`).
-  - Suite de tests : **651 tests** (100% verts). 0 warning / 0 erreur oxlint sur 73 fichiers.
+- **31. 🎨 🖼️ Résolution de l'Application des Couleurs, Thèmes et Fonds d'Écran dans l'ISO (Zéro Cosmétique)** :
+  - Correction de l'interpolation heredoc dans `generateWallpaperSetupCmd` (suppression de l'antislash erroné qui écrivait littéralement `${WALLPAPER_TARGET}` dans la config DConf et XFCE XML).
+  - Création du profil système DConf `/etc/dconf/profile/user` (`user-db:user`, `system-db:local`) indispensable sous GNOME/Cinnamon/MATE pour charger `/etc/dconf/db/local.d/`.
+  - Configuration effective pour KDE Plasma : patch des defaults look-and-feel Breeze (`defaultWallpaperTheme=${slug}`), script JS d'initialisation Plasma desktop updates et paramètres `LastUsedCustomAccentColor` / `accentColorFromWallpaper=false` dans `kdeglobals`.
+  - Intégration des paquets essentiels `librsvg2-common` (chargement d'images SVG pour GTK/GdkPixbuf) et `dconf-cli` (compilation de la base dconf système) dans `resolvePackageList`.
+  - Nouveau script Autostart universel Freedesktop (`/usr/local/bin/osforge-apply-theme.sh` et `/etc/xdg/autostart/osforge-branding.desktop`) appliquant dynamiquement le wallpaper et le thème sombre (`plasma-apply-wallpaperimage`, `plasma-apply-colorscheme`, `gsettings`, `xfconf-query`) dès l'ouverture de session en Live ISO ou en VM.
+  - Synchronisation systématique du squelette `/etc/skel/.config` vers le répertoire utilisateur `/home/${username}/` avec `chown -R` approprié.
+  - Câblage complet de `generateBrandingChrootCommands` dans les générateurs d'images disques non-Debian (`nonDebian.ts`) et Raspberry Pi (`rpi.ts`).
+  - Suite de tests : **654 tests** (100% verts). 0 warning / 0 erreur oxlint sur 73 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
