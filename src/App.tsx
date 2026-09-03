@@ -5,13 +5,7 @@ import { DESKTOPS } from './data/desktopEnvironments';
 import { Header } from './components/Header';
 import { StatsBanner } from './components/StatsBanner';
 import { WizardMode } from './components/WizardMode';
-import { DistroSelector } from './components/DistroSelector';
-import { DesktopSelector } from './components/DesktopSelector';
-import { PackageCatalog } from './components/PackageCatalog';
-import { SystemConfig } from './components/SystemConfig';
-import { SecurityConfig } from './components/SecurityConfig';
-import { PostInstallScripts } from './components/PostInstallScripts';
-import { RecipeInspector } from './components/RecipeInspector';
+import { ExpertProStudio } from './components/ExpertProStudio';
 import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
 import { extractRecipeFromUrl } from './services/recipeSharing';
@@ -156,10 +150,10 @@ export const App: React.FC = () => {
 
       {/* Main Workspace Container */}
       <main style={{
-        maxWidth: '1540px',
+        maxWidth: uiMode === 'expert' ? '100%' : '1540px',
         width: '100%',
         margin: '0 auto',
-        padding: '20px 24px',
+        padding: uiMode === 'expert' ? '0' : '20px 24px',
         flex: 1,
       }}>
         {/* Mode 1: Guided Wizard Mode */}
@@ -175,54 +169,27 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* Mode 2: Expert Studio Tabs */}
+        {/* Mode 2: Expert Studio Pro (Master-Detail Architecture) */}
         {uiMode === 'expert' && (
-          <>
-            {/* Tab 1: Studio Builder (Base + Arch + Desktop) */}
-            {activeTab === 'builder' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                <DistroSelector
-                  recipe={recipe}
-                  onChange={handleUpdateRecipe}
-                  lang={lang}
-                  onOpenTips={() => setIsTipsOpen(true)}
-                  onOpenScreenshots={handleOpenScreenshots}
-                />
-                <DesktopSelector
-                  recipe={recipe}
-                  onChange={handleUpdateRecipe}
-                  lang={lang}
-                  onOpenTips={() => setIsTipsOpen(true)}
-                  onOpenScreenshots={handleOpenScreenshots}
-                />
-              </div>
-            )}
-
-        {/* Tab 2: Packages Catalog */}
-        {activeTab === 'packages' && (
-          <PackageCatalog recipe={recipe} onChange={handleUpdateRecipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
-        )}
-
-        {/* Tab 3: System & Identity */}
-        {activeTab === 'system' && (
-          <SystemConfig recipe={recipe} onChange={handleUpdateRecipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
-        )}
-
-        {/* Tab 4: Security & Hardening */}
-        {activeTab === 'security' && (
-          <SecurityConfig recipe={recipe} onChange={handleUpdateRecipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
-        )}
-
-        {/* Tab 5: Post-Install Scripts & Hooks */}
-        {activeTab === 'postinstall' && (
-          <PostInstallScripts recipe={recipe} onChange={handleUpdateRecipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
-        )}
-
-        {/* Tab 6: Code & Recipe Inspector */}
-        {activeTab === 'inspector' && (
-          <RecipeInspector recipe={recipe} lang={lang} onOpenTips={() => setIsTipsOpen(true)} />
-        )}
-          </>
+          <ExpertProStudio
+            recipe={recipe}
+            onChange={handleUpdateRecipe}
+            lang={lang}
+            onStartBuild={() => setIsBuildOpen(true)}
+            onOpenTips={() => setIsTipsOpen(true)}
+            onOpenScreenshots={handleOpenScreenshots}
+            onOpenAudit={() => setIsAuditOpen(true)}
+            onOpenPresets={() => setIsPresetsOpen(true)}
+            onOpenAI={() => setIsAIOpen(true)}
+            initialSection={
+              activeTab === 'packages' ? 'pkgs_catalog'
+              : activeTab === 'system' ? 'sys_config'
+              : activeTab === 'security' ? 'sec_hardening'
+              : activeTab === 'postinstall' ? 'post_scripts'
+              : activeTab === 'inspector' ? 'export_inspector'
+              : 'base_distro'
+            }
+          />
         )}
       </main>
 

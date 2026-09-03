@@ -264,8 +264,16 @@ après.
   - Nouveau script Autostart universel Freedesktop (`/usr/local/bin/osforge-apply-theme.sh` et `/etc/xdg/autostart/osforge-branding.desktop`) appliquant dynamiquement le wallpaper et le thème sombre (`plasma-apply-wallpaperimage`, `plasma-apply-colorscheme`, `gsettings`, `xfconf-query`) dès l'ouverture de session en Live ISO ou en VM.
   - Synchronisation systématique du squelette `/etc/skel/.config` vers le répertoire utilisateur `/home/${username}/` avec `chown -R` approprié.
   - Câblage complet de `generateBrandingChrootCommands` dans les générateurs d'images disques non-Debian (`nonDebian.ts`) et Raspberry Pi (`rpi.ts`).
-  - Suite de tests : **654 tests** (100% verts). 0 warning / 0 erreur oxlint sur 73 fichiers.
+- **32. 🧙‍♂️ 🏢 Refonte Ergonomique du Mode Expert en Studio Pro (Architecture Master-Detail à 3 Volets)** :
+  - Élimination complète du scroll vertical infini où tous les paramètres étaient empilés les uns sur les autres.
+  - Nouveau composant `ExpertProStudio.tsx` avec layout Master-Detail :
+    1. Barre latérale gauche (Sidebar) hiérarchique rétractable avec 7 grandes catégories et 10 sous-menus ciblés, recherche rapide (`Filtrer les menus...`), pastilles d'état, boutons d'accès rapide (Sonde PC, Presets, IA Copilot).
+    2. Zone centrale aérée (Workbench) affichant uniquement les contrôles du sous-menu actif avec titre, fil d'Ariane et boutons de navigation séquentielle `← Section Précédente / Section Suivante →`.
+    3. Volet droit HUD en temps réel rétractable : carte d'identité de l'OS avec accent color dynamique, miniature du bureau et simulation de terminal, jauges d'estimation de RAM (~450 Mo) et de taille d'image (~1.8 Go), jauge de posture de sécurité (0-100 pts), checklist de recette et bouton permanent `🚀 Compiler l'Image`.
+  - Validation visuelle automatique par sous-agent Playwright dans le navigateur (`expert_studio_layout.png`).
+  - Suite de tests : **654 tests** (100% verts). 0 warning / 0 erreur oxlint sur 74 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
 
