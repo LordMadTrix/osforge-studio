@@ -11,7 +11,11 @@ export type DistroId =
   | 'cachyos'
   | 'nixos'
   | 'void'
-  | 'linuxmint';
+  | 'linuxmint'
+  | 'popos'
+  | 'almalinux'
+  | 'endeavouros'
+  | 'parrot';
 
 export type ArchType = 'x86_64' | 'aarch64' | 'riscv64' | 'i686';
 
@@ -44,7 +48,11 @@ export type DesktopEnvironmentId =
   | 'mate'
   | 'budgie'
   | 'deepin'
-  | 'web_kiosk';
+  | 'web_kiosk'
+  | 'bspwm'
+  | 'wayfire'
+  | 'pantheon'
+  | 'qtile';
 
 export type DisplayManagerId = 'gdm3' | 'sddm' | 'lightdm' | 'ly' | 'cosmic-greeter' | 'ddm' | 'none';
 
@@ -58,7 +66,10 @@ export type KernelType =
   | 'hardened'
   | 'realtime'
   | 'lts'
-  | 'cloud_micro';
+  | 'cloud_micro'
+  | 'surface'
+  | 'libre'
+  | 'tkg';
 
 export type PackageCategory = 
   | 'development'

@@ -23,10 +23,10 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     if (cp.trim()) pkgs.push(cp.trim());
   });
 
-  // Familles pacman/dnf : cachyos suit les paquets Arch, rocky suit les paquets Fedora.
-  const isArchLike = distroId === 'arch' || distroId === 'cachyos';
-  const isFedoraLike = distroId === 'fedora' || distroId === 'rocky';
-  const isDebianLike = distroId === 'debian' || distroId === 'ubuntu' || distroId === 'kali' || distroId === 'raspbian' || distroId === 'linuxmint';
+  // Familles pacman/dnf/apt : cachyos et endeavouros suivent Arch, rocky et almalinux suivent Fedora, mint/popos/parrot suivent Debian/Ubuntu.
+  const isArchLike = distroId === 'arch' || distroId === 'cachyos' || distroId === 'endeavouros';
+  const isFedoraLike = distroId === 'fedora' || distroId === 'rocky' || distroId === 'almalinux';
+  const isDebianLike = distroId === 'debian' || distroId === 'ubuntu' || distroId === 'kali' || distroId === 'raspbian' || distroId === 'linuxmint' || distroId === 'popos' || distroId === 'parrot';
 
   // Desktop specific packages & Full Graphical Stack
   if (recipe.desktop === 'gnome') {
@@ -61,7 +61,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('plasma', 'kde-applications', 'sddm', 'firefox', 'pipewire', 'networkmanager', 'mesa');
     } else if (distroId === 'fedora') {
       pkgs.push('@kde-desktop', 'sddm', 'firefox', 'pipewire');
-    } else if (distroId === 'rocky') {
+    } else if (distroId === 'rocky' || distroId === 'almalinux') {
       pkgs.push('plasma-desktop', 'plasma-workspace', 'sddm', 'konsole', 'dolphin', 'firefox', 'pipewire');
     } else if (distroId === 'alpine') {
       pkgs.push('plasma-desktop', 'sddm', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'konsole', 'dolphin', 'firefox', 'pipewire', 'networkmanager');
@@ -92,7 +92,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('xfce4', 'xfce4-goodies', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire');
     } else if (distroId === 'fedora') {
       pkgs.push('@xfce-desktop', 'lightdm', 'firefox', 'pipewire');
-    } else if (distroId === 'rocky') {
+    } else if (distroId === 'rocky' || distroId === 'almalinux') {
       pkgs.push('xfce4-session', 'xfce4-panel', 'xfce4-terminal', 'thunar', 'lightdm', 'firefox', 'pipewire');
     } else if (distroId === 'alpine') {
       pkgs.push('xfce4', 'xfce4-terminal', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'thunar', 'firefox', 'pipewire');
@@ -148,7 +148,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     } else if (distroId === 'fedora') {
       pkgs.push('@cinnamon-desktop', 'lightdm', 'firefox', 'pipewire');
-    } else if (distroId === 'rocky') {
+    } else if (distroId === 'rocky' || distroId === 'almalinux') {
       pkgs.push('cinnamon-desktop', 'lightdm', 'firefox', 'pipewire');
     } else if (distroId === 'void') {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
@@ -210,7 +210,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('deepin', 'ddm', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     }
   } else if (recipe.desktop === 'web_kiosk') {
-    if (distroId === 'ubuntu' || distroId === 'linuxmint') pkgs.push('firefox', 'cage', 'seatd', 'network-manager');
+    if (distroId === 'ubuntu' || distroId === 'linuxmint' || distroId === 'popos') pkgs.push('firefox', 'cage', 'seatd', 'network-manager');
     else if (distroId === 'alpine' || distroId === 'void') pkgs.push('chromium', 'cage', 'seatd', 'xwayland', 'pipewire');
     else if (isArchLike) pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'networkmanager');
     else if (isFedoraLike || distroId === 'opensuse') pkgs.push('chromium', 'cage', 'seatd', 'pipewire', 'NetworkManager');
@@ -240,6 +240,54 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
     } else if (distroId === 'opensuse') {
       pkgs.push('niri', 'waybar', 'alacritty', 'fuzzel', 'mako', 'pipewire', 'NetworkManager');
+    }
+  } else if (recipe.desktop === 'bspwm') {
+    if (isDebianLike) {
+      pkgs.push('bspwm', 'sxhkd', 'polybar', 'dmenu', 'alacritty', 'feh', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('bspwm', 'sxhkd', 'polybar', 'dmenu', 'alacritty', 'feh', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('bspwm', 'sxhkd', 'dmenu', 'alacritty', 'feh', 'picom', 'lightdm', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'alpine') {
+      pkgs.push('bspwm', 'sxhkd', 'dmenu', 'alacritty', 'feh', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa-dri-gallium', 'networkmanager');
+    } else if (distroId === 'void') {
+      pkgs.push('bspwm', 'sxhkd', 'dmenu', 'alacritty', 'feh', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('bspwm', 'sxhkd', 'dmenu', 'alacritty', 'feh', 'picom', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
+    }
+  } else if (recipe.desktop === 'wayfire') {
+    if (isDebianLike) {
+      pkgs.push('wayfire', 'wf-shell', 'waybar', 'foot', 'wofi', 'firefox-esr', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('wayfire', 'wf-shell', 'waybar', 'foot', 'wofi', 'firefox', 'pipewire', 'wireplumber', 'networkmanager', 'ly');
+    } else if (isFedoraLike) {
+      pkgs.push('wayfire', 'wf-shell', 'waybar', 'foot', 'wofi', 'firefox', 'pipewire', 'NetworkManager', 'ly');
+    } else if (distroId === 'alpine') {
+      pkgs.push('wayfire', 'wf-shell', 'foot', 'dbus', 'eudev', 'mesa-dri-gallium', 'firefox', 'pipewire', 'networkmanager');
+    } else if (distroId === 'void') {
+      pkgs.push('wayfire', 'wf-shell', 'foot', 'dbus', 'eudev', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('wayfire', 'wf-shell', 'waybar', 'foot', 'MozillaFirefox', 'pipewire', 'NetworkManager', 'ly');
+    }
+  } else if (recipe.desktop === 'pantheon') {
+    if (isDebianLike) {
+      pkgs.push('pantheon', 'lightdm', 'lightdm-gtk-greeter', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('pantheon-session', 'gala', 'wingpanel', 'plank', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('@pantheon-desktop', 'lightdm', 'firefox', 'pipewire', 'NetworkManager');
+    }
+  } else if (recipe.desktop === 'qtile') {
+    if (isDebianLike) {
+      pkgs.push('qtile', 'alacritty', 'rofi', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+    } else if (isArchLike) {
+      pkgs.push('qtile', 'alacritty', 'rofi', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
+    } else if (isFedoraLike) {
+      pkgs.push('qtile', 'alacritty', 'rofi', 'picom', 'lightdm', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'void') {
+      pkgs.push('qtile', 'alacritty', 'rofi', 'picom', 'lightdm', 'lightdm-gtk-greeter', 'dbus', 'eudev', 'xorg-server', 'mesa', 'firefox', 'pipewire', 'NetworkManager');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('qtile', 'alacritty', 'rofi', 'picom', 'lightdm', 'MozillaFirefox', 'pipewire', 'NetworkManager');
     }
   }
 
@@ -350,7 +398,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // Installeur Graphique Calamares
   if (recipe.enableCalamaresInstaller) {
     pkgs.push('calamares');
-    if (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint') {
+    if (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' || recipe.distro === 'popos') {
       pkgs.push('calamares-settings-ubuntu');
     } else if (isDebianLike) {
       pkgs.push('calamares-settings-debian');

@@ -751,11 +751,11 @@ export function communityReposCmd(recipe: OSRecipe, _family?: 'debian' | NonDebi
   if (!recipe.enableCommunityRepos) return '';
   const distroId = recipe.distro;
 
-  if (distroId === 'arch' || distroId === 'cachyos') {
+  if (distroId === 'arch' || distroId === 'cachyos' || distroId === 'endeavouros') {
     return `# Support des dépôts et helpers communautaires AUR (Arch Linux)
 echo -e "\${GREEN:-}[INFO] Activation du support des dépôts AUR...\${NC:-}" 2>/dev/null || true`;
   }
-  if (distroId === 'fedora' || distroId === 'rocky') {
+  if (distroId === 'fedora' || distroId === 'rocky' || distroId === 'almalinux') {
     return `# Activation des dépôts RPM Fusion (Free & Non-Free)
 if command -v dnf &>/dev/null; then
     dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora 2>/dev/null || echo 41).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora 2>/dev/null || echo 41).noarch.rpm 2>/dev/null || true

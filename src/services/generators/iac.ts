@@ -46,17 +46,20 @@ export function generateContainerfile(recipe: OSRecipe): string {
   const distro = recipe.distro;
   const pkgs = resolvePackageList(recipe);
   const username = recipe.user.username;
-  const isDebianLike = distro === 'debian' || distro === 'ubuntu' || distro === 'kali' || distro === 'raspbian' || distro === 'linuxmint';
-  const isArchLike = distro === 'arch' || distro === 'cachyos';
+  const isDebianLike = distro === 'debian' || distro === 'ubuntu' || distro === 'kali' || distro === 'raspbian' || distro === 'linuxmint' || distro === 'popos' || distro === 'parrot';
+  const isArchLike = distro === 'arch' || distro === 'cachyos' || distro === 'endeavouros';
 
   let baseImage = 'debian:bookworm-slim';
   let pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
 
-  if (distro === 'ubuntu' || distro === 'linuxmint') {
+  if (distro === 'ubuntu' || distro === 'linuxmint' || distro === 'popos') {
     baseImage = 'ubuntu:noble';
     pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
   } else if (distro === 'kali') {
     baseImage = 'kalilinux/kali-rolling';
+    pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
+  } else if (distro === 'parrot') {
+    baseImage = 'parrotsec/security:latest';
     pkgInstallCmd = `RUN apt-get update && apt-get install -y --no-install-recommends \\\n    ${pkgs.join(' \\\n    ')} \\\n    && rm -rf /var/lib/apt/lists/*`;
   } else if (isArchLike) {
     baseImage = 'archlinux:latest';
@@ -64,8 +67,8 @@ export function generateContainerfile(recipe: OSRecipe): string {
   } else if (distro === 'fedora') {
     baseImage = 'fedora:41';
     pkgInstallCmd = `RUN dnf install -y \\\n    ${pkgs.join(' \\\n    ')} \\\n    && dnf clean all`;
-  } else if (distro === 'rocky') {
-    baseImage = 'rockylinux:9';
+  } else if (distro === 'rocky' || distro === 'almalinux') {
+    baseImage = distro === 'almalinux' ? 'almalinux:9' : 'rockylinux:9';
     pkgInstallCmd = `RUN dnf install -y \\\n    ${pkgs.join(' \\\n    ')} \\\n    && dnf clean all`;
   } else if (distro === 'alpine') {
     baseImage = 'alpine:latest';

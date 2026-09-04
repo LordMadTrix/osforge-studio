@@ -15,7 +15,8 @@ import {
   generateUniversalLauncherSh,
   generateIpxeScript,
   generatePxeServerScript,
-  generateVentoyJson
+  generateVentoyJson,
+  resolveDebianTarget,
 } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
@@ -3884,6 +3885,137 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(bat).toContain('cd /d "%~dp0"');
       expect(bat).toContain('for %%f in (dist\\*rootfs*.tar.gz)');
       expect(bat).toContain("printf '[boot]\\nsystemd=true");
+    });
+  });
+
+  describe('Étoffement du Catalogue : Distributions, Noyaux Custom et Bureaux (Zéro Cosmétique)', () => {
+    it('Nouvelles distributions Debian-like (Pop!_OS & Parrot) : résolvent les paquets debian et ciblent leurs vraies suites debootstrap', () => {
+      const poposTarget = resolveDebianTarget('popos');
+      expect(poposTarget?.suite).toBe('noble');
+      expect(poposTarget?.sourcesList('amd64')).toContain('apt.pop-os.org/release');
+
+      const parrotTarget = resolveDebianTarget('parrot');
+      expect(parrotTarget?.suite).toBe('lory');
+      expect(parrotTarget?.mirror).toBe('https://deb.parrot.sh/parrot');
+
+      const poposPkgs = resolvePackageList(makeRecipe({ distro: 'popos', desktop: 'gnome', enableCalamaresInstaller: true }));
+      expect(poposPkgs).toContain('gnome-core');
+      expect(poposPkgs).toContain('calamares-settings-ubuntu');
+
+      const parrotPkgs = resolvePackageList(makeRecipe({ distro: 'parrot', desktop: 'xfce', enableCalamaresInstaller: true }));
+      expect(parrotPkgs).toContain('xfce4');
+      expect(parrotPkgs).toContain('calamares-settings-debian');
+
+      const poposScript = generateBuildScript(makeRecipe({ distro: 'popos', outputFormat: 'iso_hybrid' }));
+      expect(poposScript).toContain('archive.ubuntu.com');
+      expect(poposScript).toContain('apt.pop-os.org/release');
+
+      const parrotScript = generateBuildScript(makeRecipe({ distro: 'parrot', outputFormat: 'iso_hybrid' }));
+      expect(parrotScript).toContain('deb.parrot.sh/parrot');
+    });
+
+    it('Nouvelles distributions Non-Debian (AlmaLinux & EndeavourOS) : configurent leurs vrais dépôts et gestionnaires de paquets', () => {
+      const almaPkgs = resolvePackageList(makeRecipe({ distro: 'almalinux', desktop: 'kde' }));
+      expect(almaPkgs).toContain('kernel');
+      expect(almaPkgs).toContain('plasma-desktop');
+
+      const eosPkgs = resolvePackageList(makeRecipe({ distro: 'endeavouros', desktop: 'hyprland' }));
+      expect(eosPkgs).toContain('hyprland');
+      expect(eosPkgs).toContain('base');
+
+      const almaScript = generateBuildScript(makeRecipe({ distro: 'almalinux', outputFormat: 'raw_img' }));
+      expect(almaScript).toContain('AlmaLinux 9 - BaseOS');
+      expect(almaScript).toContain('repo.almalinux.org/almalinux/9/BaseOS');
+      expect(almaScript).toContain('almalinux-release');
+
+      const eosScript = generateBuildScript(makeRecipe({ distro: 'endeavouros', outputFormat: 'raw_img' }));
+      expect(eosScript).toContain('[endeavouros]');
+      expect(eosScript).toContain('mirror.alpix.eu/endeavouros/repo');
+    });
+
+    it('Nouveaux bureaux réels (BSPWM, Wayfire 3D, Pantheon, Qtile) : résolvent les paquets appropriés par famille de distribution', () => {
+      // BSPWM
+      const debBspwm = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'bspwm' }));
+      expect(debBspwm).toContain('bspwm');
+      expect(debBspwm).toContain('sxhkd');
+      expect(debBspwm).toContain('polybar');
+      expect(debBspwm).toContain('picom');
+
+      const archBspwm = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'bspwm' }));
+      expect(archBspwm).toContain('bspwm');
+      expect(archBspwm).toContain('sxhkd');
+      expect(archBspwm).toContain('polybar');
+
+      // Wayfire 3D
+      const debWayfire = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'wayfire' }));
+      expect(debWayfire).toContain('wayfire');
+      expect(debWayfire).toContain('wf-shell');
+      expect(debWayfire).toContain('waybar');
+
+      const fedWayfire = resolvePackageList(makeRecipe({ distro: 'fedora', desktop: 'wayfire' }));
+      expect(fedWayfire).toContain('wayfire');
+      expect(fedWayfire).toContain('wf-shell');
+
+      // Pantheon
+      const debPantheon = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'pantheon' }));
+      expect(debPantheon).toContain('pantheon');
+
+      const archPantheon = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'pantheon' }));
+      expect(archPantheon).toContain('pantheon-session');
+      expect(archPantheon).toContain('wingpanel');
+      expect(archPantheon).toContain('plank');
+
+      // Qtile
+      const debQtile = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'qtile' }));
+      expect(debQtile).toContain('qtile');
+      expect(debQtile).toContain('rofi');
+
+      const archQtile = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'qtile' }));
+      expect(archQtile).toContain('qtile');
+      expect(archQtile).toContain('rofi');
+    });
+
+    it('Nouveaux noyaux custom (surface, libre, tkg) : câblage réel des dépôts officiels et paquets', () => {
+      // Linux-Surface sur Ubuntu/PopOS
+      const surfaceUbuntuScript = generateBuildScript(makeRecipe({ distro: 'ubuntu', kernel: 'surface', outputFormat: 'iso_hybrid' }));
+      expect(surfaceUbuntuScript).toContain('pkg.surfacelinux.com/debian');
+      expect(surfaceUbuntuScript).toContain('linux-image-surface');
+      expect(surfaceUbuntuScript).toContain('iptsd');
+
+      // Linux-Surface sur Arch
+      const surfaceArchScript = generateBuildScript(makeRecipe({ distro: 'arch', kernel: 'surface', outputFormat: 'raw_img' }));
+      expect(surfaceArchScript).toContain('[linux-surface]');
+      expect(surfaceArchScript).toContain('pkg.surfacelinux.com/arch');
+      expect(surfaceArchScript).toContain('linux-surface');
+      expect(surfaceArchScript).toContain('iptsd');
+
+      // Linux-Surface sur Fedora
+      const surfaceFedoraScript = generateBuildScript(makeRecipe({ distro: 'fedora', kernel: 'surface', outputFormat: 'raw_img' }));
+      expect(surfaceFedoraScript).toContain('pkg.surfacelinux.com/fedora');
+      expect(surfaceFedoraScript).toContain('kernel-surface');
+
+      // Linux-Libre sur Debian
+      const libreDebianScript = generateBuildScript(makeRecipe({ distro: 'debian', kernel: 'libre', outputFormat: 'iso_hybrid' }));
+      expect(libreDebianScript).toContain('linux-libre.fsfla.org');
+      expect(libreDebianScript).toContain('linux-image-libre-amd64');
+
+      // Linux-TkG sur Arch
+      const tkgArchScript = generateBuildScript(makeRecipe({ distro: 'arch', kernel: 'tkg', outputFormat: 'raw_img' }));
+      expect(tkgArchScript).toContain('linux-tkg-bore');
+    });
+
+    it('generateContainerfile : supporte fidèlement popos, almalinux, endeavouros et parrot', () => {
+      const poposContainer = generateContainerfile(makeRecipe({ distro: 'popos' }));
+      expect(poposContainer).toContain('FROM ubuntu:noble');
+
+      const almaContainer = generateContainerfile(makeRecipe({ distro: 'almalinux' }));
+      expect(almaContainer).toContain('FROM almalinux:9');
+
+      const eosContainer = generateContainerfile(makeRecipe({ distro: 'endeavouros' }));
+      expect(eosContainer).toContain('FROM archlinux:latest');
+
+      const parrotContainer = generateContainerfile(makeRecipe({ distro: 'parrot' }));
+      expect(parrotContainer).toContain('FROM parrotsec/security:latest');
     });
   });
 });

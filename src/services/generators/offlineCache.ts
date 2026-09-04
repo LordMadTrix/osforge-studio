@@ -14,9 +14,9 @@ export function generateOfflineCacheBundleScript(recipe: OSRecipe): string {
   const pkgList = resolvePackageList(recipe);
   const packagesStr = pkgList.join(' ');
 
-  const isDebianLike = ['debian', 'ubuntu', 'kali', 'raspbian', 'linuxmint'].includes(distroId);
-  const isArchLike = distroId === 'arch' || distroId === 'cachyos';
-  const isFedoraLike = distroId === 'fedora' || distroId === 'rocky';
+  const isDebianLike = ['debian', 'ubuntu', 'kali', 'raspbian', 'linuxmint', 'popos', 'parrot'].includes(distroId);
+  const isArchLike = distroId === 'arch' || distroId === 'cachyos' || distroId === 'endeavouros';
+  const isFedoraLike = distroId === 'fedora' || distroId === 'rocky' || distroId === 'almalinux';
 
   return `#!/usr/bin/env bash
 # ==============================================================================

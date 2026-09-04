@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **614 tests**, tous verts (100%). CI + Pages fonctionnels.
+- Suite de tests : **692 tests**, tous verts (100%). CI + Pages fonctionnels.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -290,9 +290,31 @@ après.
   - **Élimination de l'encombrement visuel** : masquage automatique du carrousel de pilules multiples en mode focus direct, image plein cadre maximisée (jusqu'à 65vh) avec attribution Wikimedia Commons / licence libre.
   - **En-tête & Actions contextuelles** : titre exact du bureau avec badge de type (ex: `Wayland Tiling WM`, `Full Desktop`), consommation RAM estimée, bouton `Choisir ce bureau`, bouton `Voir tous les bureaux (Galerie)` pour revenir à la vue globale si désiré.
   - **Architecture React propre** : dérivation d'état pure dans `ScreenshotPreviewModal.tsx` sans effets secondaires synchrones (`0 warning oxlint`).
-  - **Suite de tests : 659 tests (100% verts)**. 0 warning / 0 erreur oxlint sur 74 fichiers.
+- **36. 🌌 🐧 Étoffement du Catalogue : 4 Nouvelles Distributions, 3 Noyaux Spécialisés & 4 Environnements de Bureau (Zéro Cosmétique)** :
+  1. 🌐 **4 Nouvelles Distributions Réelles & Bootstraps Câblés** :
+     - **Pop!_OS 24.04 LTS (`popos`)** : Bootstrap debootstrap sur miroir officiel System76/Ubuntu (`http://archive.ubuntu.com/ubuntu`, suite `noble`), configuration du dépôt officiel Pop!_OS (`http://apt.pop-os.org/release`), paquets et Containerfile `ubuntu:noble`.
+     - **AlmaLinux OS 9.5 (`almalinux`)** : Bootstrap DNF natif d'entreprise 100% binaire compatible RHEL 9 (`http://repo.almalinux.org/almalinux/`), gestion fidèle des dépôts BaseOS, AppStream, CRB (CodeReady Linux Builder) et EPEL 9, Containerfile `almalinux:9`.
+     - **EndeavourOS Rolling (`endeavouros`)** : Bootstrap Pacman Arch-like avec injection du dépôt officiel EndeavourOS (`https://mirror.alpix.eu/endeavouros/repo/$repo/$arch`), paquets branding et Containerfile `archlinux:latest`.
+     - **Parrot Security OS 6.2 Lory (`parrot`)** : Bootstrap debootstrap sur miroir officiel Parrot (`https://deb.parrot.sh/parrot/`, suite `lory`), keyring officiel Parrot, intégration de la suite cybersécurité et Containerfile `parrotsec/security:latest`.
+  2. ⚡ **3 Nouveaux Noyaux Linux Spécialisés & Câblage Multi-Distro** :
+     - **Linux-Surface (`surface`)** : Câblage réel du dépôt officiel `https://pkg.surfacelinux.com/` (Debian/Ubuntu, Arch, Fedora) avec importation de la clé GPG officielle `surface.asc`, installation des paquets `linux-image-surface`, `linux-headers-surface` et du démon tactile `iptsd`.
+     - **Linux-Libre FSF/GNU (`libre`)** : Noyau déblobtisé sans firmware privateur, dépôt officiel FSFLA Freesh sous Debian (`deb http://linux-libre.fsfla.org/pub/linux-libre/freesh/ freesh-plasma main`), paquets Arch `linux-libre`, ou compilateur local optimisé.
+     - **Linux-TkG (`tkg`)** : Noyau ultra-faible latence pour le gaming avec patchset BORE (Burst-Oriented Response Enhancer) et Fsync.
+  3. 🪟 **4 Nouveaux Environnements de Bureau Câblés sur Toutes les Familles** :
+     - **BSPWM (`bspwm`)** : Tiling WM X11 réactif et minimaliste, configuration de `sxhkd`, barre polybar/lemonbar, wallpaper via `feh`.
+     - **Wayfire (`wayfire`)** : Compositeur Wayland 3D nouvelle génération basé sur wlroots avec effets Compiz (cube de bureau, fenêtres gélatineuses wobbly), barre `waybar`, dock `wf-shell`.
+     - **Pantheon (`pantheon`)** : Environnement élégant d'elementary OS inspiré de macOS, fenêtrage Gala, dock Plank, wingpanel, configuration de fond d'écran via DConf.
+     - **Qtile (`qtile`)** : Tiling WM moderne et dynamique entièrement scripté en Python, support X11 et Wayland natif, barre intégrée personnalisable.
+  4. 🎨 **4 Nouveaux Presets Officiels en 1 Clic** :
+     - `surface_touch_pro` : Ubuntu 24.04 + GNOME + Noyau Linux-Surface + Onboard + IPTSD pour tablettes Microsoft Surface Pro/Go.
+     - `bspwm_rice_station` : Arch Linux + BSPWM + Sxhkd + Alacritty + Fastfetch + Polybar pour une station de ricing ultra-légère.
+     - `almalinux_enterprise_cloud` : AlmaLinux 9 + Cloud-Init + QEMU Guest Agent + Hardening CIS L1 + Pare-feu pour infrastructure cloud d'entreprise.
+     - `parrot_cyber_operative` : Parrot OS + MATE + Suite Pentest (Nmap, Wireshark, Metasploit, Burp Suite, Gobuster, SQLMap).
+  5. 🔍 **Live Versions & Veille Automatique** : Intégration des APIs endoflife.date pour Pop!_OS et AlmaLinux, et des releases GitHub pour BSPWM, Wayfire, Pantheon et Qtile.
+  6. 🧪 **Suite de tests : 692 tests (100% verts)**. 0 erreur TypeScript, build Vite vérifié.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
+
 
 
 

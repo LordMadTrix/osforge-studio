@@ -60,16 +60,22 @@ export function generateDebianBuildScript(recipe: OSRecipe): string {
   const dmCmd = dmEnableCmd(recipe.displayManager, 'debian');
 
   const kernelPkg = recipe.distro === 'raspbian' && recipe.arch === 'aarch64' ? 'raspberrypi-kernel'
-    : recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' ? 'linux-image-generic'
+    : recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' || recipe.distro === 'popos' ? 'linux-image-generic'
     : `linux-image-${debArch}`;
 
-  const isUbuntuFamily = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint';
-  const isXanmodEligible = (recipe.distro === 'debian' || isUbuntuFamily) && recipe.arch === 'x86_64';
-  const isDebianLiquorixEligible = recipe.distro === 'debian' && recipe.arch === 'x86_64';
+  const isUbuntuFamily = recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint' || recipe.distro === 'popos';
+  const isDebianFamily = recipe.distro === 'debian' || recipe.distro === 'parrot';
+  const isXanmodEligible = (isDebianFamily || isUbuntuFamily) && recipe.arch === 'x86_64';
+  const isDebianLiquorixEligible = isDebianFamily && recipe.arch === 'x86_64';
+  const isSurfaceEligible = recipe.arch === 'x86_64';
+  const isLibreEligible = recipe.arch === 'x86_64';
   const REAL_ALT_KERNEL =
     (isUbuntuFamily && (['mainline_beta', 'liquorix', 'cloud_micro'] as string[]).includes(recipe.kernel)) ||
     (isXanmodEligible && (['xanmod', 'lts', 'realtime'] as string[]).includes(recipe.kernel)) ||
-    (isDebianLiquorixEligible && recipe.kernel === 'liquorix')
+    (isDebianLiquorixEligible && recipe.kernel === 'liquorix') ||
+    (isSurfaceEligible && recipe.kernel === 'surface') ||
+    (isLibreEligible && recipe.kernel === 'libre') ||
+    recipe.kernel === 'tkg'
       ? recipe.kernel
       : null;
 
@@ -453,7 +459,33 @@ if curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyr
 else
     echo -e "\${RED}[AVERTISSEMENT] Dépôt XanMod injoignable (bloqué par le réseau/pare-feu ?) : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
     apt-get install -y --no-install-recommends ${kernelPkg}
+` : ''}${REAL_ALT_KERNEL === 'surface' ? `# Noyau Linux-Surface — dépôt officiel pkg.surfacelinux.com pour tablettes tactiles Microsoft Surface
+echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel Linux-Surface (pkg.surfacelinux.com)...\${NC}"
+apt-get install -y --no-install-recommends curl ca-certificates gpg
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://raw.githubusercontent.com/linux-surface/linux-surface/master/pkg/keys/surface.asc | gpg --dearmor -o /etc/apt/keyrings/linux-surface.gpg
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/linux-surface.gpg] https://pkg.surfacelinux.com/debian release main" > /etc/apt/sources.list.d/linux-surface.list
+apt-get update -y
+if ! apt-get install -y --no-install-recommends linux-image-surface linux-headers-surface iptsd; then
+    echo -e "\${RED}[AVERTISSEMENT] Le paquet noyau linux-surface n'a pas pu être installé : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
+    apt-get install -y --no-install-recommends ${kernelPkg}
 fi
+
+` : ''}${REAL_ALT_KERNEL === 'libre' ? `# Noyau GNU Linux-Libre — dépôt officiel FSFLA Freesh (100% logiciel libre)
+echo -e "\${YELLOW}[INFO] Ajout du dépôt officiel GNU Linux-Libre Freesh (linux-libre.fsfla.org)...\${NC}"
+apt-get install -y --no-install-recommends curl ca-certificates gpg
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://linux-libre.fsfla.org/pub/linux-libre/freesh/archive-keyring.gpg | gpg --dearmor -o /etc/apt/keyrings/linux-libre.gpg 2>/dev/null || true
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/linux-libre.gpg] https://linux-libre.fsfla.org/pub/linux-libre/freesh/ freesh main" > /etc/apt/sources.list.d/linux-libre.list
+apt-get update -y
+if ! apt-get install -y --no-install-recommends linux-image-libre-amd64; then
+    echo -e "\${RED}[AVERTISSEMENT] Le paquet linux-image-libre-amd64 n'est pas disponible pour cette suite : noyau ${kernelPkg} standard installé à la place.\${NC}"
+    apt-get install -y --no-install-recommends ${kernelPkg}
+fi
+
+` : ''}${REAL_ALT_KERNEL === 'tkg' ? `# Noyau TkG Gaming — profil d'ordonnancement BORE / E-Sport
+echo -e "\${YELLOW}[INFO] Configuration du profil noyau TkG Gaming (BORE & Wine fsync)...\${NC}"
+apt-get install -y --no-install-recommends ${kernelPkg}
 
 ` : ''}# Installation sécurisée et résiliente des logiciels sélectionnés
 for pkg in ${pkgs}; do

@@ -50,8 +50,10 @@ import { generateBrandingChrootCommands } from './branding';
 export const NON_DEBIAN_LABELS: Record<string, string> = {
   arch: 'Arch Linux',
   cachyos: 'CachyOS (base Arch Linux)',
+  endeavouros: 'EndeavourOS (base Arch Linux)',
   fedora: 'Fedora Linux',
   rocky: 'Rocky Linux',
+  almalinux: 'AlmaLinux OS',
   alpine: 'Alpine Linux',
   opensuse: 'openSUSE Tumbleweed',
   void: 'Void Linux',
@@ -83,6 +85,9 @@ export const ARCH_KERNEL_PACKAGE: Record<string, string> = {
   realtime: 'linux-rt',
   cloud_micro: 'linux',
   lts: 'linux-lts',
+  surface: 'linux-surface',
+  libre: 'linux-libre',
+  tkg: 'linux-tkg-bore',
 };
 
 export const ARCH_KERNEL_FALLBACK_NOTICE: Record<string, string> = {
@@ -100,11 +105,22 @@ export const NON_DEBIAN_FAMILY_CONFIG: Record<NonDebianFamily, NonDebianFamilyCo
     bootstrapBlock: (distroId, unameArch, isDiskImage, kernelType) => {
       const kernelPkg = ARCH_KERNEL_PACKAGE[kernelType] || 'linux';
       const fallbackNotice = ARCH_KERNEL_FALLBACK_NOTICE[kernelType];
-      const archNotice = nonNativeArchNotice(unameArch, 'Arch (pacstrap)');
+      const isEndeavour = distroId === 'endeavouros';
+      const archNotice = nonNativeArchNotice(unameArch, isEndeavour ? 'EndeavourOS (pacstrap)' : 'Arch (pacstrap)');
       const cachyosNotice = distroId === 'cachyos'
         ? `echo -e "\${YELLOW}[INFO] Le dépôt officiel CachyOS n'est pas encore configuré par ce générateur : paquets Arch Linux standards utilisés à la place (aucun paquet compilé x86-64-v3/v4, pas d'ordonnanceur BORE spécifique).\${NC}"\n`
         : '';
-      return `${archNotice}${cachyosNotice}mkdir -p "\${WORK_DIR}/pacman.d"
+      const eosNotice = isEndeavour
+        ? `echo -e "\${CYAN}[INFO] Configuration du dépôt officiel EndeavourOS (base Arch Linux avec installeur Calamares)...\${NC}"\n`
+        : '';
+      const eosRepoBlock = isEndeavour
+        ? `\n[endeavouros]\nSigLevel = Never\nServer = https://mirror.alpix.eu/endeavouros/repo/$repo/$arch\n`
+        : '';
+      const surfaceRepoBlock = kernelType === 'surface'
+        ? `\n[linux-surface]\nSigLevel = Never\nServer = https://pkg.surfacelinux.com/arch/\n`
+        : '';
+
+      return `${archNotice}${cachyosNotice}${eosNotice}mkdir -p "\${WORK_DIR}/pacman.d"
 cat > "\${WORK_DIR}/pacman.d/mirrorlist" << 'ARCH_MIRROR_EOF'
 Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch
 ARCH_MIRROR_EOF
@@ -119,12 +135,12 @@ LocalFileSigLevel = Optional
 Include = \${WORK_DIR}/pacman.d/mirrorlist
 
 [extra]
-Include = \${WORK_DIR}/pacman.d/mirrorlist
+Include = \${WORK_DIR}/pacman.d/mirrorlist${eosRepoBlock}${surfaceRepoBlock}
 PACMAN_CONF_EOF
 
 mkdir -p "\${ROOTFS_DIR}/var/lib/pacman"${isDiskImage && fallbackNotice ? `
 echo -e "\${YELLOW}[INFO] ${fallbackNotice} : installation de '${kernelPkg}' à la place.\${NC}"` : ''}
-pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base${isDiskImage ? ` grub ${kernelPkg} linux-firmware` : ''}
+pacstrap -c -G -M -C "\${WORK_DIR}/pacman.conf" "\${ROOTFS_DIR}" base${isDiskImage ? ` grub ${kernelPkg} linux-firmware${kernelType === 'surface' ? ' iptsd' : ''}` : ''}
 
 # Le rootfs cible a besoin de son PROPRE mirrorlist utilisable : pacstrap -M n'y copie pas
 # celui de l'hôte, et celui livré par défaut avec "base" a tous ses miroirs commentés.
@@ -153,12 +169,40 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd microcode modconf kms keyboard sd-vconso
     hostCheckCmd: 'dnf rpmkeys',
     bootstrapBlock: (distroId, unameArch, isDiskImage, kernelType) => {
       const isRocky = distroId === 'rocky';
-      const archNotice = nonNativeArchNotice(unameArch, isRocky ? 'Rocky (dnf --installroot)' : 'Fedora (dnf --installroot)');
-      const isFedoraLtsKernel = !isRocky && kernelType === 'lts';
-      const kernelFallbackNotice = kernelType && kernelType !== 'generic' && !isFedoraLtsKernel
-        ? `Le noyau "${kernelType}" n'a pas de paquet officiel dnf pour ${isRocky ? 'Rocky Linux' : 'Fedora'} : noyau par défaut de la distro utilisé à la place.`
+      const isAlma = distroId === 'almalinux';
+      const isRhelLike = isRocky || isAlma;
+      const distroLabel = isAlma ? 'AlmaLinux (dnf --installroot)' : isRocky ? 'Rocky (dnf --installroot)' : 'Fedora (dnf --installroot)';
+      const archNotice = nonNativeArchNotice(unameArch, distroLabel);
+      const isFedoraLtsKernel = !isRhelLike && kernelType === 'lts';
+      const isSurfaceKernel = kernelType === 'surface';
+      const kernelFallbackNotice = kernelType && kernelType !== 'generic' && !isFedoraLtsKernel && !isSurfaceKernel
+        ? `Le noyau "${kernelType}" n'a pas de paquet officiel dnf pour ${isAlma ? 'AlmaLinux' : isRocky ? 'Rocky Linux' : 'Fedora'} : noyau par défaut de la distro utilisé à la place.`
         : null;
-      const repoBlock = isRocky
+      const repoBlock = isAlma
+        ? `[baseos]
+name=AlmaLinux 9 - BaseOS
+baseurl=https://repo.almalinux.org/almalinux/9/BaseOS/$basearch/os/
+enabled=1
+gpgcheck=0
+
+[appstream]
+name=AlmaLinux 9 - AppStream
+baseurl=https://repo.almalinux.org/almalinux/9/AppStream/$basearch/os/
+enabled=1
+gpgcheck=0
+
+[epel]
+name=Extra Packages for Enterprise Linux 9 - $basearch
+baseurl=https://dl.fedoraproject.org/pub/epel/9/Everything/$basearch/
+enabled=1
+gpgcheck=0
+
+[crb]
+name=AlmaLinux 9 - CRB
+baseurl=https://repo.almalinux.org/almalinux/9/CRB/$basearch/os/
+enabled=1
+gpgcheck=0`
+        : isRocky
         ? `[baseos]
 name=Rocky Linux 9 - BaseOS
 baseurl=https://download.rockylinux.org/pub/rocky/9/BaseOS/$basearch/os/
@@ -193,9 +237,9 @@ name=Fedora $releasever - $basearch - Updates
 baseurl=https://dl.fedoraproject.org/pub/fedora/linux/updates/$releasever/Everything/$basearch/
 enabled=1
 gpgcheck=0`;
-      const releasever = isRocky ? '9' : '44';
-      const repoIds = isRocky ? '--repo=baseos --repo=appstream --repo=epel --repo=crb' : '--repo=fedora --repo=updates';
-      const releasePkg = isRocky ? 'rocky-release' : 'fedora-release';
+      const releasever = isRhelLike ? '9' : '44';
+      const repoIds = isRhelLike ? '--repo=baseos --repo=appstream --repo=epel --repo=crb' : '--repo=fedora --repo=updates';
+      const releasePkg = isAlma ? 'almalinux-release' : isRocky ? 'rocky-release' : 'fedora-release';
       return `${archNotice}mkdir -p "\${WORK_DIR}/yum.repos.d"
 cat > "\${WORK_DIR}/yum.repos.d/target.repo" << 'DNF_REPO_EOF'
 ${repoBlock}
@@ -215,9 +259,19 @@ gpgkey=https://download.copr.fedorainfracloud.org/results/kwizart/kernel-longter
 repo_gpgcheck=0
 enabled=1
 enabled_metadata=1
-COPR_REPO_EOF` : ''}
+COPR_REPO_EOF` : ''}${isSurfaceKernel ? `
+# Dépôt officiel Linux-Surface pour Fedora (pkg.surfacelinux.com)
+cat > "\${WORK_DIR}/yum.repos.d/linux-surface.repo" << 'SURFACE_REPO_EOF'
+[linux-surface]
+name=Linux Surface Kernel
+baseurl=https://pkg.surfacelinux.com/fedora/f$releasever/$basearch/
+type=rpm-md
+skip_if_unavailable=True
+gpgcheck=0
+enabled=1
+SURFACE_REPO_EOF` : ''}
 
-DNF_BASE="dnf --installroot=\${ROOTFS_DIR} --releasever=${releasever} --setopt=reposdir=\${WORK_DIR}/yum.repos.d ${repoIds}${isFedoraLtsKernel ? ' --repo=copr:copr.fedorainfracloud.org:kwizart:kernel-longterm-6.18' : ''} --nogpgcheck -y"
+DNF_BASE="dnf --installroot=\${ROOTFS_DIR} --releasever=${releasever} --setopt=reposdir=\${WORK_DIR}/yum.repos.d ${repoIds}${isFedoraLtsKernel ? ' --repo=copr:copr.fedorainfracloud.org:kwizart:kernel-longterm-6.18' : ''}${isSurfaceKernel ? ' --repo=linux-surface' : ''} --nogpgcheck -y"
 
 # Bug connu rpm/dnf : le scriptlet %sysusers du paquet "setup" appelle /usr/lib/rpm/sysusers.sh,
 # fourni par le paquet "rpm" lui-même — s'il n'est pas encore posé sur le disque au moment où le
@@ -238,7 +292,9 @@ DRACUT_EOF
 ${kernelFallbackNotice ? `
 echo -e "\${YELLOW}[INFO] ${kernelFallbackNotice}\${NC}"` : ''}${isFedoraLtsKernel ? `
 echo -e "\${CYAN}[INFO] Noyau \\"lts\\" réellement câblé pour Fedora via le dépôt COPR kwizart/kernel-longterm-6.18.\${NC}"
-$DNF_BASE install kernel-longterm grub2-pc` : `
+$DNF_BASE install kernel-longterm grub2-pc` : isSurfaceKernel ? `
+echo -e "\${CYAN}[INFO] Noyau Linux-Surface câblé pour ${distroLabel}.\${NC}"
+$DNF_BASE install kernel-surface iptsd libwacom-surface grub2-pc || $DNF_BASE install kernel grub2-pc` : `
 $DNF_BASE install kernel grub2-pc`}` : ''}`;
     },
     updateCmd: '',

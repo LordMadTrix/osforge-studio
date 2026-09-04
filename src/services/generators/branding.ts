@@ -475,6 +475,10 @@ picture-options='zoom'
 [org/mate/desktop/background]
 picture-filename='/usr/share/backgrounds/${slug}-wallpaper.svg'
 picture-options='zoom'
+
+[io/elementary/desktop/background]
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-options='zoom'
 DCONF_BG_EOF
 
 if command -v dconf &>/dev/null; then
@@ -546,7 +550,15 @@ wallpaper=/usr/share/backgrounds/${slug}-wallpaper.svg
 LXDE_WALL_EOF
 cp -f /etc/xdg/pcmanfm/default/pcmanfm.conf /etc/skel/.config/pcmanfm/default/pcmanfm.conf 2>/dev/null || true
 
-# 5. Intégration SDDM (KDE Login Greeter)
+# 5. Configuration BSPWM & Wayfire
+mkdir -p /etc/skel/.config/bspwm /etc/skel/.config/wayfire
+echo "feh --bg-fill /usr/share/backgrounds/${slug}-wallpaper.svg 2>/dev/null || true" >> /etc/skel/.config/bspwm/bspwmrc 2>/dev/null || true
+cat << WAYFIRE_WALL_EOF > /etc/skel/.config/wayfire/wf-shell.ini
+[background]
+image = /usr/share/backgrounds/${slug}-wallpaper.svg
+WAYFIRE_WALL_EOF
+
+# 6. Intégration SDDM (KDE Login Greeter)
 mkdir -p /usr/share/sddm/themes/breeze/components/artwork /usr/share/sddm/themes/debian-breeze/components/artwork
 for SDDM_DIR in /usr/share/sddm/themes/*breeze*/components/artwork; do
     if [ -d "$SDDM_DIR" ]; then
@@ -554,7 +566,7 @@ for SDDM_DIR in /usr/share/sddm/themes/*breeze*/components/artwork; do
     fi
 done
 
-# 6. Intégration LightDM Greeter
+# 7. Intégration LightDM Greeter
 if [ -f /etc/lightdm/lightdm-gtk-greeter.conf ]; then
     sed -i "s|^#\\?background=.*|background = $WALLPAPER_TARGET|" /etc/lightdm/lightdm-gtk-greeter.conf 2>/dev/null || true
 fi
@@ -984,8 +996,8 @@ export function generateProAliasesCmd(recipe: OSRecipe): string {
     return '# [Branding] Aliases pro désactivés';
   }
 
-  const pkgMgr = recipe.distro === 'arch' || recipe.distro === 'cachyos' ? 'pacman -Syu'
-    : recipe.distro === 'fedora' || recipe.distro === 'rocky' ? 'dnf upgrade --refresh'
+  const pkgMgr = recipe.distro === 'arch' || recipe.distro === 'cachyos' || recipe.distro === 'endeavouros' ? 'pacman -Syu'
+    : recipe.distro === 'fedora' || recipe.distro === 'rocky' || recipe.distro === 'almalinux' ? 'dnf upgrade --refresh'
     : recipe.distro === 'alpine' ? 'apk update && apk upgrade'
     : recipe.distro === 'opensuse' ? 'zypper refresh && zypper update'
     : recipe.distro === 'void' ? 'xbps-install -Su'

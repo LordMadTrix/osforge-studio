@@ -192,10 +192,15 @@ export async function fetchLiveDistroVersions(): Promise<LiveVersionItem[]> {
     endOfLifeDistro('alpine', 'Alpine Linux', 'alpine-linux'),
     endOfLifeDistro('opensuse', 'openSUSE Leap', 'opensuse'),
     endOfLifeDistro('rocky', 'Rocky Linux', 'rocky-linux'),
+    endOfLifeDistro('almalinux', 'AlmaLinux OS', 'almalinux'),
+    endOfLifeDistro('popos', 'Pop!_OS', 'pop-os'),
     endOfLifeDistro('nixos', 'NixOS', 'nixos'),
     Promise.resolve(honestGap('arch', 'Arch Linux', 'distro', 'rolling',
       'Rolling release officielle : pas de numéro de version à suivre, le dépôt est toujours à jour par nature.',
       'https://archlinux.org/download/')),
+    Promise.resolve(honestGap('endeavouros', 'EndeavourOS', 'distro', 'rolling',
+      'Rolling release basée sur Arch : pas de cycle figé, dépôts Arch toujours à jour.',
+      'https://endeavouros.com/')),
     Promise.resolve(honestGap('cachyos', 'CachyOS', 'distro', 'rolling',
       'Rolling release basée sur Arch : aucune API publique de suivi de version trouvée (vérifié).',
       'https://cachyos.org/download/')),
@@ -205,6 +210,9 @@ export async function fetchLiveDistroVersions(): Promise<LiveVersionItem[]> {
     Promise.resolve(honestGap('kali', 'Kali Linux', 'distro', 'rolling',
       'Rolling release officielle : aucune API publique de suivi de version trouvée (vérifié).',
       'https://www.kali.org/get-kali/')),
+    Promise.resolve(honestGap('parrot', 'Parrot Security OS', 'distro', 'rolling',
+      'Rolling release basée sur Debian : cycle de mise à jour continu.',
+      'https://www.parrotsec.org/')),
     Promise.resolve(honestGap('raspbian', 'Raspberry Pi OS', 'distro', 'stable',
       'Basée sur Debian : suit la version stable de Debian ci-dessus, pas de cycle de version propre.',
       'https://www.raspberrypi.com/software/')),
@@ -221,34 +229,21 @@ export async function fetchLiveDesktopVersions(): Promise<LiveVersionItem[]> {
     githubLatestTag('lxqt', 'LXQt', 'desktop', 'lxqt/lxqt'),
     githubLatestTag('cinnamon', 'Cinnamon', 'desktop', 'linuxmint/cinnamon'),
     githubLatestTag('cosmic', 'System76 COSMIC', 'desktop', 'pop-os/cosmic-epoch', 'beta'),
+    githubLatestTag('bspwm', 'BSPWM', 'desktop', 'baskerville/bspwm'),
+    githubLatestTag('wayfire', 'Wayfire 3D', 'desktop', 'WayfireWM/wayfire'),
+    githubLatestTag('qtile', 'Qtile', 'desktop', 'qtile/qtile'),
+    githubLatestTag('pantheon', 'Pantheon', 'desktop', 'elementary/gala'),
     // GNOME et Xfce sont développés sur gitlab.gnome.org / gitlab.xfce.org (auto-hébergés, sans
     // en-tête CORS — vérifié en direct, injoignables depuis un navigateur), mais tous deux
     // publient un vrai mirroir en lecture seule sur GitHub (confirmé en direct : github.com/GNOME
     // et github.com/xfce-mirror existent et sont à jour), utilisable via la même API GitHub.
     githubLatestTag('gnome', 'GNOME', 'desktop', 'GNOME/gnome-shell'),
     githubLatestTag('xfce', 'Xfce', 'desktop', 'xfce-mirror/xfce4-session'),
-    // Bug réel trouvé en auditant : Niri, MATE, Budgie et Openbox ont tous été ajoutés au
-    // catalogue de bureaux de ce projet (DesktopEnvironmentId) au fil de cette session, mais
-    // aucun n'avait été ajouté ici — le bouton "Vérifier les dernières versions" les ignorait
-    // silencieusement, contrairement aux bureaux plus anciens du même catalogue. Vérifié en
-    // direct via l'API GitHub Releases (releases/latest, même mécanisme que githubLatestTag()
-    // ci-dessus) avant ajout : YaLTeR/niri renvoie "v26.04" (25/04/2026) ; mate-desktop/
-    // mate-desktop renvoie "v1.29.0" (27/05/2026) ; BuddiesOfBudgie/budgie-desktop renvoie
-    // "v10.10.2" (07/03/2026) ; danakj/openbox (dépôt officiel actuel, mainteneur historique
-    // Dana Jansens) renvoie bien une vraie release GitHub, quoique ancienne (Openbox est
-    // considéré fonctionnellement complet depuis longtemps, peu de nouvelles versions).
     githubLatestTag('niri', 'Niri', 'desktop', 'YaLTeR/niri'),
     githubLatestTag('mate', 'MATE', 'desktop', 'mate-desktop/mate-desktop'),
     githubLatestTag('budgie', 'Budgie', 'desktop', 'BuddiesOfBudgie/budgie-desktop'),
     githubLatestTag('openbox', 'Openbox', 'desktop', 'danakj/openbox'),
-    // Deepin Desktop Environment (DDE) : vérifié en direct via l'API GitHub — l'organisation
-    // "linuxdeepin" existe réellement et son dépôt "dde-shell" publie de vraies releases
-    // GitHub (ex. "2.0.53", confirmé via releases/latest), contrairement à LXDE ci-dessous.
     githubLatestTag('deepin', 'Deepin Desktop', 'desktop', 'linuxdeepin/dde-shell'),
-    // LXDE reste honnêtement hors périmètre : contrairement aux autres bureaux ci-dessus,
-    // "github.com/lxde/lxde" n'existe pas (404 vérifié en direct) — LXDE est éclaté en une
-    // dizaine de sous-projets séparés (lxpanel, pcmanfm, lxde-common, lxsession...), sans dépôt
-    // unifié ni release commune à suivre.
     Promise.resolve(honestGap('lxde', 'LXDE', 'desktop', 'rolling',
       'Projet éclaté en une dizaine de sous-dépôts séparés (lxpanel, pcmanfm, lxde-common...), sans release unifiée à suivre.',
       'https://www.lxde.org/')),
