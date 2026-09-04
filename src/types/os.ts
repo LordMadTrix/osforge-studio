@@ -15,7 +15,11 @@ export type DistroId =
   | 'popos'
   | 'almalinux'
   | 'endeavouros'
-  | 'parrot';
+  | 'parrot'
+  | 'dietpi'
+  | 'retropie'
+  | 'armbian'
+  | 'raspap';
 
 export type ArchType = 'x86_64' | 'aarch64' | 'riscv64' | 'i686';
 

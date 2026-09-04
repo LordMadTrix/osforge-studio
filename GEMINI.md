@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **692 tests**, tous verts (100%). CI + Pages fonctionnels.
+- Suite de tests : **726 tests**, tous verts (100%). CI + Pages fonctionnels.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -312,6 +312,15 @@ après.
      - `parrot_cyber_operative` : Parrot OS + MATE + Suite Pentest (Nmap, Wireshark, Metasploit, Burp Suite, Gobuster, SQLMap).
   5. 🔍 **Live Versions & Veille Automatique** : Intégration des APIs endoflife.date pour Pop!_OS et AlmaLinux, et des releases GitHub pour BSPWM, Wayfire, Pantheon et Qtile.
   6. 🧪 **Suite de tests : 692 tests (100% verts)**. 0 erreur TypeScript, build Vite vérifié.
+- **37. 🍓 🎮 Distributions Spécialisées pour Raspberry Pi & Blindage du Nettoyage Chroot (Zéro Cosmétique)** :
+  1. 🍓 **DietPi OS (`dietpi`)** : Minimaliste IoT (~35 Mo RAM), génération de la configuration headless officielle `/boot/firmware/dietpi.txt` (auto-setup license, timezone, locales, Wi-Fi sans écran), RAMlog (`tmpfs /var/log`) pour préserver la durée de vie de la carte SD et bannière d'accueil interactive.
+  2. 🕹️ **RetroPie Gaming OS (`retropie`)** : Station de rétrogaming par excellence, clonage de `RetroPie-Setup` sous `/opt/retropie-setup`, dépendances SDL2/joystick/ALSA, arborescence complète des ROMs/BIOS multi-systèmes (`nes`, `snes`, `megadrive`, `gba`, `psx`, `arcade`), règles UDEV gamepads (Xbox, PlayStation, Switch, 8BitDo) et autostart direct d'EmulationStation sur TTY1 sans serveur X lourd.
+  3. ⚡ **Armbian Linux (`armbian`)** : Dépôt officiel `apt.armbian.com`, clé GPG `/etc/apt/keyrings/armbian.gpg`, paquets `armbian-config`, `zram-config` et moniteur de télémétrie thermique SoC `/usr/local/bin/armbianmonitor`.
+  4. 📡 **RaspAP Wireless Router (`raspap`)** : Point d'accès Wi-Fi autonome géré (`hostapd`), serveur DHCP/DNS local (`dnsmasq`) distribuant sur `10.3.141.1/24`, routage IP/NAT masquerade vers Ethernet (`net.ipv4.ip_forward = 1`) et tableau de bord Web d'administration responsive sur le port 80 (`lighttpd` + PHP).
+  5. 💽 **Format Carte SD (`rpi_sd`) & Auto-sélection Intelligente** : Câblage multi-distro dans `generateRpiSdScript`, sélection intelligente du format `rpi_sd` dans `DistroSelector.tsx`.
+  6. 🚀 **4 Nouveaux Presets Officiels en 1-Clic** : `dietpi_iot_micro`, `retropie_arcade_box`, `armbian_sbc_pro`, `raspap_travel_router`.
+  7. 🛡️ **Résolution du Crash Critique de Nettoyage RootFS [4/7] (`fuser -k -m`)** : Remplacement de l'appel dangereux `fuser -k -m "${ROOTFS_DIR}"` qui ciblait la partition hôte racine `/` de WSL2 et provoquait le suicide du shell bash (erreur code 137 / SIGKILL) par un scanner sélectif basé sur `/proc/*/root` et démontages non-bloquants `umount -lf`.
+  8. 🧪 **Suite de tests : 726 tests (100% verts)**. Compilation Vite et TypeScript vérifiées.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

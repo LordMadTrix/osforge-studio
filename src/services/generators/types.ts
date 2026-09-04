@@ -21,6 +21,10 @@ export const PKG_NAME_FALLBACK: Partial<Record<DistroId, DistroId>> = {
   almalinux: 'fedora',
   endeavouros: 'arch',
   parrot: 'debian',
+  dietpi: 'raspbian',
+  retropie: 'raspbian',
+  armbian: 'debian',
+  raspap: 'raspbian',
 };
 
 export const KEYBOARD_XKB_MAP: Record<string, { layout: string; variant?: string }> = {
@@ -98,13 +102,23 @@ deb https://deb.parrot.sh/parrot ${suite}-backports main contrib non-free non-fr
     };
   }
 
-  if (distro === 'raspbian') {
+  if (distro === 'raspbian' || distro === 'dietpi' || distro === 'retropie' || distro === 'raspap') {
     const suite = (customSuite && RASPBIAN_SUITES.includes(customSuite)) ? customSuite : 'bookworm';
     return {
       suite,
       mirror: 'http://deb.debian.org/debian',
       sourcesList: () => `deb http://deb.debian.org/debian ${suite} main
 deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian ${suite} main`,
+    };
+  }
+
+  if (distro === 'armbian') {
+    const suite = (customSuite && DEBIAN_SUITES.includes(customSuite)) ? customSuite : 'bookworm';
+    return {
+      suite,
+      mirror: 'http://deb.debian.org/debian',
+      sourcesList: () => `deb http://deb.debian.org/debian ${suite} main contrib non-free non-free-firmware
+deb [signed-by=/etc/apt/keyrings/armbian.gpg] http://apt.armbian.com ${suite} main ${suite}-utils ${suite}-desktop`,
     };
   }
 
@@ -119,4 +133,8 @@ export const DEBOOTSTRAP_TARGETS: Record<string, DebianTarget> = {
   popos: resolveDebianTarget('popos')!,
   parrot: resolveDebianTarget('parrot')!,
   raspbian: resolveDebianTarget('raspbian', 'bookworm')!,
+  dietpi: resolveDebianTarget('dietpi', 'bookworm')!,
+  retropie: resolveDebianTarget('retropie', 'bookworm')!,
+  armbian: resolveDebianTarget('armbian', 'bookworm')!,
+  raspap: resolveDebianTarget('raspap', 'bookworm')!,
 };

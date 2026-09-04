@@ -641,8 +641,15 @@ rm -f /usr/sbin/policy-rc.d
 CHROOT_EOF
 
 echo -e "\${YELLOW}[4/7] 🧹 Nettoyage des montages du RootFS...\${NC}"
-# Arrêt des processus résiduels pouvant maintenir les montages occupés
-fuser -k -m "\${ROOTFS_DIR}" 2>/dev/null || true
+# Libération propre des processus résiduels du chroot sans affecter l'hôte
+for pid_dir in /proc/[0-9]*; do
+    if [ -d "\$pid_dir" ]; then
+        target_root=\$(readlink -f "\$pid_dir/root" 2>/dev/null || true)
+        if [ "\$target_root" = "\${ROOTFS_DIR}" ]; then
+            kill -9 "\$(basename "\$pid_dir")" 2>/dev/null || true
+        fi
+    fi
+done
 sleep 1
 umount -lf "\${ROOTFS_DIR}/sys" || true
 umount -lf "\${ROOTFS_DIR}/proc" || true

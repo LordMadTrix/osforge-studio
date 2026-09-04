@@ -3852,7 +3852,7 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(script).toContain("cat << 'POLICY_EOF' > /usr/sbin/policy-rc.d");
       expect(script).toContain('exit 101');
       expect(script).toContain('rm -f /usr/sbin/policy-rc.d');
-      expect(script).toContain('fuser -k -m "${ROOTFS_DIR}"');
+      expect(script).toContain('target_root=$(readlink -f "$pid_dir/root" 2>/dev/null || true)');
     });
 
     it('generateBuildScript (Debian/Ubuntu) : vérifie impérativement la présence de vmlinuz et initrd et gère cdboot.img / boot_hybrid.img de manière résiliente', () => {
@@ -4016,6 +4016,77 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
 
       const parrotContainer = generateContainerfile(makeRecipe({ distro: 'parrot' }));
       expect(parrotContainer).toContain('FROM parrotsec/security:latest');
+    });
+  });
+
+  describe('Distributions spécialisées pour Raspberry Pi (DietPi, RetroPie, Armbian, RaspAP) — Zéro Cosmétique — configurations matérielles réelles, dépôts et scripts de démarrage vérifiés', () => {
+    it('DietPi + aarch64 + rpi_sd : génère la configuration headless dietpi.txt et le RAMlog anti-usure', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'dietpi',
+        arch: 'aarch64',
+        outputFormat: 'rpi_sd',
+        network: { enableWifi: true, wifiSsid: 'MyHomeWiFi', wifiPassword: 'SuperPassword123' },
+      }));
+      expect(script).toContain('dietpi.txt');
+      expect(script).toContain('AUTO_SETUP_ACCEPT_LICENSE=1');
+      expect(script).toContain('AUTO_SETUP_NET_WIFI_SSID=MyHomeWiFi');
+      expect(script).toContain('tmpfs /var/log tmpfs');
+      expect(script).toContain('dietpi-welcome.sh');
+    });
+
+    it('RetroPie + aarch64 + rpi_sd : installe SDL2, clone RetroPie-Setup, configure ROMs et règles UDEV gamepads', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'retropie',
+        arch: 'aarch64',
+        outputFormat: 'rpi_sd',
+      }));
+      expect(script).toContain('git clone --depth=1 https://github.com/RetroPie/RetroPie-Setup.git /opt/retropie-setup');
+      expect(script).toContain('libsdl2-2.0-0');
+      expect(script).toContain('/RetroPie/roms');
+      expect(script).toContain('99-gamepads.rules');
+      expect(script).toContain('emulationstation');
+    });
+
+    it('Armbian + aarch64 + rpi_sd : injecte le dépôt officiel apt.armbian.com, installe armbian-config et armbianmonitor', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'armbian',
+        arch: 'aarch64',
+        outputFormat: 'rpi_sd',
+      }));
+      expect(script).toContain('apt.armbian.com');
+      expect(script).toContain('armbian.gpg');
+      expect(script).toContain('armbian-config');
+      expect(script).toContain('/usr/local/bin/armbianmonitor');
+    });
+
+    it('RaspAP + aarch64 + rpi_sd : configure hostapd.conf, dnsmasq.d/090_raspap.conf, sysctl ip_forward et portail Web', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'raspap',
+        arch: 'aarch64',
+        outputFormat: 'rpi_sd',
+        network: { enableWifi: true, wifiSsid: 'Travel-Router-AP', wifiPassword: 'SecretPassword99' },
+      }));
+      expect(script).toContain('/etc/hostapd/hostapd.conf');
+      expect(script).toContain('ssid=Travel-Router-AP');
+      expect(script).toContain('/etc/dnsmasq.d/090_raspap.conf');
+      expect(script).toContain('net.ipv4.ip_forward = 1');
+      expect(script).toContain('/var/www/html/index.php');
+      expect(script).toContain('RaspAP Gateway');
+    });
+
+    it('resolvePackageList : produit une liste valide et hérite des outils nécessaires pour les 4 distros Pi', () => {
+      for (const distro of ['dietpi', 'retropie', 'armbian', 'raspap'] as const) {
+        const pkgs = resolvePackageList(makeRecipe({ distro, arch: 'aarch64', outputFormat: 'rpi_sd' }));
+        expect(pkgs.length).toBeGreaterThan(0);
+      }
+    });
+
+    it('generateContainerfile : supporte fidèlement dietpi, retropie, armbian et raspap sur base debian', () => {
+      for (const distro of ['dietpi', 'retropie', 'armbian', 'raspap'] as const) {
+        const container = generateContainerfile(makeRecipe({ distro }));
+        expect(container).toContain('FROM debian:bookworm-slim');
+        expect(container).toContain('apt-get update');
+      }
     });
   });
 });

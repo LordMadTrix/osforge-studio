@@ -180,13 +180,17 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                 onClick={() => {
                   const newArch = distro.supportedArch.includes(recipe.arch) ? recipe.arch : distro.supportedArch[0];
                   const latestRel = distro.availableReleases?.find(r => r.isLatest) || distro.availableReleases?.[0];
+                  const isRpiDistro = distro.id === 'raspbian' || distro.id === 'dietpi' || distro.id === 'retropie' || distro.id === 'armbian' || distro.id === 'raspap';
+                  const shouldKeepRpiSd = isRpiDistro && newArch === 'aarch64';
+                  const newOutputFormat = recipe.outputFormat === 'rpi_sd'
+                    ? (shouldKeepRpiSd ? 'rpi_sd' : 'iso_hybrid')
+                    : ((distro.id === 'retropie' || distro.id === 'raspap') ? 'rpi_sd' : recipe.outputFormat);
                   onChange({
                     distro: distro.id,
                     distroVersion: latestRel?.version || distro.version,
                     distroSuite: latestRel?.suite,
                     arch: newArch,
-                    outputFormat: recipe.outputFormat === 'rpi_sd' && (distro.id !== 'raspbian' || newArch !== 'aarch64')
-                      ? 'iso_hybrid' : recipe.outputFormat,
+                    outputFormat: newOutputFormat,
                   });
                 }}
                 className={`select-card ${isSelected ? 'selected' : ''}`}

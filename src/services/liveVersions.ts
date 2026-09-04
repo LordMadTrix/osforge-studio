@@ -216,6 +216,10 @@ export async function fetchLiveDistroVersions(): Promise<LiveVersionItem[]> {
     Promise.resolve(honestGap('raspbian', 'Raspberry Pi OS', 'distro', 'stable',
       'Basée sur Debian : suit la version stable de Debian ci-dessus, pas de cycle de version propre.',
       'https://www.raspberrypi.com/software/')),
+    githubLatestTag('dietpi', 'DietPi OS', 'distro', 'MichaIng/DietPi'),
+    githubLatestTag('retropie', 'RetroPie', 'distro', 'RetroPie/RetroPie-Setup'),
+    githubLatestTag('armbian', 'Armbian Linux', 'distro', 'armbian/build'),
+    githubLatestTag('raspap', 'RaspAP', 'distro', 'RaspAP/raspap-webgui'),
   ]);
   return results;
 }

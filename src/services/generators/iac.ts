@@ -46,7 +46,7 @@ export function generateContainerfile(recipe: OSRecipe): string {
   const distro = recipe.distro;
   const pkgs = resolvePackageList(recipe);
   const username = recipe.user.username;
-  const isDebianLike = distro === 'debian' || distro === 'ubuntu' || distro === 'kali' || distro === 'raspbian' || distro === 'linuxmint' || distro === 'popos' || distro === 'parrot';
+  const isDebianLike = distro === 'debian' || distro === 'ubuntu' || distro === 'kali' || distro === 'raspbian' || distro === 'linuxmint' || distro === 'popos' || distro === 'parrot' || distro === 'dietpi' || distro === 'retropie' || distro === 'armbian' || distro === 'raspap';
   const isArchLike = distro === 'arch' || distro === 'cachyos' || distro === 'endeavouros';
 
   let baseImage = 'debian:bookworm-slim';

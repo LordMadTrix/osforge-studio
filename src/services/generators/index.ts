@@ -5,7 +5,14 @@ import { generateNonDebianBuildScript } from './nonDebian';
 import { generateRpiSdScript } from './rpi';
 
 export function generateBuildScript(recipe: OSRecipe): string {
-  if (recipe.distro === 'raspbian' && recipe.outputFormat === 'rpi_sd' && recipe.arch === 'aarch64') {
+  const isRpiSdDistro =
+    recipe.distro === 'raspbian' ||
+    recipe.distro === 'dietpi' ||
+    recipe.distro === 'retropie' ||
+    recipe.distro === 'armbian' ||
+    recipe.distro === 'raspap';
+
+  if (isRpiSdDistro && recipe.outputFormat === 'rpi_sd' && recipe.arch === 'aarch64') {
     return generateRpiSdScript(recipe);
   }
 

@@ -37,6 +37,177 @@ import {
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
 
+function generateRpiDistroSourcesList(distro: string): string {
+  if (distro === 'armbian') {
+    return `echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list
+echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main" >> /etc/apt/sources.list
+mkdir -p /etc/apt/keyrings
+curl -fsSL http://apt.armbian.com/armbian.key | gpg --dearmor -o /etc/apt/keyrings/armbian.gpg 2>/dev/null || true
+echo "deb [signed-by=/etc/apt/keyrings/armbian.gpg] http://apt.armbian.com bookworm main bookworm-utils bookworm-desktop" >> /etc/apt/sources.list`;
+  }
+
+  return `echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list
+echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main" >> /etc/apt/sources.list`;
+}
+
+function generateRpiDistroChrootCmd(recipe: OSRecipe): string {
+  const username = recipe.user.username;
+
+  if (recipe.distro === 'dietpi') {
+    return `
+# Configuration spécifique DietPi (RAMlog & Bannière d'accueil)
+echo "tmpfs /var/log tmpfs defaults,noatime,nosuid,nodev,noexec,mode=0755,size=50M 0 0" >> /etc/fstab
+cat << 'DIETPI_WELCOME_EOF' > /etc/profile.d/dietpi-welcome.sh
+#!/bin/sh
+echo -e "\\033[0;32m"
+echo "  ____  _      _   ____  _ "
+echo " |  _ \\\\(_) ___| |_|  _ \\\\(_)"
+echo " | | | | |/ _ \\\\ __| |_) | |"
+echo " | |_| | |  __/ |_|  __/| |"
+echo " |____/|_|\\\\___|\\\\__|_|   |_|"
+echo -e "\\033[0m"
+echo " DietPi v9.8 (ARM64) | RAMlog Active | RAM: \\\$(free -h 2>/dev/null | awk '/^Mem:/{print \\\$3\" / \"\\\$2}')"
+echo ""
+DIETPI_WELCOME_EOF
+chmod +x /etc/profile.d/dietpi-welcome.sh
+`;
+  }
+
+  if (recipe.distro === 'retropie') {
+    return `
+# Configuration RetroPie (EmulationStation, outils SDL2, Gamepads & ROMs)
+apt-get install -y --no-install-recommends libsdl2-2.0-0 joystick evtest alsa-utils dialog git || true
+mkdir -p /opt/retropie-setup
+git clone --depth=1 https://github.com/RetroPie/RetroPie-Setup.git /opt/retropie-setup 2>/dev/null || true
+chown -R ${shQuote(username)}:${shQuote(username)} /opt/retropie-setup 2>/dev/null || true
+
+mkdir -p "/home/${shQuote(username)}/RetroPie/BIOS"
+for sys in nes snes megadrive gba psx arcade n64 gbc; do
+    mkdir -p "/home/${shQuote(username)}/RetroPie/roms/\\$sys"
+done
+chown -R ${shQuote(username)}:${shQuote(username)} "/home/${shQuote(username)}/RetroPie" 2>/dev/null || true
+
+cat << 'GAMEPAD_EOF' > /etc/udev/rules.d/99-gamepads.rules
+KERNEL=="js*", ATTRS{idVendor}=="045e", MODE="0666"
+KERNEL=="js*", ATTRS{idVendor}=="054c", MODE="0666"
+KERNEL=="js*", ATTRS{idVendor}=="057e", MODE="0666"
+KERNEL=="js*", ATTRS{idVendor}=="2dc8", MODE="0666"
+SUBSYSTEM=="input", ATTRS{name}=="*Controller*", MODE="0666"
+GAMEPAD_EOF
+
+cat << 'RETROPIE_AUTO_EOF' >> "/home/${shQuote(username)}/.profile"
+if [ -z "\\$DISPLAY" ] && [ "\\\$(tty)" = "/dev/tty1" ]; then
+    which emulationstation >/dev/null 2>&1 && exec emulationstation
+fi
+RETROPIE_AUTO_EOF
+`;
+  }
+
+  if (recipe.distro === 'armbian') {
+    return `
+# Configuration Armbian (Télémétrie thermique SoC et outils Armbian)
+apt-get install -y --no-install-recommends armbian-config zram-config || true
+cat << 'ARMBIAN_MONITOR_EOF' > /usr/local/bin/armbianmonitor
+#!/usr/bin/env bash
+echo "Armbian SoC Telemetry Monitor — \\\$(uname -m)"
+echo "CPU Freq : \\\$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 'N/A') kHz"
+echo "Temp SoC : \\\$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf \"%.1f°C\", \\\$1/1000}' || echo 'N/A')"
+echo "Memory   : \\\$(free -h 2>/dev/null | awk '/^Mem:/{print \\\$3\" / \"\\\$2}')"
+ARMBIAN_MONITOR_EOF
+chmod +x /usr/local/bin/armbianmonitor
+`;
+  }
+
+  if (recipe.distro === 'raspap') {
+    const wifiSsid = recipe.network?.wifiSsid || 'OSForge-Pi-WiFi';
+    const wifiPass = recipe.network?.wifiPassword || 'ForgeRouter2026!';
+    return `
+# Configuration RaspAP (Routeur Wi-Fi autonome, hostapd, DHCP dnsmasq & portail Web)
+apt-get install -y --no-install-recommends hostapd dnsmasq iptables-persistent netfilter-persistent lighttpd php-cgi || true
+
+cat << 'HOSTAPD_EOF' > /etc/hostapd/hostapd.conf
+interface=wlan0
+driver=nl80211
+ssid=${wifiSsid}
+hw_mode=g
+channel=6
+wmm_enabled=1
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=${wifiPass}
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+HOSTAPD_EOF
+
+cat << 'DNSMASQ_EOF' > /etc/dnsmasq.d/090_raspap.conf
+interface=wlan0
+dhcp-range=10.3.141.50,10.3.141.200,255.255.255.0,24h
+domain=wlan
+address=/gw.wlan/10.3.141.1
+DNSMASQ_EOF
+
+echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/30-raspap.conf
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null || true
+netfilter-persistent save 2>/dev/null || true
+
+mkdir -p /var/www/html
+cat << 'RASPAP_WEB_EOF' > /var/www/html/index.php
+<?php
+\\$hostname = gethostname();
+\\$ip = \\\$_SERVER['SERVER_ADDR'] ?? '10.3.141.1';
+?>
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>RaspAP Dashboard</title>
+<style>body{font-family:sans-serif;background:#18181b;color:#f4f4f5;padding:40px;text-align:center;}
+.card{background:#27272a;padding:25px;border-radius:12px;max-width:500px;margin:auto;border:1px solid #3f3f46;}
+h1{color:#e11d48;} .badge{background:#e11d48;padding:4px 8px;border-radius:6px;font-size:12px;}
+</style></head><body>
+<div class="card">
+<h1>📡 RaspAP Gateway</h1>
+<p><span class="badge">ACTIVE HOTSPOT</span></p>
+<p><strong>SSID :</strong> ${wifiSsid}</p>
+<p><strong>Adresse IP :</strong> <?= \\$ip ?></p>
+<p><strong>Hôte :</strong> <?= \\$hostname ?></p>
+<p>Routage NAT vers Ethernet & Serveur DNS/DHCP opérationnels.</p>
+</div></body></html>
+RASPAP_WEB_EOF
+chown -R www-data:www-data /var/www/html 2>/dev/null || true
+`;
+  }
+
+  return '';
+}
+
+function generateRpiBootFsExtras(recipe: OSRecipe): string {
+  if (recipe.distro === 'dietpi') {
+    const wifiEnabled = recipe.network?.wifiSsid ? '1' : '0';
+    const wifiSsid = recipe.network?.wifiSsid || '';
+    const wifiPass = recipe.network?.wifiPassword || '';
+    const locale = recipe.locale || 'fr_FR.UTF-8';
+    const tz = recipe.timezone || 'Europe/Paris';
+
+    return `
+# Injection de la configuration officielle DietPi headless (dietpi.txt)
+cat > "\${MNT_DIR}/boot/firmware/dietpi.txt" << 'DIETPI_CFG_EOF'
+AUTO_SETUP_ACCEPT_LICENSE=1
+AUTO_SETUP_LOCALE=${locale}
+AUTO_SETUP_KEYBOARD_LAYOUT=${recipe.keyboardLayout || 'fr'}
+AUTO_SETUP_TIMEZONE=${tz}
+AUTO_SETUP_NET_WIFI_ENABLED=${wifiEnabled}
+${wifiSsid ? `AUTO_SETUP_NET_WIFI_SSID=${wifiSsid}\nAUTO_SETUP_NET_WIFI_KEY=${wifiPass}` : ''}
+AUTO_SETUP_SSH_SERVER_INDEX=1
+AUTO_SETUP_AUTOMATED=1
+CONFIG_CPU_GOVERNOR=schedutil
+DIETPI_CFG_EOF
+`;
+  }
+
+  return '';
+}
+
 export function generateRpiSdScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
   const imgName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.img`;
@@ -99,8 +270,7 @@ cat << 'CHROOT_EOF' | chroot "\${ROOTFS_DIR}" /bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
 
-echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list
-echo "deb [signed-by=/etc/apt/keyrings/raspberrypi.gpg.key] http://archive.raspberrypi.com/debian bookworm main" >> /etc/apt/sources.list
+${generateRpiDistroSourcesList(recipe.distro)}
 
 apt-get update -y
 apt-get install -y --no-install-recommends raspberrypi-kernel raspi-firmware systemd-sysv ca-certificates locales sudo curl wget gnupg iproute2 openssh-server
@@ -163,6 +333,7 @@ ${uvSetupCmd(recipe, 'debian')}
 ${heroicSetupCmd(recipe, 'debian')}
 ${metasploitSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
+${generateRpiDistroChrootCmd(recipe)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/usr/bin/env bash
@@ -208,6 +379,7 @@ FSTAB_EOF
 cat > "\${MNT_DIR}/boot/firmware/cmdline.txt" << CMDLINE_EOF
 console=serial0,115200 console=tty1 root=UUID=\${ROOT_UUID} rootfstype=ext4 fsck.repair=yes rootwait${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
 CMDLINE_EOF
+${generateRpiBootFsExtras(recipe)}
 
 umount -lf "\${MNT_DIR}/boot/firmware" || true
 umount -lf "\${MNT_DIR}" || true

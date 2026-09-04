@@ -26,7 +26,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // Familles pacman/dnf/apt : cachyos et endeavouros suivent Arch, rocky et almalinux suivent Fedora, mint/popos/parrot suivent Debian/Ubuntu.
   const isArchLike = distroId === 'arch' || distroId === 'cachyos' || distroId === 'endeavouros';
   const isFedoraLike = distroId === 'fedora' || distroId === 'rocky' || distroId === 'almalinux';
-  const isDebianLike = distroId === 'debian' || distroId === 'ubuntu' || distroId === 'kali' || distroId === 'raspbian' || distroId === 'linuxmint' || distroId === 'popos' || distroId === 'parrot';
+  const isDebianLike = distroId === 'debian' || distroId === 'ubuntu' || distroId === 'kali' || distroId === 'raspbian' || distroId === 'linuxmint' || distroId === 'popos' || distroId === 'parrot' || distroId === 'dietpi' || distroId === 'retropie' || distroId === 'armbian' || distroId === 'raspap';
 
   // Desktop specific packages & Full Graphical Stack
   if (recipe.desktop === 'gnome') {
@@ -332,7 +332,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
 
   // AppArmor / SELinux
   if (recipe.security.appArmorOrSELinux) {
-    if (distroId === 'debian' || distroId === 'ubuntu' || distroId === 'linuxmint' || distroId === 'kali' || distroId === 'raspbian') {
+    if (isDebianLike) {
       pkgs.push('apparmor');
     } else if (isFedoraLike) {
       pkgs.push('selinux-policy-targeted', 'policycoreutils');
