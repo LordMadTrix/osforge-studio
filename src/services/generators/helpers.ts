@@ -1,8 +1,8 @@
 import { OSRecipe } from '../../types/os';
 import { NonDebianFamily, KEYBOARD_XKB_MAP } from './types';
 
-export function shQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+export function shQuote(value?: string | null): string {
+  return `'${(value ?? '').replace(/'/g, `'\\''`)}'`;
 }
 
 export function shellQuotePkgList(names: string[]): string {

@@ -362,26 +362,23 @@ après.
      - Inscription automatique au hub communautaire d'IP malveillantes avec analyse locale des logs (`crowdsec-firewall-bouncer.service`).
      - Intégration dans le calcul du score de posture de sécurité (+10 points) et dans la checklist de conformité de `SecurityConfig.tsx`.
   6. 📄 **Générateur de Fiche Technique Système (`generateTechnicalManualMarkdown`)** :
-     - Nouveau générateur `src/services/generators/technicalManual.ts`.
-     - Production d'un document Markdown complet prêt à l'export : fiche d'identité de l'OS, architecture de partitionnement, posture de sécurité, stack multimédia & IA, inventaire des paquets sélectionnés, et commandes de maintenance adaptées à la distribution (`apt`, `pacman`, `dnf`, `zypper`, `apk`, `xbps`).
-     - Onglet dédié avec téléchargement et copie 1-clic dans `RecipeInspector.tsx`.
-  7. 💾 **Gestionnaire de Sauvegardes & Profils Utilisateur (LocalStorage & Export JSON)** :
-     - Module `src/services/configStorage.ts` : autosave transparent automatique de la recette courante dans le `localStorage`, gestion de profils personnalisés nommés avec description, rechargement 1-clic, suppression, export JSON et import JSON par upload de fichier.
-     - Modal dédiée `SavedProfilesModal.tsx` accessible depuis le Header (`Header.tsx`) via le bouton `💾 Sauvegardes` et le menu déroulant "Outils".
-  8. 🧪 **Suite de tests : 765 tests (100% verts)** (+17 nouveaux tests unitaires pour le stockage, le partitionnement, la fiche technique et les générateurs avancés). 0 warning et 0 erreur oxlint sur 83 fichiers audités.
+  - Focus instantané sur capture HD, élimination encombrement visuel, en-tête contextuel et état React propre.
+- **36. 🌌 🐧 Étoffement du Catalogue : Distributions, Noyaux & Environnements** :
+  - 4 nouvelles distros (Pop!_OS, AlmaLinux, EndeavourOS, Parrot), 3 noyaux spécialisés (Surface, Libre, TkG) et 4 bureaux (BSPWM, Wayfire, Pantheon, Qtile).
+- **37. 🍓 🎮 Distributions pour Raspberry Pi & Blindage du Nettoyage Chroot** :
+  - DietPi, RetroPie, Armbian, RaspAP. Résolution crash critique `fuser` avec scanners sélectifs.
+- **38. 🗂️ 🏷️ Catégorisation Granulaire des Noyaux, Distributions et Environnements (Mode Expert)** :
+  - 21 distributions, 13 noyaux et 21 bureaux classés avec recherche et filtres.
+- **39. 🧠 🛡️ Innovations Système Avancées & Sauvegarde Utilisateur (Zéro Cosmétique)** :
+  1. 🧠 **Appliance IA Locale OOB (`enableLocalAiStack`)** : Ollama + Open WebUI.
+  2. ⏪ **Snapshots Btrfs & Restauration Système GRUB** : Snapper + grub-btrfs.
+  3. 🎛️ **Station Audio Pro & MAO Faible Latence** : PipeWire Quantum, PAM Real-Time.
+  4. 💽 **Simulateur Visuel de Partitionnement Disque & Générateur `partition-disk.sh`** : GPT/Btrfs/LUKS2, calculatrice visuelle, gardes-fous.
+  5. 🛡️ **Cyber-Défense Collaborative Active CrowdSec** : Bouncers pare-feu, score de posture.
+  6. 📄 **Générateur de Fiche Technique Système** : Markdown exportable (`technicalManual.ts`).
+  7. 💾 **Gestionnaire de Sauvegardes & Profils Utilisateur** : LocalStorage et export JSON.
+  8. 🧪 **Suite de tests : 765 tests (100% verts)**.
 - **40. 💻 📦 Version Desktop & Téléchargement Local OSForge Studio (Windows, Linux, PWA, Docker)** :
-  1. 🌐 **Progressive Web App (PWA) & Mode Hors-Ligne** :
-     - `public/manifest.webmanifest` officiel avec métadonnées de bureau, `display: standalone`, icône SVG, thème `#0284c7`.
-     - Service Worker `public/sw.js` (mise en cache des assets avec stratégie Stale-While-Revalidate pour exécution 100% hors-ligne).
-     - Intégration de l'événement `beforeinstallprompt` dans `App.tsx` permettant une installation native en 1 clic dans Windows (menu Démarrer, barre des tâches) et Linux.
-  2. 🪟 **Version Windows Autonome & Portable** :
-     - Lanceur batch interactif `Lancer-OSForge-Studio.bat` avec support VT100 / ANSI, détection de Python, et **serveur HTTP PowerShell natif embarqué (`System.Net.HttpListener`) sans aucune dépendance logicielle ni droit administrateur**.
-     - Ouverture automatique en mode application Edge/Chrome (`--app=http://localhost:5173/`).
-     - Script d'installation PowerShell 1-ligne `scripts/install-windows.ps1`.
-  3. 🐧 **Version Linux Autonome & Multi-Distro** :
-     - Lanceur bash `lancer-osforge-studio.sh` avec détection multi-serveurs (`python3`, `php`, `busybox`, `ncat`) et gestion propre des signaux de fermeture (`trap`).
-     - Raccourci Freedesktop standard `osforge-studio.desktop` et script d'installation d'icône `installer-raccourci.sh`.
-     - Script d'installation Bash 1-ligne `scripts/install-linux.sh`.
   4. 💻 **Composant UI Dédié `DownloadDesktopModal.tsx`** :
      - Auto-détection de l'OS client (`navigator.userAgent`), onglets Windows / Linux / Docker.
      - Boutons de téléchargement direct de bundles portables ZIP via `JSZip` et `FileSaver`.

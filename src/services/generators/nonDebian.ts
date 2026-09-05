@@ -338,8 +338,8 @@ sed -i 's/^#ttyS0::/ttyS0::/' "\${ROOTFS_DIR}/etc/inittab"` : ''}`,
     diskImageKernelDetectCmd: 'KERNEL_PATH="/boot/vmlinuz-lts"\nINITRD_PATH="/boot/initramfs-lts"',
     grubInstallBin: 'grub-install',
     grubConfigSubdir: 'grub',
-    diskImageRootIsDevicePath: true,
-    diskImageExtraKernelArgs: 'modules=sd-mod,ext4',
+    diskImageRootIsDevicePath: false,
+    diskImageExtraKernelArgs: 'rootfstype=ext4 modules=sd-mod,usb-storage,ext4,virtio_blk,virtio_pci',
   },
   suse: {
     hostDeps: 'zypper',
@@ -436,7 +436,7 @@ export function generateNonDebianDiskImageScript(
   const needsConversion = diskTarget.ext !== 'raw.img' && diskTarget.qemuFormat !== 'raw';
   const grubBin = config.grubInstallBin!;
   const grubSubdir = config.grubConfigSubdir!;
-  const grubSearchLine = config.diskImageRootIsDevicePath ? '' : '    search --no-floppy --fs-uuid --set=root ${ROOT_UUID}\n';
+  const grubSearchLine = '    search --no-floppy --fs-uuid --set=root ${ROOT_UUID}\n';
   const rootKernelArg = config.diskImageRootIsDevicePath ? '/dev/sda1' : 'UUID=${ROOT_UUID}';
 
   const luksPasswordWasGenerated = !recipe.security.luksPassword;
@@ -689,6 +689,12 @@ mkdir -p "\${MNT_DIR}/boot/${grubSubdir}"
 cat > "\${MNT_DIR}/boot/${grubSubdir}/grub.cfg" << GRUBCFG_EOF
 set timeout=3
 set default=0
+
+insmod part_msdos
+insmod part_gpt
+insmod ext2
+${isBtrfs ? 'insmod btrfs\n' : ''}insmod all_video
+
 menuentry "${sanitizeGrubTitle(recipe.branding.osName)}" {
 ${grubSearchLine}    linux \${KERNEL_PATH} root=${recipe.security.luksEncryption ? '/dev/mapper/cryptroot cryptdevice=UUID=${ROOT_UUID}:cryptroot rd.luks.name=${ROOT_UUID}=cryptroot' : rootKernelArg}${btrfsRootFlag} rw console=tty0 console=ttyS0,115200${config.diskImageExtraKernelArgs ? ` ${config.diskImageExtraKernelArgs}` : ''}${recipe.kernelCmdline ? ` ${sanitizeKernelCmdline(recipe.kernelCmdline)}` : ''}
     initrd \${INITRD_PATH}

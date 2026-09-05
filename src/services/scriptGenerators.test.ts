@@ -243,10 +243,11 @@ describe('generateBuildScript — image disque Alpine (vérifié en live via boo
     expect(script).toContain("sed -i 's/^#ttyS0::/ttyS0::/'");
   });
 
-  it("utilise root=/dev/sda1 au lieu de UUID= (nlplug-findfs ne résout pas UUID= dans ce pipeline, vérifié en live)", () => {
+  it("utilise root=UUID= avec rootfstype=ext4 et modules requis (vérifié en boot QEMU réel)", () => {
     const script = generateBuildScript(makeRecipe({ distro: 'alpine', outputFormat: 'raw_img' }));
-    expect(script).toContain('root=/dev/sda1');
-    expect(script).not.toContain('root=UUID=');
+    expect(script).toContain('root=UUID=${ROOT_UUID}');
+    expect(script).toContain('rootfstype=ext4');
+    expect(script).toContain('modules=sd-mod,usb-storage,ext4,virtio_blk,virtio_pci');
   });
 });
 
