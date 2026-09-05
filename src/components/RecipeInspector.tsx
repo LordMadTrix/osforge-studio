@@ -20,7 +20,10 @@ import {
   generateUsbFlashScript,
   generateOfflineCacheBundleScript,
   generatePartitionDiskScript,
-  generateTechnicalManualMarkdown
+  generateTechnicalManualMarkdown,
+  generateQemuTestBat,
+  generateQemuTestSh,
+  generateMangoHudConfig
 } from '../services/scriptGenerators';
 import { copyShareableLink } from '../services/recipeSharing';
 import { ContextTip } from './ContextTip';
@@ -56,11 +59,29 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       content: generateWslInstallerBat(recipe),
       desc: lang === 'fr' ? 'Double-cliquez sous Windows pour importer et lancer instantanément votre OS dans WSL2.' : '1-Click Windows installer for WSL2.',
     },
+    'tester-en-vm.bat': {
+      title: 'tester-en-vm.bat (Banc d’Essai QEMU Windows WHPX)',
+      lang: 'bat',
+      content: generateQemuTestBat(recipe),
+      desc: lang === 'fr' ? 'Lance instantanément une VM locale sous Windows avec accélération matérielle WHPX et détection automatique.' : 'Instant local VM testing on Windows with WHPX hardware acceleration.',
+    },
+    'tester-en-vm.sh': {
+      title: 'tester-en-vm.sh (Banc d’Essai QEMU Linux KVM)',
+      lang: 'bash',
+      content: generateQemuTestSh(recipe),
+      desc: lang === 'fr' ? 'Lance un banc d’essai virtuel QEMU sous Linux avec accélération KVM et redirection SSH.' : 'Instant local VM test on Linux with KVM acceleration.',
+    },
     'run-live-windows.bat': {
       title: 'run-live-windows.bat (Live Linux sous Windows)',
       lang: 'bat',
       content: generateLiveWindowsBat(recipe),
       desc: lang === 'fr' ? 'Lance votre système d’exploitation en Live sur Windows sans aucune installation.' : 'Run Linux live on Windows without install.',
+    },
+    'MangoHud.conf': {
+      title: 'MangoHud.conf (Overlay FPS & Télémétrie Gaming)',
+      lang: 'ini',
+      content: generateMangoHudConfig(recipe.gamingConfig?.mangoHudPreset || 'compact_topbar'),
+      desc: lang === 'fr' ? 'Configuration de l’overlay télémétrie MangoHUD (FPS, frametime, températures CPU/GPU, VRAM).' : 'MangoHUD telemetry overlay configuration.',
     },
     'wsl.conf': {
       title: 'wsl.conf (Configuration WSL2 & WSLg)',

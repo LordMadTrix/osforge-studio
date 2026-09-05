@@ -51,6 +51,9 @@ import {
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
 import { offlineRepoConfigCmd } from './offlineCache';
+import { generateGamingChrootCommands } from './gaming';
+import { generateAlternativeBootloaderCommands } from './bootloader';
+import { generateCryptenrollCommand } from './luksHardware';
 
 export function generateDebianBuildScript(recipe: OSRecipe): string {
   const pkgs = shellQuotePkgList(resolvePackageList(recipe));
@@ -559,16 +562,19 @@ ${networkConfigCmd(recipe, 'debian')}
 ${vpnConfigCmd(recipe, 'debian')}
 ${communityReposCmd(recipe, 'debian')}
 ${gamingSysctlCmd(recipe)}
+${generateGamingChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}
 ${macHardeningCmd(recipe, 'debian')}
 ${autoSecurityUpdatesCmd(recipe, 'debian')}
 ${cisHardeningCmd(recipe, 'debian')}
+${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, 'debian')}
 ${flatpakSetupCmd(recipe, 'debian')}
 ${calamaresInstallerCmd(recipe, 'debian')}
 ${gpuDriverCmd(recipe, 'debian')}
+${generateAlternativeBootloaderCommands(recipe, 'debian')}
 
 ${dmCmd}
 ${dmAutologinCmd(recipe, 'debian')}

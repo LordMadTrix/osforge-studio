@@ -61,3 +61,7 @@ export * from './usbFlash';
 export * from './offlineCache';
 export * from './partitionDisk';
 export * from './technicalManual';
+export * from './gaming';
+export * from './testVm';
+export * from './bootloader';
+export * from './luksHardware';

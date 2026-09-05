@@ -199,6 +199,19 @@ export interface NetworkConfig {
   tailscaleAuthKey?: string;
 }
 
+export type BootloaderType = 'grub2' | 'systemd-boot' | 'refind';
+export type LuksUnlockMethod = 'passphrase' | 'tpm2' | 'fido2' | 'tpm2_passphrase';
+export type MangoHudPreset = 'compact_topbar' | 'full_hud' | 'minimal_fps' | 'steamos_style';
+
+export interface GamingConfig {
+  enableMangoHud?: boolean;
+  mangoHudPreset?: MangoHudPreset;
+  enableProtonGE?: boolean;
+  enableCoreCtrlProfiles?: boolean;
+  pipewireQuantumLatency?: 64 | 128 | 256 | 512;
+  cpuGovernor?: 'performance' | 'schedutil' | 'powersave' | 'ondemand';
+}
+
 export interface SecurityConfig {
   cisBenchmarkLevel: 0 | 1 | 2;
   firewall: 'none' | 'ufw' | 'firewalld' | 'nftables';
@@ -209,6 +222,7 @@ export interface SecurityConfig {
   enableCrowdSec?: boolean;
   luksEncryption: boolean;
   luksPassword?: string;
+  luksUnlockMethod?: LuksUnlockMethod;
   disableRootSSH: boolean;
   autoSecurityUpdates: boolean;
   enableZram?: boolean;
@@ -258,6 +272,7 @@ export interface OSRecipe {
   displayManager: DisplayManagerId;
   kernel: KernelType;
   kernelCmdline?: string;
+  bootloader?: BootloaderType;
   kioskUrl?: string;
   selectedPackages: string[]; // package IDs
   customPackages: string[]; // manual package names
@@ -277,6 +292,7 @@ export interface OSRecipe {
   enableLiveRescue?: boolean;
   enableCommunityRepos?: boolean;
   enableGamingOptimizations?: boolean;
+  gamingConfig?: GamingConfig;
   enableSteamConsoleMode?: boolean;
   enablePowerSaving?: boolean;
   enableProAudio?: boolean;

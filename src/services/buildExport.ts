@@ -14,7 +14,9 @@ import {
   generateAutoBuildSh,
   generateIpxeScript,
   generatePxeServerScript,
-  generateVentoyJson
+  generateVentoyJson,
+  generateQemuTestBat,
+  generateQemuTestSh
 } from './scriptGenerators';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -34,6 +36,8 @@ export async function createDownloadableZip(recipe: OSRecipe): Promise<Blob> {
   const liveWindowsBat = generateLiveWindowsBat(recipe);
   const autoBuildBat = generateAutoBuildBat(recipe);
   const autoBuildSh = generateAutoBuildSh(recipe);
+  const testVmBat = generateQemuTestBat(recipe);
+  const testVmSh = generateQemuTestSh(recipe);
   const ipxeScript = generateIpxeScript(recipe);
   const pxeServerScript = generatePxeServerScript(recipe);
   const ventoyJson = generateVentoyJson(recipe);
@@ -51,6 +55,8 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 ---
 
 ## ⚡ LANCEMENT RAPIDE EN 1 DOUBLE-CLIC
+- **Tester immédiatement en VM (Windows)** : Double-cliquez sur \`tester-en-vm.bat\` (accélération matérielle WHPX automatique, 4/8 Go RAM).
+- **Tester immédiatement en VM (Linux / macOS)** : Exécutez \`./tester-en-vm.sh\` (accélération KVM).
 - **Sous Windows** : Double-cliquez sur \`launch.bat\` pour ouvrir le menu interactif (WSL2, QEMU Live, Compilation locale), ou directement \`auto-build.bat\` pour une compilation 100% automatique sans interaction.
 - **Sous Linux / macOS** : Exécutez \`./launch.sh\`, ou directement \`./auto-build.sh\` pour une compilation 100% automatique.
 - **Sur GitHub** : poussez ce dossier dans un dépôt — le workflow \`.github/workflows/build-iso.yml\` compile et **publie automatiquement une Release GitHub avec l'ISO** à chaque push sur \`main\`, sans aucune action manuelle.
@@ -60,6 +66,7 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 ---
 
 ## 📁 FICHIERS INCLUS DANS CE PACK
+- \`tester-en-vm.bat\` / \`tester-en-vm.sh\` : **Banc d'essai QEMU 1-clic** avec détection WHPX/KVM.
 - \`launch.bat\` / \`launch.sh\` : **Lanceurs universels interactifs** (Windows / Linux & macOS).
 - \`auto-build.bat\` / \`auto-build.sh\` : **Pipeline 100% automatique** — installe les dépendances, compile l'ISO et lance un test QEMU, sans aucune interaction.
 - \`install-wsl.bat\` : **Installation directe dans Windows WSL2** (Importe et lance votre OS).
@@ -74,6 +81,8 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 - \`recipe.json\` : Recette de configuration complète.
 `;
 
+  zip.file('tester-en-vm.bat', testVmBat);
+  zip.file('tester-en-vm.sh', testVmSh);
   zip.file('launch.bat', launchBat);
   zip.file('launch.sh', launchSh);
   zip.file('auto-build.bat', autoBuildBat);

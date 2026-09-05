@@ -49,6 +49,9 @@ import {
 } from './helpers';
 import { offlineRepoConfigCmd } from './offlineCache';
 import { generateBrandingChrootCommands } from './branding';
+import { generateGamingChrootCommands } from './gaming';
+import { generateAlternativeBootloaderCommands } from './bootloader';
+import { generateCryptenrollCommand, resolveCrypttabOptions } from './luksHardware';
 
 export const NON_DEBIAN_LABELS: Record<string, string> = {
   arch: 'Arch Linux',
@@ -610,6 +613,7 @@ ${networkConfigCmd(recipe, family)}
 ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
+${generateGamingChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
@@ -617,10 +621,12 @@ ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
 ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
+${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, family)}
 ${flatpakSetupCmd(recipe, family)}
 ${calamaresInstallerCmd(recipe, family)}
 ${gpuDriverCmd(recipe, family)}
+${generateAlternativeBootloaderCommands(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
@@ -679,7 +685,7 @@ ROOT_UUID=$(blkid -s UUID -o value "\${LOOPDEV}p1")
 chroot "\${MNT_DIR}" ${grubBin} --target=i386-pc --boot-directory=/boot "\${LOOPDEV}"
 
 ${recipe.security.luksEncryption ? `cat > "\${MNT_DIR}/etc/crypttab" << CRYPT_EOF
-cryptroot UUID=\${ROOT_UUID} none luks,discard
+cryptroot UUID=\${ROOT_UUID} none ${resolveCrypttabOptions(recipe.security)}
 CRYPT_EOF
 ` : ''}${fstabBlock}
 
@@ -910,6 +916,7 @@ ${networkConfigCmd(recipe, family)}
 ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
+${generateGamingChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
@@ -917,6 +924,7 @@ ${macHardeningCmd(recipe, family)}
 ${firewallCmd(recipe, family)}
 ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
+${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, family)}
 ${flatpakSetupCmd(recipe, family)}
 ${calamaresInstallerCmd(recipe, family)}

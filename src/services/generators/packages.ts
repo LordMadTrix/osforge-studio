@@ -348,9 +348,27 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push('nftables');
   }
 
-  // LUKS2 Encryption
+  // LUKS2 Encryption & Hardware Unlock
   if (recipe.security.luksEncryption) {
     pkgs.push('cryptsetup');
+    if (recipe.security.luksUnlockMethod === 'tpm2' || recipe.security.luksUnlockMethod === 'tpm2_passphrase') {
+      pkgs.push('tpm2-tools');
+    } else if (recipe.security.luksUnlockMethod === 'fido2') {
+      if (isDebianLike) {
+        pkgs.push('libfido2-1', 'fido2-tools');
+      } else {
+        pkgs.push('libfido2');
+      }
+    }
+  }
+
+  // Bootloaders alternatifs (systemd-boot & rEFInd)
+  if (recipe.bootloader === 'systemd-boot') {
+    if (isDebianLike) {
+      pkgs.push('systemd-boot');
+    }
+  } else if (recipe.bootloader === 'refind') {
+    pkgs.push('refind');
   }
 
   // Wi-Fi
@@ -460,6 +478,8 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     } else if (distroId === 'opensuse') {
       pkgs.push('libvulkan_radeon', 'libvulkan_intel');
     }
+  } else if (recipe.gamingConfig?.enableMangoHud) {
+    pkgs.push('mangohud');
   }
 
   // Power Saving (TLP)

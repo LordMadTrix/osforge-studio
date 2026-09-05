@@ -1,9 +1,10 @@
-import React from 'react';
-import { OSRecipe, NetworkConfig as NetworkConfigType } from '../types/os';
+import React, { useState } from 'react';
+import { OSRecipe, NetworkConfig as NetworkConfigType, BootloaderType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield } from 'lucide-react';
+import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield, Sliders, Disc } from 'lucide-react';
 import { DiskLayoutCalculator } from './DiskLayoutCalculator';
+import { GamingTuningModal } from './GamingTuningModal';
 
 interface SystemConfigProps {
   recipe: OSRecipe;
@@ -37,6 +38,8 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
     'Asia/Tokyo',
     'UTC',
   ];
+
+  const [isGamingModalOpen, setIsGamingModalOpen] = useState(false);
 
   const updateNet = (updated: Partial<NetworkConfigType>) => {
     onChange({ network: { ...recipe.network, ...updated } });
@@ -530,23 +533,46 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
           {/* Gaming Optimizations */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
-                {lang === 'fr' ? '🎮 Optimisations Gaming' : '🎮 Gaming Optimizations'}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                  {lang === 'fr' ? '🎮 Optimisations Gaming' : '🎮 Gaming Optimizations'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  {lang === 'fr' ? 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count' : 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count'}
+                </div>
               </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {lang === 'fr' ? 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count' : 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count'}
-              </div>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={recipe.enableGamingOptimizations ?? false}
+                  onChange={(e) => onChange({ enableGamingOptimizations: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
             </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={recipe.enableGamingOptimizations ?? false}
-                onChange={(e) => onChange({ enableGamingOptimizations: e.target.checked })}
-              />
-              <span className="toggle-slider"></span>
-            </label>
+            <button
+              type="button"
+              onClick={() => setIsGamingModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.72rem',
+                color: '#c084fc',
+                background: 'rgba(168, 85, 247, 0.1)',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                width: 'fit-content',
+                marginTop: '4px',
+              }}
+            >
+              <Sliders size={12} />
+              <span>{lang === 'fr' ? '⚙️ Régler MangoHUD, Proton-GE & Audio Low-Latency' : '⚙️ Tune MangoHUD, Proton-GE & Low-Latency Audio'}</span>
+            </button>
           </div>
 
           {/* Steam Console Mode (Steam Machine) */}
@@ -1089,6 +1115,91 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </div>
         </div>
       </div>
+
+      {/* 9. Bootloader Selection */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Disc size={16} color="var(--cyan)" />
+          {lang === 'fr' ? 'Chargeur d’Amorçage (Bootloader EFI & BIOS)' : 'Bootloader Selection (EFI & BIOS)'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Choisissez le gestionnaire de démarrage adapté à votre matériel et à votre temps de boot cible.'
+              : 'Choose the boot manager suited to your target hardware and boot speed goal.'}
+          />
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+          {[
+            {
+              id: 'grub2' as BootloaderType,
+              name: 'GRUB 2',
+              badge: 'Universel & Résilient',
+              badgeClass: 'badge-blue',
+              desc: lang === 'fr'
+                ? 'Supporte BIOS hérité + UEFI, thèmes graphiques personnalisés, rescue mode et multi-boot étendu.'
+                : 'Supports legacy BIOS + UEFI, custom splash themes, rescue mode and multi-boot.',
+            },
+            {
+              id: 'systemd-boot' as BootloaderType,
+              name: 'systemd-boot',
+              badge: 'Ultra-Rapide < 0.5s',
+              badgeClass: 'badge-green',
+              desc: lang === 'fr'
+                ? 'Amorçage UEFI direct et minimaliste sans délai. Recommandé pour serveurs et NVMe ultrarapides.'
+                : 'Minimalist direct UEFI boot with zero delay. Recommended for NVMe and fast cloud servers.',
+            },
+            {
+              id: 'refind' as BootloaderType,
+              name: 'rEFInd',
+              badge: 'Graphique Multi-OS',
+              badgeClass: 'badge-purple',
+              desc: lang === 'fr'
+                ? 'Menu EFI graphique avec support de la souris, icônes visuelles et détection automatique des OS tiers.'
+                : 'Graphical EFI boot manager with mouse support, HD icons and auto-detection of dual-boot OS.',
+            },
+          ].map((bl) => {
+            const selected = (recipe.bootloader || 'grub2') === bl.id;
+            return (
+              <div
+                key={bl.id}
+                onClick={() => onChange({ bootloader: bl.id })}
+                style={{
+                  padding: '14px',
+                  borderRadius: '8px',
+                  border: selected ? '2px solid var(--cyan)' : '1px solid var(--border-subtle)',
+                  background: selected ? 'rgba(14, 165, 233, 0.08)' : 'rgba(10, 15, 28, 0.4)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: selected ? 'var(--cyan)' : '#f1f5f9' }}>
+                    {bl.name}
+                  </div>
+                  <span className={`badge ${bl.badgeClass}`} style={{ fontSize: '0.65rem' }}>
+                    {bl.badge}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  {bl.desc}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Gaming Tuning Modal */}
+      <GamingTuningModal
+        isOpen={isGamingModalOpen}
+        onClose={() => setIsGamingModalOpen(false)}
+        recipe={recipe}
+        onChange={(updated) => onChange(updated)}
+        lang={lang}
+      />
     </div>
   );
 };

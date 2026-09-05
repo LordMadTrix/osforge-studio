@@ -1,5 +1,6 @@
 import { OSRecipe } from '../../types/os';
 import { shQuote } from './helpers';
+import { resolveCrypttabOptions } from './luksHardware';
 
 /**
  * Génère un script bash automatisé et sécurisé `partition-disk.sh`
@@ -209,7 +210,7 @@ echo "UUID=\${SWAP_UUID}  none                swap        sw                    
 ${isLuks ? `# Ajout dans /etc/crypttab
 LUKS_UUID=$(blkid -s UUID -o value "\${ROOT_PART}")
 cat > /mnt/target/etc/crypttab << CRYPT_EOF
-cryptroot UUID=\${LUKS_UUID} none luks,discard
+cryptroot UUID=\${LUKS_UUID} none ${resolveCrypttabOptions(recipe.security)}
 CRYPT_EOF
 ` : ''}
 

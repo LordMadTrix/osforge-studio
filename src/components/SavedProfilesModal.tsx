@@ -20,6 +20,9 @@ import {
   Clock,
   Layers,
   AlertCircle,
+  Terminal,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 interface SavedProfilesModalProps {
@@ -44,6 +47,7 @@ const SavedProfilesModalContent: React.FC<Omit<SavedProfilesModalProps, 'isOpen'
   );
   const [profileDesc, setProfileDesc] = useState(() => currentRecipe.description || '');
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [probeCopied, setProbeCopied] = useState<boolean>(false);
 
   const refreshList = () => {
     setProfiles(getUserProfiles());
@@ -435,9 +439,98 @@ const SavedProfilesModalContent: React.FC<Omit<SavedProfilesModalProps, 'isOpen'
             )}
           </div>
 
-          {/* Section 3 : Export et Import JSON universels */}
+          {/* Section 3 : Sonde Matérielle & Cloneur de Machine Réelle */}
           <div style={{
-            background: 'rgba(15, 23, 42, 0.6)',
+            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(15, 23, 42, 0.7))',
+            border: '1px solid rgba(168, 85, 247, 0.3)',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: '6px', borderRadius: '8px', background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>
+                  <Terminal size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>{isFr ? 'Sonde & Cloneur de Machine Réelle' : 'Real Hardware Probe & Cloner'}</span>
+                    <span style={{ fontSize: '0.65rem', background: 'rgba(168, 85, 247, 0.2)', color: '#e9d5ff', padding: '1px 6px', borderRadius: '4px', border: '1px solid rgba(168, 85, 247, 0.4)' }}>
+                      probe.sh
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+                    {isFr
+                      ? 'Exécutez cette commande sur n’importe quelle machine Linux pour scanner et cloner sa configuration exacte.'
+                      : 'Run this command on any Linux machine to probe and clone its exact hardware and OS configuration.'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CLI Command Box */}
+            <div style={{
+              background: 'rgba(10, 15, 29, 0.95)',
+              border: '1px solid rgba(168, 85, 247, 0.3)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+            }}>
+              <code style={{ fontSize: '0.78rem', color: '#c084fc', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                curl -fsSL https://lordmadtrix.github.io/osforge-studio/probe.sh | bash
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText('curl -fsSL https://lordmadtrix.github.io/osforge-studio/probe.sh | bash');
+                  setProbeCopied(true);
+                  setTimeout(() => setProbeCopied(false), 2000);
+                }}
+                style={{
+                  background: probeCopied ? 'rgba(16, 185, 129, 0.2)' : 'rgba(168, 85, 247, 0.2)',
+                  border: probeCopied ? '1px solid #10b981' : '1px solid #a855f7',
+                  color: probeCopied ? '#6ee7b7' : '#e9d5ff',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {probeCopied ? (
+                  <>
+                    <Check size={14} />
+                    <span>{isFr ? 'Copié !' : 'Copied!'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    <span>{isFr ? 'Copier' : 'Copy'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: '1.4' }}>
+              💡 {isFr
+                ? 'Le script génère un fichier osforge-probe-<machine>.json dans votre dossier courant. Cliquez ensuite sur "Importer un JSON" ci-dessous pour injecter instantanément toute la machine dans OSForge Studio.'
+                : 'The script generates an osforge-probe-<machine>.json file. Then click "Import JSON" below to inject the cloned machine into OSForge Studio.'}
+            </div>
+          </div>
+
+          {/* Section 4 : Sauvegarde JSON */}
+          <div style={{
+            background: 'rgba(15, 23, 42, 0.4)',
             border: '1px solid rgba(148, 163, 184, 0.2)',
             borderRadius: '12px',
             padding: '14px 16px',

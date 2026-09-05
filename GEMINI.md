@@ -388,6 +388,33 @@ après.
   - Piste 1 : SEO d'Autorité & Métadonnées OpenGraph : Balises canoniques, meta author (LordMadTrix), OpenGraph og:site_name, og:title, Twitter Cards (@LordMadTrix) et mots-clés d'autorité dans index.html et manifest.webmanifest.
   - Piste 2 : Slogan Officiel Distinctif : Déploiement de « The Ultimate Linux Distro & Cloud Image Builder » dans le header, footer, PresentationModal, README.md, paquets desktop (batchs et .desktop).
   - Piste 3 : Signature Officielle Créateur & Badge Écosystème MadOS : Signature by LordMadTrix avec lien direct vers le profil GitHub, badge élégant 🎮 MadOS Ecosystem dans le header et mise en valeur des liens créateur (Patreon / Sponsors).
-- **Suite de tests** : **773 tests (100% verts)**. 0 warning et 0 erreur oxlint sur 87 fichiers.
-- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour sanitizeWifiStr(), sanitizeLuksPassword(), sanitizeGithubUser(), sanitizeHostname() et parseAllowedPorts().
+- **43. 🧪 🚀 Lanceur Universel de Banc d'Essai VM 1-Clic (`tester-en-vm.bat` / `tester-en-vm.sh`)** :
+  - Génération de `tester-en-vm.bat` (Windows) avec détection automatique de l'accélération matérielle WHPX/TCG, allocation intelligente de RAM selon l'environnement de bureau, redirection de port SSH (`hostfwd=tcp::2222-:22`), proposition d'installation QEMU en 1 clic via `winget` si absent, et prise en charge native ISO (`-cdrom`) et Disque Virtuel (`-drive if=virtio`).
+  - Génération de `tester-en-vm.sh` (Linux / macOS) avec détection automatique de l'accélération matérielle KVM (`/dev/kvm`), allocation de RAM adaptative et gestion propre des chemins de distribution.
+  - Intégration complète dans le pack ZIP téléchargeable (`buildExport.ts`) et dans l'inspecteur de code (`RecipeInspector.tsx`).
+- **44. 🖲️ ⚡ Sélecteur & Câblage de Chargeurs d'Amorçage Alternatifs (systemd-boot & rEFInd)** :
+  - Nouveau module `bootloader.ts` avec support complet de GRUB 2, systemd-boot et rEFInd.
+  - Génération des stanzas de démarrage UEFI modernes pour systemd-boot (`loader.conf` et `entries/*.conf`) avec amorçage quasi-instantané (< 0.5s) sur NVMe.
+  - Génération de la configuration graphique haute définition pour rEFInd (`refind.conf`) avec support souris, résolution maximale, thème sombre et intégration de la couleur d'accentuation.
+  - Câblage automatique dans le chroot de configuration pour Debian/Ubuntu (`bootctl install`, `refind-install`) et images disques non-Debian (`nonDebian.ts`).
+  - Sélecteur visuel interactif avec badges comparatifs dans `SystemConfig.tsx`.
+- **45. 🔐 🛡️ Déchiffrement Matériel LUKS2 (TPM 2.0 Auto-Unlock & YubiKey / FIDO2)** :
+  - Module `luksHardware.ts` avec résolution dynamique des options `/etc/crypttab` (`tpm2-device=auto`, `fido2-device=auto`).
+  - Commandes d'enrôlement matériel `systemd-cryptenroll --tpm2-device=auto` et `--fido2-device=auto` avec repli automatique (fallback mot de passe).
+  - Intégration dans `partitionDisk.ts` et `nonDebian.ts` pour générer un crypttab adapté à la méthode matérielle sélectionnée.
+  - Sélecteur de méthode de déverrouillage interactif dans `SecurityConfig.tsx` (Passphrase seule, TPM 2.0 Puce, YubiKey / FIDO2, Hybride TPM 2.0 + Secours).
+- **46. 🎮 🎛️ Studio d'Optimisation Gaming & Audio Temps Réel (`GamingTuningModal.tsx`, MangoHUD, Proton-GE, PipeWire)** :
+  - Module `gaming.ts` générant les configurations réelles MangoHUD (`~/.config/MangoHud/MangoHud.conf`) pour 4 presets distincts : `compact_topbar`, `full_hud`, `minimal_fps`, `steamos_style`.
+  - Script d'installation automatisée Proton-GE (`osforge-install-proton-ge`) téléchargeant la dernière release GloriousEggroll dans Steam `compatibilitytools.d`.
+  - Règles Polkit CoreCtrl (`90-corectrl.rules`) autorisant l'overclocking et l'undervolting GPU sans invite de mot de passe root.
+  - Configuration PipeWire ultra-faible latence (`10-lowlatency.conf`) avec Quantum configurable (64, 128, 256, 512).
+  - Composant modal dédié `GamingTuningModal.tsx` avec simulation visuelle en direct d'un HUD de jeu (frametimes, FPS, températures, VRAM/RAM), sélecteur de CPU Governor et bouton d'inspection du code de configuration brut généré.
+- **47. 🔍 🌐 Sonde & Cloneur de Machine Physique / Virtuelle Réelle (`public/probe.sh`)** :
+  - Script bash autonome `public/probe.sh` sans dépendance externe, exécutable en 1 commande :
+    `curl -fsSL https://lordmadtrix.github.io/osforge-studio/probe.sh | bash`
+  - Détection dynamique et rigoureuse de la distribution (`/etc/os-release`), de l'environnement de bureau actif (`XDG_CURRENT_DESKTOP`, DMs), du noyau, de l'architecture, du matériel GPU (NVIDIA, AMD, Intel), de la mémoire RAM, des disques et partitions réelles, de la timezone, de la disposition clavier et des paquets installés.
+  - Production d'un fichier `osforge-probe-<hostname>.json` 100% conforme au schéma `OSRecipe` prêt pour import direct.
+  - Section dédiée dans `SavedProfilesModal.tsx` avec bouton de copie rapide de la commande CLI et instructions claires.
+- **Suite de tests** : **794 tests (100% verts)**. 0 warning et 0 erreur oxlint sur 96 fichiers.
+- **Sanitizers & Sécurité Shell** : Sanitization stricte maintenue sur l'ensemble des générateurs.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.

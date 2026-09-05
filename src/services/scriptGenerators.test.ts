@@ -4090,4 +4090,76 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       }
     });
   });
+
+  describe('Chantiers 43 à 47 : Intégration globale des 5 Innovations Majeures (Bootloader, Gaming Engine, LUKS Hardware)', () => {
+    it('resolvePackageList : injecte les paquets de bootloader et déverrouillage matériel LUKS', () => {
+      // systemd-boot
+      const debianSboot = resolvePackageList(makeRecipe({ distro: 'debian', bootloader: 'systemd-boot' }));
+      expect(debianSboot).toContain('systemd-boot');
+
+      // rEFInd
+      const debianRefind = resolvePackageList(makeRecipe({ distro: 'debian', bootloader: 'refind' }));
+      expect(debianRefind).toContain('refind');
+
+      // TPM2 LUKS
+      const debianTpm2 = resolvePackageList(makeRecipe({ distro: 'debian', security: { luksEncryption: true, luksUnlockMethod: 'tpm2' } as any }));
+      expect(debianTpm2).toContain('cryptsetup');
+      expect(debianTpm2).toContain('tpm2-tools');
+
+      // FIDO2 LUKS
+      const debianFido2 = resolvePackageList(makeRecipe({ distro: 'debian', security: { luksEncryption: true, luksUnlockMethod: 'fido2' } as any }));
+      expect(debianFido2).toContain('libfido2-1');
+
+      // MangoHUD standalone
+      const debianMango = resolvePackageList(makeRecipe({ distro: 'debian', gamingConfig: { enableMangoHud: true } }));
+      expect(debianMango).toContain('mangohud');
+    });
+
+    it('generateBuildScript (Debian) : intègre le studio gaming, bootloader et déchiffrement matériel', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'debian',
+        bootloader: 'systemd-boot',
+        enableGamingOptimizations: true,
+        gamingConfig: {
+          enableMangoHud: true,
+          mangoHudPreset: 'full_hud',
+          enableProtonGE: true,
+          pipewireQuantumLatency: 64,
+        },
+        security: {
+          luksEncryption: true,
+          luksUnlockMethod: 'tpm2',
+        } as any,
+      }));
+
+      expect(script).toContain('/etc/MangoHud/MangoHud.conf');
+      expect(script).toContain('default.clock.quantum       = 64');
+      expect(script).toContain('systemd-cryptenroll');
+      expect(script).toContain('--tpm2-device=auto');
+      expect(script).toContain('bootctl --path=/boot install');
+    });
+
+    it('generateNonDebianDiskImageScript (Arch) : intègre bootloader, options crypttab et gaming engine', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'arch',
+        outputFormat: 'qcow2',
+        bootloader: 'refind',
+        enableGamingOptimizations: true,
+        gamingConfig: {
+          enableMangoHud: true,
+          mangoHudPreset: 'compact_topbar',
+        },
+        security: {
+          luksEncryption: true,
+          luksUnlockMethod: 'tpm2_passphrase',
+        } as any,
+      }));
+
+      expect(script).toContain('tpm2-device=auto');
+      expect(script).toContain('systemd-cryptenroll');
+      expect(script).toContain('/etc/MangoHud/MangoHud.conf');
+      expect(script).toContain('refind-install');
+    });
+  });
 });
+
