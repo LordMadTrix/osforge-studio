@@ -1,0 +1,144 @@
+1
+00:00:00,000 --> 00:00:04,200
+Vous avez toujours rêvé d'avoir votre propre distribution Linux ?
+
+2
+00:00:04,200 --> 00:00:08,500
+Avec vos logiciels favoris, vos personnalisations et un installateur clé en main ?
+
+3
+00:00:08,500 --> 00:00:12,800
+Oubliez les commandes interminables et la compilation manuelle du noyau.
+
+4
+00:00:12,800 --> 00:00:17,500
+Aujourd'hui, fabriquez votre ISO Linux sur mesure en moins de dix minutes...
+
+5
+00:00:17,500 --> 00:00:21,500
+grâce à OSForge Studio : 100% gratuit et open source...
+
+6
+00:00:21,500 --> 00:00:25,820
+réalisable directement depuis votre navigateur web !
+
+7
+00:00:25,820 --> 00:00:30,000
+Rendez-vous sur OSForge Studio. L'interface propose deux modes adaptés.
+
+8
+00:00:30,000 --> 00:00:34,500
+D'un côté, l'Assistant Débutant, qui vous guide pas à pas avec des questions simples.
+
+9
+00:00:34,500 --> 00:00:39,500
+De l'autre, le Studio Expert, conçu pour ceux qui veulent un contrôle total :
+
+10
+00:00:39,500 --> 00:00:44,500
+noyau, pare-feu, chiffrement du disque LUKS et optimisations gaming.
+
+11
+00:00:44,500 --> 00:00:49,500
+Dans la barre latérale gauche, vous naviguez facilement entre la distribution de base,
+
+12
+00:00:49,500 --> 00:00:54,210
+l'interface graphique, vos paquets et les réglages de sécurité.
+
+13
+00:00:54,210 --> 00:00:58,500
+Pour notre système, choisissons une base Ubuntu 24.04 LTS pour sa stabilité.
+
+14
+00:00:58,500 --> 00:01:03,500
+Côté bureau, nous avons l'embarras du choix : KDE Plasma, GNOME, XFCE ou Hyprland.
+
+15
+00:01:03,500 --> 00:01:08,500
+Un simple clic sur le bouton Aperçu vous affiche la vraie capture d'écran en haute résolution
+
+16
+00:01:08,500 --> 00:01:12,500
+avec sa consommation réelle de mémoire RAM.
+
+17
+00:01:12,500 --> 00:01:17,500
+Ensuite, sélectionnons nos logiciels : stack gaming avec Steam et Proton,
+
+18
+00:01:17,500 --> 00:01:22,500
+outils de développement, et utilitaires modernes comme Fastfetch et Btop.
+
+19
+00:01:22,500 --> 00:01:29,400
+Enfin, personnalisons notre identité : nom du système, fond d'écran vectoriel et couleur d'accentuation.
+
+20
+00:01:29,400 --> 00:01:33,500
+Notre recette est prête. Cliquons sur le bouton Compiler l'Image.
+
+21
+00:01:33,500 --> 00:01:38,500
+OSForge Studio génère de vrais scripts bash audités et des lanceurs automatiques.
+
+22
+00:01:38,500 --> 00:01:42,500
+Téléchargez l'archive ZIP et extrayez-la.
+
+23
+00:01:42,500 --> 00:01:47,500
+Sous Windows, aucune commande n'est requise : double-cliquez simplement sur auto-build.bat.
+
+24
+00:01:47,500 --> 00:01:52,500
+Le script s'exécute en mode administrateur dans WSL2, installe les dépendances,
+
+25
+00:01:52,500 --> 00:01:57,170
+et compile l'ISO complète sous vos yeux.
+
+26
+00:01:57,170 --> 00:02:02,000
+Dès que la compilation se termine, le lanceur active automatiquement le test Live QEMU.
+
+27
+00:02:02,000 --> 00:02:07,500
+Grâce à l'accélération matérielle WHPX, l'ISO démarre en moins de trente secondes
+
+28
+00:02:07,500 --> 00:02:12,500
+directement dans la mémoire vive, sans toucher à vos disques durs.
+
+29
+00:02:12,500 --> 00:02:16,500
+Notre fond d'écran personnalisé est bien là, le terminal Fastfetch affiche notre logo,
+
+30
+00:02:16,500 --> 00:02:19,920
+et tous nos logiciels sont installés et fonctionnels.
+
+31
+00:02:19,920 --> 00:02:24,500
+Pour installer votre création sur un vrai PC, flashez l'image sur une clé USB avec Rufus
+
+32
+00:02:24,500 --> 00:02:29,000
+ou copiez-la simplement sur une clé Ventoy.
+
+33
+00:02:29,000 --> 00:02:34,500
+Et si votre PC manque de puissance, OSForge Studio inclut même un workflow GitHub Actions
+
+34
+00:02:34,500 --> 00:02:39,000
+pour compiler gratuitement votre ISO dans le Cloud !
+
+35
+00:02:39,000 --> 00:02:42,500
+Tous les liens sont disponibles dans la description. Testez l'outil,
+
+36
+00:02:42,500 --> 00:02:45,860
+partagez vos créations et abonnez-vous pour d'autres tutoriels. À très bientôt !
+

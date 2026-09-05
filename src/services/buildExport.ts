@@ -19,7 +19,7 @@ import {
   generateQemuTestSh
 } from './scriptGenerators';
 import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import { triggerFileDownload } from '../utils/downloadHelper';
 
 export async function createDownloadableZip(recipe: OSRecipe): Promise<Blob> {
   const zip = new JSZip();
@@ -111,5 +111,5 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 export async function downloadBuildPackage(recipe: OSRecipe) {
   const blob = await createDownloadableZip(recipe);
   const fileName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-build-kit.zip`;
-  saveAs(blob, fileName);
+  triggerFileDownload(blob, fileName);
 }

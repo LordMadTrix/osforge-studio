@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Media binaries
+tutorial_assets/*.mp4
+tutorial_assets/*.wav

@@ -16,7 +16,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
-import { saveAs } from 'file-saver';
+import { triggerFileDownload } from '../utils/downloadHelper';
 import {
   detectHardwareProfile,
   analyzeAndRecommend,
@@ -105,7 +105,7 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
       ? cliScript.replace(/\r?\n/g, '\r\n')
       : cliScript.replace(/\r\n/g, '\n');
     const blob = new Blob([content], { type: mimeType });
-    saveAs(blob, filename);
+    triggerFileDownload(blob, filename);
   };
 
   return (

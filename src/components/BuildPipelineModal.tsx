@@ -4,7 +4,7 @@ import { calculateEstimatedSizeAndRam } from '../services/buildSimulator';
 import { downloadBuildPackage } from '../services/buildExport';
 import { resolvePackageList, generateBuildScript, generateDockerfile } from '../services/scriptGenerators';
 import { X, Download, Terminal, GitBranch, Cloud, HardDrive, Play, Box, Monitor } from 'lucide-react';
-import { saveAs } from 'file-saver';
+import { triggerFileDownload } from '../utils/downloadHelper';
 
 interface BuildPipelineModalProps {
   recipe: OSRecipe;
@@ -126,13 +126,13 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
   const downloadStandaloneBuildSh = () => {
     const content = generateBuildScript(recipe);
     const blob = new Blob([content], { type: 'text/x-sh;charset=utf-8' });
-    saveAs(blob, 'build.sh');
+    triggerFileDownload(blob, 'build.sh');
   };
 
   const downloadStandaloneDockerfile = () => {
     const content = generateDockerfile(recipe);
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    saveAs(blob, 'Dockerfile');
+    triggerFileDownload(blob, 'Dockerfile');
   };
 
   if (!isOpen) return null;
