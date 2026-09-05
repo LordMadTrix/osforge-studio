@@ -162,10 +162,14 @@ après.
   - Diagnostic de l'écran blanc sur `http://localhost:5173/` :
     1. `vite.config.ts` configurait `base: '/osforge-studio/'`, forçant le runtime ES Module (`rolldown-runtime`) et les chunks dynamiques à requérir `/osforge-studio/assets/...` alors que le serveur local s'exécutait à la racine `/`.
     2. La méthode de téléchargement dynamique précédente n'extrayait que les balises `<script src>` du DOM actif, omettant les balises `<link rel="modulepreload">` (notamment le runtime ES) et les composants modaux lazy-loaded (`PresetsModal`, `HardwareAuditModal`, etc.).
+    3. Les environnements virtuels Python (ex. venv hermes-agent) appelés sans `-WorkingDirectory` exécutaient `http.server` dans leur dossier de scripts plutôt que dans le dossier applicatif.
+    4. Les caches résiduels des Service Workers PWA enregistrés sur `localhost` interceptaient les requêtes et servaient d'anciennes versions sans interroger le serveur local.
   - Correctifs appliqués :
     1. Bascule vers un `base: './'` relatif universel dans `vite.config.ts` assurant une portabilité totale (GitHub Pages, localhost racine, sous-dossiers et hors-ligne).
     2. Création du générateur `scripts/package-desktop.ts` exécuté directement à l'issue de `npm run build` : compression intégrale de `dist/` sans omission de chunk, inclusion des lanceurs Windows (.bat, .ps1, server.ps1) et Linux, et miroir d'alias `/osforge-studio/` pour compatibilité multi-serveurs Python/PowerShell.
-    3. Mise à jour de `downloadWindowsPortableZip()` et `downloadLinuxPortableZip()` pour servir prioritairement les archives officielles complètes avec fallback JSZip complet.
+    3. Mise à jour de `server.ps1` pour exécuter le serveur `System.Net.HttpListener` directement in-process : zéro sous-fenêtre parasite, aucun problème de CWD (élimination du piège des venv Python tiers), gestion stricte des types MIME (.html, .js, .mjs, .css, .svg, .json, .png, .webp, .woff2, .wasm), gestion des requêtes HEAD/GET sans ProtocolViolationException, et boucle `try { ... } catch { ... }` par requête évitant toute interruption sur déconnexion client.
+    4. Purge et désenregistrement automatique des Service Workers sur `localhost` / `127.0.0.1` dans `<head>` de `index.html` et `main.tsx` avec `Cache-Control: no-cache` pour empêcher tout affichage d'écrans blancs ou de chunks périmés.
+    5. Mise à jour de `downloadWindowsPortableZip()` et `downloadLinuxPortableZip()` pour servir prioritairement les archives officielles complètes avec fallback JSZip complet.
 - **Résolution Définitive Téléchargements Chromium (GUID sans extension)** :
   - Création de `triggerFileDownload` dans `src/utils/downloadHelper.ts` avec attachement obligatoire au DOM actif (`document.body.appendChild`) et forçage du type MIME `application/zip`, éliminant le comportement de Chrome/Edge qui ignorait l'attribut `download` lors de l'utilisation de `file-saver` et sauvegardait le fichier sous son UUID brut sans extension.
   - Déploiement sur GitHub Pages (`main`).

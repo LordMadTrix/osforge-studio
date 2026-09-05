@@ -9,8 +9,8 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Enregistrement du Service Worker pour mode hors-ligne et PWA
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Enregistrement du Service Worker pour mode hors-ligne et PWA (production uniquement hors localhost)
+if ('serviceWorker' in navigator && import.meta.env.PROD && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch((err) => {
       console.warn('Erreur enregistrement Service Worker:', err);

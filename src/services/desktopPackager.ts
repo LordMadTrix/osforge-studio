@@ -118,29 +118,20 @@ Write-Host "====================================================================
 Write-Host ""
 Write-Host "[1/3] Démarrage du serveur local sur http://localhost:$port..." -ForegroundColor Yellow
 
-$hasPython = Get-Command python -ErrorAction SilentlyContinue
-$pythonProc = $null
+Write-Host "-> Moteur : Serveur HTTP natif PowerShell (haute performance, zéro dépendance)" -ForegroundColor Green
 
-if ($hasPython) {
-    Write-Host "-> Moteur : Python 3" -ForegroundColor Green
-    $pythonProc = Start-Process python -ArgumentList "-m http.server $port" -WindowStyle Minimized -PassThru
-} else {
-    Write-Host "-> Moteur : PowerShell HTTP Listener natif (sans installation)" -ForegroundColor Green
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add("http://localhost:$port/")
+try {
+    $listener.Start()
+} catch {
+    $port = 5174
     $listener = New-Object System.Net.HttpListener
     $listener.Prefixes.Add("http://localhost:$port/")
-    try {
-        $listener.Start()
-    } catch {
-        $port = 5174
-        $listener = New-Object System.Net.HttpListener
-        $listener.Prefixes.Add("http://localhost:$port/")
-        $listener.Start()
-    }
+    $listener.Start()
 }
 
 Write-Host "[2/3] Ouverture de l'application dans votre navigateur..." -ForegroundColor Yellow
-Start-Sleep -Seconds 1
-
 $url = "http://localhost:$port/"
 $edge = Get-Command msedge -ErrorAction SilentlyContinue
 $chrome = Get-Command chrome -ErrorAction SilentlyContinue
@@ -161,51 +152,59 @@ Write-Host " Pour arrêter, appuyez sur [Ctrl + C] ou fermez cette fenêtre." -F
 Write-Host "===============================================================================" -ForegroundColor Green
 Write-Host ""
 
-if ($hasPython -and $pythonProc) {
-    try {
-        $pythonProc.WaitForExit()
-    } finally {
-        if (-not $pythonProc.HasExited) { Stop-Process -Id $pythonProc.Id -Force -ErrorAction SilentlyContinue }
-    }
-} else {
-    try {
-        while ($listener.IsListening) {
+try {
+    while ($listener.IsListening) {
+        try {
             $context = $listener.GetContext()
             $request = $context.Request
             $response = $context.Response
 
             $path = $request.Url.LocalPath.TrimStart('/')
+            if ($path -match '^osforge-studio/(.*)$') { $path = $matches[1] }
             if ([string]::IsNullOrWhiteSpace($path)) { $path = "index.html" }
 
             $filePath = Join-Path $appDir $path
-            if (-not (Test-Path $filePath) -or (Get-Item $filePath).PSIsContainer) {
-                $filePath = Join-Path $appDir "index.html"
+            $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
+            $isAsset = [string]::IsNullOrEmpty($ext) -or ($ext -eq '.html')
+
+            if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+                if ($isAsset) {
+                    $filePath = Join-Path $appDir "index.html"
+                }
             }
 
-            if (Test-Path $filePath) {
+            if (Test-Path -LiteralPath $filePath -PathType Leaf) {
                 $bytes = [System.IO.File]::ReadAllBytes($filePath)
                 $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
                 $response.ContentType = switch ($ext) {
-                    ".html" { "text/html; charset=utf-8" }
-                    ".js"   { "application/javascript; charset=utf-8" }
-                    ".css"  { "text/css; charset=utf-8" }
-                    ".svg"  { "image/svg+xml" }
-                    ".json" { "application/json" }
-                    ".png"  { "image/png" }
-                    ".webp" { "image/webp" }
-                    default { "application/octet-stream" }
+                    ".html"  { "text/html; charset=utf-8" }
+                    ".js"    { "application/javascript; charset=utf-8" }
+                    ".mjs"   { "application/javascript; charset=utf-8" }
+                    ".css"   { "text/css; charset=utf-8" }
+                    ".svg"   { "image/svg+xml" }
+                    ".json"  { "application/json" }
+                    ".png"   { "image/png" }
+                    ".webp"  { "image/webp" }
+                    ".woff2" { "font/woff2" }
+                    ".wasm"  { "application/wasm" }
+                    default  { "application/octet-stream" }
                 }
                 $response.ContentLength64 = $bytes.Length
-                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.AddHeader("Cache-Control", "no-cache")
+                if ($request.HttpMethod -ne "HEAD") {
+                    $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                }
             } else {
                 $response.StatusCode = 404
             }
-            $response.OutputStream.Close()
+            $response.Close()
+        } catch {
+            # Ignorer les déconnexions client sans interrompre la boucle principale
         }
-    } finally {
-        $listener.Stop()
-        $listener.Close()
     }
+} finally {
+    $listener.Stop()
+    $listener.Close()
 }
 `;
 }
