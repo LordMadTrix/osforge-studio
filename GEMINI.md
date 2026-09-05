@@ -146,7 +146,18 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **797 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 97 fichiers.
+- Suite de tests : **800 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 98 fichiers.
+- **Résolution Définitive Syntaxe Batch & Lanceurs Portables Windows (`Lancer-OSForge-Studio.bat`, `Lancer-OSForge-Studio.ps1`, `server.ps1`)** :
+  - Diagnostic précis des erreurs PowerShell (`'Cloud' n'est pas reconnu...`, `'tivation'`, `'6m'`, `| était inattendu`) :
+    1. L'esperluette `&` non échappée dans le titre déclenchait l'exécution de `Cloud` comme commande cmd.exe distincte.
+    2. Les séquences ANSI et pipes non protégés dans le banner ASCII provoquaient l'évaluation de commandes parasites (`6m`, pipe inattendu).
+    3. Les retours chariot Unix (LF) dans le zip causaient des désynchronisations de parsing dans cmd.exe.
+  - Correctifs appliqués :
+    1. Neutralisation et blindage de `generateWindowsBatchLauncher()` : suppression des pipes/ANSI dangereux, échappement de `&`, délégation propre et directe vers PowerShell si présent.
+    2. Création de `generateWindowsPowerShellLauncher()` : script autonome multi-moteurs (Python 3 ou `System.Net.HttpListener` natif sans installation), gestion des types MIME essentiels (HTML, JS, CSS, SVG, JSON, PNG, WebP) et fermeture propre des ressources.
+    3. Forçage strict des fins de ligne Windows CRLF (`\r\n`) sur tous les fichiers générés dans `downloadWindowsPortableZip()`.
+    4. Ajout de `Lancer-OSForge-Studio.ps1` et `server.ps1` aux côtés de `Lancer-OSForge-Studio.bat` dans l'archive ZIP.
+    5. Suite de tests Vitest enrichie à 800 tests (100% verts), build de production Vite validé.
 - **Résolution Définitive Téléchargements Chromium (GUID sans extension)** :
   - Création de `triggerFileDownload` dans `src/utils/downloadHelper.ts` avec attachement obligatoire au DOM actif (`document.body.appendChild`) et forçage du type MIME `application/zip`, éliminant le comportement de Chrome/Edge qui ignorait l'attribut `download` lors de l'utilisation de `file-saver` et sauvegardait le fichier sous son UUID brut sans extension.
   - Déploiement sur GitHub Pages (`main`).

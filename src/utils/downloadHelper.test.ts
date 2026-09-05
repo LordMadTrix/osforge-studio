@@ -101,6 +101,7 @@ describe('triggerFileDownload utility (Chromium DOM attachment compliance)', () 
     expect(createObjectURLMock).toHaveBeenCalled();
     expect(documentMock.createElement).toHaveBeenCalledWith('a');
     expect(bodyMock.appendChild).toHaveBeenCalled();
+    expect(appendedElement).toBe(mockAnchor);
     expect(mockAnchor.download).toBe('test-package.zip');
     expect(mockAnchor.setAttribute).toHaveBeenCalledWith('download', 'test-package.zip');
     expect(mockAnchor.click).toHaveBeenCalled();

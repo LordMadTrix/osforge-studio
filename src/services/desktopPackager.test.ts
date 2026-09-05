@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   generateWindowsBatchLauncher,
+  generateWindowsPowerShellLauncher,
   generateLinuxBashLauncher,
   generateLinuxDesktopFile,
   generateLinuxInstallScript,
@@ -30,6 +31,34 @@ describe('desktopPackager — Générateur de Packs Desktop Autonomes (Windows &
       expect(bat).toContain('msedge --app=http://localhost:%PORT%/');
       expect(bat).toContain('chrome --app=http://localhost:%PORT%/');
       expect(bat).toContain('start http://localhost:%PORT%/');
+    });
+
+    it('délègue à server.ps1 si présent pour une exécution propre sans bogues cmd', () => {
+      const bat = generateWindowsBatchLauncher();
+      expect(bat).toContain('if exist "%APP_DIR%server.ps1"');
+      expect(bat).toContain('powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%server.ps1"');
+    });
+  });
+
+  describe('Lanceur PowerShell Windows (server.ps1 & Lancer-OSForge-Studio.ps1)', () => {
+    it('génère un script PowerShell avec gestion d\'erreurs, encodage UTF-8 et gestionnaire HTTP', () => {
+      const ps1 = generateWindowsPowerShellLauncher();
+      expect(ps1).toContain("[Console]::OutputEncoding = [System.Text.Encoding]::UTF8");
+      expect(ps1).toContain('$port = 5173');
+      expect(ps1).toContain('System.Net.HttpListener');
+      expect(ps1).toContain('http://localhost:$port/');
+      expect(ps1).toContain('Start-Process');
+      expect(ps1).toContain('msedge');
+      expect(ps1).toContain('chrome');
+    });
+
+    it('gère les types MIME essentiels et la fermeture propre des ressources', () => {
+      const ps1 = generateWindowsPowerShellLauncher();
+      expect(ps1).toContain('text/html; charset=utf-8');
+      expect(ps1).toContain('application/javascript; charset=utf-8');
+      expect(ps1).toContain('image/svg+xml');
+      expect(ps1).toContain('$listener.Stop()');
+      expect(ps1).toContain('$listener.Close()');
     });
   });
 

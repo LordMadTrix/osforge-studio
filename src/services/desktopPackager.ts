@@ -8,21 +8,16 @@ import { triggerFileDownload } from '../utils/downloadHelper';
 export function generateWindowsBatchLauncher(): string {
   return `@echo off
 chcp 65001 >nul
-title OSForge Studio by LordMadTrix - The Ultimate Linux Distro & Cloud Image Builder
+title "OSForge Studio Desktop Launcher - The Ultimate Linux Distro ^& Cloud Image Builder"
 color 0b
 
 :: Activation des séquences ANSI dans l'invite de commandes Windows
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
 echo ===============================================================================
-echo      [1;36m  ___  ____  _____                     ____  _             _ _        [0m
-echo      [1;36m / _ \\/ ___||  ___|__  _ __ __ _  ___ / ___|| |_ _   _  __| (_) ___   [0m
-echo      [1;36m| | | \\___ \\| |_ / _ \\| '__/ _\` |/ _ \\\\___ \\| __| | | |/ _\` | |/ _ \\  [0m
-echo      [1;36m| |_| |___) |  _| (_) | | | (_| |  __/ ___) | |_| |_| | (_| | | (_) | [0m
-echo      [1;36m \\___/|____/|_|  \\___/|_|  \\__, |\\___|____/ \\__|\\__,_|\\__,_|_|\\___/  [0m
-echo      [1;36m                           |___/    BY LORDMADTRIX • MADOS ECOSYSTEM [0m
+echo       OSFORGE STUDIO BY LORDMADTRIX - MADOS ECOSYSTEM
 echo ===============================================================================
-echo    The Ultimate Linux Distro & Cloud Image Builder (Édition Locale Autonome)
+echo    The Ultimate Linux Distro ^& Cloud Image Builder (Édition Locale Autonome)
 echo ===============================================================================
 echo.
 echo [1/3] Initialisation de l'environnement local OSForge Studio...
@@ -30,6 +25,12 @@ echo [1/3] Initialisation de l'environnement local OSForge Studio...
 set "PORT=5173"
 set "APP_DIR=%~dp0"
 cd /d "%APP_DIR%"
+
+:: Si server.ps1 existe, délégation directe et propre à PowerShell (évite les bogues cmd)
+if exist "%APP_DIR%server.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%server.ps1"
+    goto end
+)
 
 :: Détection du moteur de serveur web local
 set "SERVER_TYPE=none"
@@ -46,7 +47,6 @@ if %ERRORLEVEL% equ 0 (
     goto start_server
 )
 
-:: Si ni Python ni Node ne sont installés, utilisation du serveur PowerShell natif Windows
 set "SERVER_TYPE=powershell"
 
 :start_server
@@ -63,28 +63,7 @@ if "%SERVER_TYPE%"=="py" (
 )
 
 if "%SERVER_TYPE%"=="powershell" (
-    :: Mini-serveur web HTTP natif PowerShell (sans aucune dépendance à installer)
-    start "OSForge Studio Server" /min powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-        "$listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://localhost:5173/'); $listener.Start(); " ^
-        "Write-Host 'Serveur OSForge actif sur http://localhost:5173'; " ^
-        "while ($listener.IsListening) { " ^
-        "  $context = $listener.GetContext(); $req = $context.Request; $res = $context.Response; " ^
-        "  $rawUrl = $req.Url.LocalPath.TrimStart('/'); if ([string]::IsNullOrEmpty($rawUrl)) { $rawUrl = 'index.html' }; " ^
-        "  $localPath = Join-Path (Get-Location) $rawUrl; " ^
-        "  if (-not (Test-Path $localPath) -or (Get-Item $localPath).PSIsContainer) { $localPath = Join-Path (Get-Location) 'index.html' }; " ^
-        "  if (Test-Path $localPath) { " ^
-        "    $bytes = [System.IO.File]::ReadAllBytes($localPath); " ^
-        "    $ext = [System.IO.Path]::GetExtension($localPath).ToLower(); " ^
-        "    $res.ContentType = switch ($ext) { " ^
-        "      '.html' {'text/html; charset=utf-8'} '.js' {'application/javascript; charset=utf-8'} " ^
-        "      '.css' {'text/css; charset=utf-8'} '.svg' {'image/svg+xml'} '.json' {'application/json'} " ^
-        "      '.png' {'image/png'} '.webp' {'image/webp'} default {'application/octet-stream'} " ^
-        "    }; " ^
-        "    $res.ContentLength64 = $bytes.Length; " ^
-        "    $res.OutputStream.Write($bytes, 0, $bytes.Length); " ^
-        "  } else { $res.StatusCode = 404 }; " ^
-        "  $res.OutputStream.Close(); " ^
-        "}"
+    start "OSForge Studio Server" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://localhost:5173/'); $listener.Start(); while ($listener.IsListening) { $ctx = $listener.GetContext(); $req = $ctx.Request; $res = $ctx.Response; $url = $req.Url.LocalPath.TrimStart('/'); if ([string]::IsNullOrEmpty($url)) { $url = 'index.html' }; $p = Join-Path (Get-Location) $url; if (-not (Test-Path $p) -or (Get-Item $p).PSIsContainer) { $p = Join-Path (Get-Location) 'index.html' }; if (Test-Path $p) { $b = [System.IO.File]::ReadAllBytes($p); $ext = [System.IO.Path]::GetExtension($p).ToLower(); $res.ContentType = switch ($ext) { '.html' {'text/html; charset=utf-8'} '.js' {'application/javascript; charset=utf-8'} '.css' {'text/css; charset=utf-8'} '.svg' {'image/svg+xml'} '.json' {'application/json'} '.png' {'image/png'} '.webp' {'image/webp'} default {'application/octet-stream'} }; $res.ContentLength64 = $b.Length; $res.OutputStream.Write($b, 0, $b.Length); } else { $res.StatusCode = 404 }; $res.OutputStream.Close(); }"
     goto open_browser
 )
 
@@ -92,7 +71,6 @@ if "%SERVER_TYPE%"=="powershell" (
 echo [3/3] Ouverture de l'interface graphique dans votre navigateur...
 timeout /t 2 /nobreak >nul
 
-:: Essai d'ouverture en mode application (Edge ou Chrome sans barre d'URL)
 where msedge >nul 2>&1
 if %ERRORLEVEL% equ 0 (
     start msedge --app=http://localhost:%PORT%/
@@ -105,20 +83,134 @@ if %ERRORLEVEL% equ 0 (
     goto ready
 )
 
-:: Navigateur standard par défaut
 start http://localhost:%PORT%/
 
 :ready
 echo.
 echo ===============================================================================
-echo   [1;32m[SUCCÈS] OSForge Studio s'exécute localement sur http://localhost:%PORT%/[0m
+echo    [SUCCÈS] OSForge Studio s'exécute localement sur http://localhost:%PORT%/
 echo   Cette fenêtre maintient le serveur actif. Minimisez-la pour continuer.
 echo   Pour arrêter l'application, fermez simplement cette fenêtre.
 echo ===============================================================================
 echo.
 pause
+
+:end
 `;
 }
+
+/**
+ * Génère le script PowerShell autonome server.ps1 (et Lancer-OSForge-Studio.ps1)
+ */
+export function generateWindowsPowerShellLauncher(): string {
+  return `# OSForge Studio Desktop - Serveur Local Autonome
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$port = 5173
+$appDir = $PSScriptRoot
+if (-not $appDir) { $appDir = (Get-Location).Path }
+Set-Location $appDir
+
+Write-Host "===============================================================================" -ForegroundColor Cyan
+Write-Host "   OSFORGE STUDIO BY LORDMADTRIX - ÉDITION LOCALE AUTONOME" -ForegroundColor Cyan
+Write-Host "===============================================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "[1/3] Démarrage du serveur local sur http://localhost:$port..." -ForegroundColor Yellow
+
+$hasPython = Get-Command python -ErrorAction SilentlyContinue
+$pythonProc = $null
+
+if ($hasPython) {
+    Write-Host "-> Moteur : Python 3" -ForegroundColor Green
+    $pythonProc = Start-Process python -ArgumentList "-m http.server $port" -WindowStyle Minimized -PassThru
+} else {
+    Write-Host "-> Moteur : PowerShell HTTP Listener natif (sans installation)" -ForegroundColor Green
+    $listener = New-Object System.Net.HttpListener
+    $listener.Prefixes.Add("http://localhost:$port/")
+    try {
+        $listener.Start()
+    } catch {
+        $port = 5174
+        $listener = New-Object System.Net.HttpListener
+        $listener.Prefixes.Add("http://localhost:$port/")
+        $listener.Start()
+    }
+}
+
+Write-Host "[2/3] Ouverture de l'application dans votre navigateur..." -ForegroundColor Yellow
+Start-Sleep -Seconds 1
+
+$url = "http://localhost:$port/"
+$edge = Get-Command msedge -ErrorAction SilentlyContinue
+$chrome = Get-Command chrome -ErrorAction SilentlyContinue
+
+if ($edge) {
+    Start-Process msedge -ArgumentList "--app=$url"
+} elseif ($chrome) {
+    Start-Process chrome -ArgumentList "--app=$url"
+} else {
+    Start-Process $url
+}
+
+Write-Host ""
+Write-Host "===============================================================================" -ForegroundColor Green
+Write-Host " [SUCCÈS] OSForge Studio s'exécute localement sur http://localhost:$port/" -ForegroundColor Green
+Write-Host " Laissez cette fenêtre ouverte pour maintenir l'application active." -ForegroundColor Gray
+Write-Host " Pour arrêter, appuyez sur [Ctrl + C] ou fermez cette fenêtre." -ForegroundColor Gray
+Write-Host "===============================================================================" -ForegroundColor Green
+Write-Host ""
+
+if ($hasPython -and $pythonProc) {
+    try {
+        $pythonProc.WaitForExit()
+    } finally {
+        if (-not $pythonProc.HasExited) { Stop-Process -Id $pythonProc.Id -Force -ErrorAction SilentlyContinue }
+    }
+} else {
+    try {
+        while ($listener.IsListening) {
+            $context = $listener.GetContext()
+            $request = $context.Request
+            $response = $context.Response
+
+            $path = $request.Url.LocalPath.TrimStart('/')
+            if ([string]::IsNullOrWhiteSpace($path)) { $path = "index.html" }
+
+            $filePath = Join-Path $appDir $path
+            if (-not (Test-Path $filePath) -or (Get-Item $filePath).PSIsContainer) {
+                $filePath = Join-Path $appDir "index.html"
+            }
+
+            if (Test-Path $filePath) {
+                $bytes = [System.IO.File]::ReadAllBytes($filePath)
+                $ext = [System.IO.Path]::GetExtension($filePath).ToLower()
+                $response.ContentType = switch ($ext) {
+                    ".html" { "text/html; charset=utf-8" }
+                    ".js"   { "application/javascript; charset=utf-8" }
+                    ".css"  { "text/css; charset=utf-8" }
+                    ".svg"  { "image/svg+xml" }
+                    ".json" { "application/json" }
+                    ".png"  { "image/png" }
+                    ".webp" { "image/webp" }
+                    default { "application/octet-stream" }
+                }
+                $response.ContentLength64 = $bytes.Length
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+            } else {
+                $response.StatusCode = 404
+            }
+            $response.OutputStream.Close()
+        }
+    } finally {
+        $listener.Stop()
+        $listener.Close()
+    }
+}
+`;
+}
+
+
 
 /**
  * Génère le script shell Linux autonome lancer-osforge-studio.sh
@@ -286,12 +378,14 @@ export function generateDesktopReadme(platform: 'windows' | 'linux'): string {
 Félicitations ! Vous disposez de la version autonome d'**OSForge Studio**.
 
 ## ⚡ DÉMARRAGE EN 1 DOUBLE-CLIC
-1. Double-cliquez simplement sur \`Lancer-OSForge-Studio.bat\`.
+1. Double-cliquez simplement sur \`Lancer-OSForge-Studio.bat\` (ou exécutez \`.\\Lancer-OSForge-Studio.ps1\` dans un terminal PowerShell).
 2. Le script initialise automatiquement un serveur web local sécurisé (PowerShell natif ou Python) et ouvre l'application dans votre navigateur.
 3. Aucune installation logicielle préalable n'est requise.
 
 ## 📦 FICHIERS INCLUS
 - \`Lancer-OSForge-Studio.bat\` : Lanceur interactif universel (PowerShell natif / Python).
+- \`Lancer-OSForge-Studio.ps1\` : Lanceur natif PowerShell direct pour console ou terminal.
+- \`server.ps1\` : Moteur de serveur web local haute performance PowerShell natif.
 - \`index.html\` : Point d'entrée de l'application.
 - \`assets/\` : Scripts, composants et styles de l'interface.
 - \`favicon.svg\` : Icône officielle haute définition.
@@ -331,9 +425,12 @@ Toutes les recettes et scripts bash sont générés à 100% en local.
  */
 export async function downloadWindowsPortableZip(): Promise<void> {
   const zip = new JSZip();
+  const toCrlf = (str: string) => str.replace(/\r?\n/g, '\r\n');
 
-  zip.file('Lancer-OSForge-Studio.bat', generateWindowsBatchLauncher());
-  zip.file('README.txt', generateDesktopReadme('windows'));
+  zip.file('Lancer-OSForge-Studio.bat', toCrlf(generateWindowsBatchLauncher()));
+  zip.file('Lancer-OSForge-Studio.ps1', toCrlf(generateWindowsPowerShellLauncher()));
+  zip.file('server.ps1', toCrlf(generateWindowsPowerShellLauncher()));
+  zip.file('README.txt', toCrlf(generateDesktopReadme('windows')));
   zip.file('manifest.webmanifest', JSON.stringify({
     name: 'OSForge Studio PRO',
     short_name: 'OSForge',
