@@ -1,11 +1,11 @@
-import React from 'react';
-import { OSRecipe, ArchType, OutputFormat } from '../types/os';
+import React, { useState, useMemo } from 'react';
+import { OSRecipe, ArchType, OutputFormat, DistroCategory } from '../types/os';
 import { DISTROS } from '../data/distros';
-import { KERNEL_OPTIONS } from '../data/kernels';
+import { KERNEL_OPTIONS, KernelCategory } from '../data/kernels';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import { KernelUpdateChecker } from './KernelUpdateChecker';
-import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon, Rss } from 'lucide-react';
+import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DISTRO_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
@@ -20,6 +20,69 @@ interface DistroSelectorProps {
 
 export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
   const { distros: liveDistros } = useLiveVersions();
+  const [distroCategory, setDistroCategory] = useState<DistroCategory | 'all'>('all');
+  const [distroPkgManager, setDistroPkgManager] = useState<'all' | 'apt' | 'pacman' | 'dnf' | 'other'>('all');
+  const [distroSearch, setDistroSearch] = useState('');
+  const [kernelCategory, setKernelCategory] = useState<KernelCategory | 'all'>('all');
+  const [kernelSearch, setKernelSearch] = useState('');
+
+  const distroCategories: { id: DistroCategory | 'all'; label: string; icon: string }[] = useMemo(() => [
+    { id: 'all', label: lang === 'fr' ? 'Toutes' : 'All', icon: '🌐' },
+    { id: 'general', label: lang === 'fr' ? 'Grand Public & Bureau' : 'General & Desktop', icon: '💻' },
+    { id: 'gaming', label: lang === 'fr' ? 'Gaming & Performance' : 'Gaming & Performance', icon: '⚡' },
+    { id: 'enterprise', label: lang === 'fr' ? 'Entreprise & Serveurs' : 'Enterprise & Servers', icon: '🏢' },
+    { id: 'security', label: lang === 'fr' ? 'Cybersécurité & Pentest' : 'CyberSec & Pentest', icon: '🛡️' },
+    { id: 'sbc_iot', label: lang === 'fr' ? 'Raspberry Pi & SBC' : 'Raspberry Pi & SBC', icon: '🍓' },
+    { id: 'minimal', label: lang === 'fr' ? 'Minimaliste & Puriste' : 'Minimal & Purist', icon: '🧪' },
+  ], [lang]);
+
+  const kernelCategories: { id: KernelCategory | 'all'; label: string; icon: string }[] = useMemo(() => [
+    { id: 'all', label: lang === 'fr' ? 'Tous les noyaux' : 'All Kernels', icon: '🌐' },
+    { id: 'gaming', label: lang === 'fr' ? 'Gaming & Faible Latence' : 'Gaming & Low Latency', icon: '🎮' },
+    { id: 'stable', label: lang === 'fr' ? 'Stabilité & LTS' : 'Stability & LTS', icon: '🛡️' },
+    { id: 'security', label: lang === 'fr' ? 'Sécurité & Temps Réel' : 'Security & Real-Time', icon: '🔒' },
+    { id: 'specialized', label: lang === 'fr' ? 'Cloud & Spécialisés' : 'Cloud & Specialized', icon: '☁️' },
+  ], [lang]);
+
+  const filteredDistros = useMemo(() => {
+    return DISTROS.filter(d => {
+      if (distroCategory !== 'all' && d.category !== distroCategory) return false;
+      if (distroPkgManager !== 'all') {
+        if (distroPkgManager === 'other') {
+          if (['apt', 'pacman', 'dnf'].includes(d.packageManager)) return false;
+        } else if (d.packageManager !== distroPkgManager) {
+          return false;
+        }
+      }
+      if (distroSearch.trim()) {
+        const q = distroSearch.toLowerCase();
+        return (
+          d.name.toLowerCase().includes(q) ||
+          d.description.toLowerCase().includes(q) ||
+          d.popularFor.toLowerCase().includes(q) ||
+          d.badge.toLowerCase().includes(q) ||
+          d.id.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [distroCategory, distroPkgManager, distroSearch]);
+
+  const filteredKernels = useMemo(() => {
+    return KERNEL_OPTIONS.filter(k => {
+      if (kernelCategory !== 'all' && k.category !== kernelCategory) return false;
+      if (kernelSearch.trim()) {
+        const q = kernelSearch.toLowerCase();
+        return (
+          k.name.toLowerCase().includes(q) ||
+          k.version.toLowerCase().includes(q) ||
+          k.description.toLowerCase().includes(q) ||
+          k.badge.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [kernelCategory, kernelSearch]);
   const formats: { id: OutputFormat; name: string; desc: string; icon: string; tooltipFr: string; tooltipEn: string }[] = [
     {
       id: 'iso_hybrid',
@@ -171,8 +234,191 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
           )}
         </div>
 
-        <div className="cards-grid">
-          {DISTROS.map(distro => {
+        {/* Barre de Recherche & Filtres de Catégories Distributions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Champ de recherche */}
+            <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '360px' }}>
+              <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder={lang === 'fr' ? 'Rechercher une distribution...' : 'Search distribution...'}
+                value={distroSearch}
+                onChange={e => setDistroSearch(e.target.value)}
+                className="input-text"
+                style={{
+                  width: '100%',
+                  paddingLeft: '32px',
+                  paddingRight: distroSearch ? '30px' : '10px',
+                  paddingTop: '6px',
+                  paddingBottom: '6px',
+                  fontSize: '0.78rem',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              />
+              {distroSearch && (
+                <button
+                  onClick={() => setDistroSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title={lang === 'fr' ? 'Effacer la recherche' : 'Clear search'}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtre secondaire par gestionnaire de paquets */}
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginRight: '2px' }}>
+                {lang === 'fr' ? 'Gestionnaire :' : 'Package Mgr:'}
+              </span>
+              {[
+                { id: 'all', label: lang === 'fr' ? 'Tous' : 'All' },
+                { id: 'apt', label: 'APT' },
+                { id: 'pacman', label: 'Pacman' },
+                { id: 'dnf', label: 'DNF' },
+                { id: 'other', label: lang === 'fr' ? 'Autres' : 'Others' },
+              ].map(pm => {
+                const isActive = distroPkgManager === pm.id;
+                return (
+                  <button
+                    key={pm.id}
+                    onClick={() => setDistroPkgManager(pm.id as any)}
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: isActive ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isActive ? '1px solid #38bdf8' : '1px solid var(--border-subtle)',
+                      color: isActive ? '#38bdf8' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontWeight: isActive ? 600 : 400,
+                    }}
+                  >
+                    {pm.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Onglets de Catégories avec Badges de Comptage */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '3px' }}>
+            {distroCategories.map(cat => {
+              const isSelected = distroCategory === cat.id;
+              const count = cat.id === 'all'
+                ? DISTROS.length
+                : DISTROS.filter(d => d.category === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setDistroCategory(cat.id as any)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.73rem',
+                    padding: '5px 10px',
+                    borderRadius: '6px',
+                    whiteSpace: 'nowrap',
+                    background: isSelected ? 'rgba(14, 165, 233, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                    border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
+                    color: isSelected ? 'var(--cyan)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontWeight: isSelected ? 600 : 400,
+                  }}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    background: isSelected ? 'rgba(14, 165, 233, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                    color: isSelected ? '#fff' : 'var(--text-dim)',
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bandeau si la distribution sélectionnée est hors du filtre actif */}
+          {recipe.distro && !filteredDistros.some(d => d.id === recipe.distro) && (
+            <div style={{
+              padding: '7px 12px',
+              borderRadius: '6px',
+              background: 'rgba(14, 165, 233, 0.08)',
+              border: '1px solid rgba(14, 165, 233, 0.25)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.76rem',
+            }}>
+              <span style={{ color: 'var(--cyan)' }}>
+                {lang === 'fr'
+                  ? `Distribution active : ${DISTROS.find(d => d.id === recipe.distro)?.name || recipe.distro} (hors du filtre)`
+                  : `Active distribution: ${DISTROS.find(d => d.id === recipe.distro)?.name || recipe.distro} (filtered out)`}
+              </span>
+              <button
+                onClick={() => {
+                  setDistroCategory('all');
+                  setDistroPkgManager('all');
+                  setDistroSearch('');
+                }}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.68rem', padding: '2px 8px', color: 'var(--cyan)' }}
+              >
+                {lang === 'fr' ? 'Afficher' : 'Show'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Message si aucun résultat */}
+        {filteredDistros.length === 0 ? (
+          <div style={{
+            padding: '32px 20px',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.84rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: '8px',
+            border: '1px dashed var(--border-subtle)',
+          }}>
+            <p style={{ marginBottom: '10px' }}>
+              {lang === 'fr' ? 'Aucune distribution ne correspond aux critères sélectionnés.' : 'No distribution matches the selected criteria.'}
+            </p>
+            <button
+              onClick={() => {
+                setDistroCategory('all');
+                setDistroPkgManager('all');
+                setDistroSearch('');
+              }}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.74rem', padding: '4px 10px' }}
+            >
+              {lang === 'fr' ? 'Réinitialiser les filtres' : 'Reset filters'}
+            </button>
+          </div>
+        ) : (
+          <div className="cards-grid">
+            {filteredDistros.map(distro => {
             const isSelected = recipe.distro === distro.id;
             return (
               <div
@@ -290,6 +536,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
             );
           })}
         </div>
+        )}
 
         {/* Active Distro Release / Downgrade Selector (Expert Studio) */}
         {(() => {
@@ -508,8 +755,152 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
 
         <KernelUpdateChecker lang={lang} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
-          {KERNEL_OPTIONS.map(k => {
+        {/* Barre de Recherche & Catégories pour les Noyaux */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Recherche Noyau */}
+            <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '320px' }}>
+              <Search size={13} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder={lang === 'fr' ? 'Rechercher un noyau (CachyOS, LTS...)' : 'Search kernel (CachyOS, LTS...)'}
+                value={kernelSearch}
+                onChange={e => setKernelSearch(e.target.value)}
+                className="input-text"
+                style={{
+                  width: '100%',
+                  paddingLeft: '30px',
+                  paddingRight: kernelSearch ? '28px' : '10px',
+                  paddingTop: '5px',
+                  paddingBottom: '5px',
+                  fontSize: '0.75rem',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              />
+              {kernelSearch && (
+                <button
+                  onClick={() => setKernelSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title={lang === 'fr' ? 'Effacer la recherche' : 'Clear search'}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Onglets Catégories Noyaux */}
+            <div style={{ display: 'flex', gap: '5px', overflowX: 'auto', flexWrap: 'wrap' }}>
+              {kernelCategories.map(cat => {
+                const isSelected = kernelCategory === cat.id;
+                const count = cat.id === 'all'
+                  ? KERNEL_OPTIONS.length
+                  : KERNEL_OPTIONS.filter(k => k.category === cat.id).length;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setKernelCategory(cat.id as any)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '0.71rem',
+                      padding: '4px 8px',
+                      borderRadius: '5px',
+                      background: isSelected ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isSelected ? '1px solid #f59e0b' : '1px solid var(--border-subtle)',
+                      color: isSelected ? '#fbbf24' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontWeight: isSelected ? 600 : 400,
+                    }}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                    <span style={{
+                      fontSize: '0.6rem',
+                      padding: '1px 4px',
+                      borderRadius: '999px',
+                      background: isSelected ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                      color: isSelected ? '#fff' : 'var(--text-dim)',
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Indicateur si le noyau sélectionné est masqué par le filtre */}
+          {recipe.kernel && !filteredKernels.some(k => k.id === recipe.kernel) && (
+            <div style={{
+              padding: '6px 10px',
+              borderRadius: '5px',
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.74rem',
+            }}>
+              <span style={{ color: '#fbbf24' }}>
+                {lang === 'fr'
+                  ? `Noyau actif : ${KERNEL_OPTIONS.find(k => k.id === recipe.kernel)?.name || recipe.kernel} (hors filtre)`
+                  : `Active kernel: ${KERNEL_OPTIONS.find(k => k.id === recipe.kernel)?.name || recipe.kernel} (filtered out)`}
+              </span>
+              <button
+                onClick={() => {
+                  setKernelCategory('all');
+                  setKernelSearch('');
+                }}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.66rem', padding: '2px 6px', color: '#fbbf24' }}
+              >
+                {lang === 'fr' ? 'Afficher' : 'Show'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {filteredKernels.length === 0 ? (
+          <div style={{
+            padding: '24px 16px',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.82rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: '6px',
+            border: '1px dashed var(--border-subtle)',
+          }}>
+            <p style={{ marginBottom: '8px' }}>
+              {lang === 'fr' ? 'Aucun noyau ne correspond à la recherche.' : 'No kernel matches the search.'}
+            </p>
+            <button
+              onClick={() => {
+                setKernelCategory('all');
+                setKernelSearch('');
+              }}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+            >
+              {lang === 'fr' ? 'Réinitialiser' : 'Reset'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+            {filteredKernels.map(k => {
             const isSelected = recipe.kernel === k.id;
             return (
               <div
@@ -554,6 +945,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

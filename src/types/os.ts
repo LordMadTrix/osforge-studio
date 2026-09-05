@@ -95,12 +95,21 @@ export interface DistroRelease {
   eol?: string;
 }
 
+export type DistroCategory = 
+  | 'general'
+  | 'gaming'
+  | 'enterprise'
+  | 'security'
+  | 'sbc_iot'
+  | 'minimal';
+
 export interface DistroInfo {
   id: DistroId;
   name: string;
   version: string;
   codename: string;
   packageManager: 'apt' | 'pacman' | 'dnf' | 'apk' | 'zypper' | 'nix' | 'xbps';
+  category?: DistroCategory;
   description: string;
   badge: string;
   color: string;

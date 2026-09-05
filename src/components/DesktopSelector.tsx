@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { OSRecipe, DisplayManagerId } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon, Rss } from 'lucide-react';
+import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
@@ -21,6 +21,50 @@ interface DesktopSelectorProps {
 export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
   const [previewSimulatorTab, setPreviewSimulatorTab] = useState<'boot' | 'desktop'>('boot');
   const { desktops: liveDesktops } = useLiveVersions();
+
+  type DesktopFilterCategory = 'all' | 'Full Desktop' | 'Tiling WM' | 'Lightweight' | 'Next-Gen Rust' | 'Specialized';
+  type DesktopProtocolFilter = 'all' | 'wayland' | 'x11' | 'headless';
+
+  const [desktopCategory, setDesktopCategory] = useState<DesktopFilterCategory>('all');
+  const [protocolFilter, setProtocolFilter] = useState<DesktopProtocolFilter>('all');
+  const [desktopSearch, setDesktopSearch] = useState('');
+
+  const desktopCategories: { id: DesktopFilterCategory; label: string; icon: string }[] = useMemo(() => [
+    { id: 'all', label: lang === 'fr' ? 'Tous les bureaux' : 'All Desktops', icon: '🌐' },
+    { id: 'Full Desktop', label: lang === 'fr' ? 'Bureaux Complets' : 'Full Desktops', icon: '🖥️' },
+    { id: 'Tiling WM', label: lang === 'fr' ? 'Tiling Window Managers' : 'Tiling WMs', icon: '🪟' },
+    { id: 'Lightweight', label: lang === 'fr' ? 'Légers & Faible RAM' : 'Lightweight (<400MB)', icon: '🪶' },
+    { id: 'Next-Gen Rust', label: lang === 'fr' ? 'Écosystème Rust' : 'Next-Gen Rust', icon: '🦀' },
+    { id: 'Specialized', label: lang === 'fr' ? 'Serveur & Kiosk' : 'Server & Kiosk', icon: '⚙️' },
+  ], [lang]);
+
+  const filteredDesktops = useMemo(() => {
+    return DESKTOPS.filter(de => {
+      if (desktopCategory !== 'all') {
+        if (desktopCategory === 'Specialized') {
+          if (de.type !== 'Headless' && de.type !== 'Appliance') return false;
+        } else if (de.type !== desktopCategory) {
+          return false;
+        }
+      }
+      if (protocolFilter !== 'all') {
+        if (protocolFilter === 'wayland' && !de.wayland) return false;
+        if (protocolFilter === 'x11' && (de.wayland || de.type === 'Headless')) return false;
+        if (protocolFilter === 'headless' && de.type !== 'Headless') return false;
+      }
+      if (desktopSearch.trim()) {
+        const q = desktopSearch.toLowerCase();
+        return (
+          de.name.toLowerCase().includes(q) ||
+          de.description.toLowerCase().includes(q) ||
+          de.type.toLowerCase().includes(q) ||
+          de.id.toLowerCase().includes(q) ||
+          de.features.some(f => f.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [desktopCategory, protocolFilter, desktopSearch]);
   const displayManagers: { id: DisplayManagerId; name: string; desc: string; tipFr: string; tipEn: string }[] = [
     {
       id: 'gdm3',
@@ -110,8 +154,192 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
           )}
         </div>
 
-        <div className="cards-grid">
-          {DESKTOPS.map(de => {
+        {/* Barre de Recherche & Catégories Bureaux */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Champ de recherche */}
+            <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '360px' }}>
+              <Search size={14} color="var(--text-dim)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder={lang === 'fr' ? 'Rechercher un bureau (KDE, Hyprland, Wayland...)' : 'Search desktop (KDE, Hyprland, Wayland...)'}
+                value={desktopSearch}
+                onChange={e => setDesktopSearch(e.target.value)}
+                className="input-text"
+                style={{
+                  width: '100%',
+                  paddingLeft: '32px',
+                  paddingRight: desktopSearch ? '30px' : '10px',
+                  paddingTop: '6px',
+                  paddingBottom: '6px',
+                  fontSize: '0.78rem',
+                  borderRadius: '6px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              />
+              {desktopSearch && (
+                <button
+                  onClick={() => setDesktopSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-dim)',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title={lang === 'fr' ? 'Effacer la recherche' : 'Clear search'}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtre protocole Wayland / X11 */}
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginRight: '2px' }}>
+                {lang === 'fr' ? 'Protocole :' : 'Protocol:'}
+              </span>
+              {[
+                { id: 'all', label: lang === 'fr' ? 'Tous' : 'All' },
+                { id: 'wayland', label: 'Wayland' },
+                { id: 'x11', label: 'X11' },
+                { id: 'headless', label: lang === 'fr' ? 'Sans GUI' : 'Headless' },
+              ].map(p => {
+                const isActive = protocolFilter === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setProtocolFilter(p.id as any)}
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      background: isActive ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                      border: isActive ? '1px solid #a855f7' : '1px solid var(--border-subtle)',
+                      color: isActive ? '#c084fc' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      fontWeight: isActive ? 600 : 400,
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Onglets de Catégories avec Badges de Comptage */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '3px' }}>
+            {desktopCategories.map(cat => {
+              const isSelected = desktopCategory === cat.id;
+              const count = cat.id === 'all'
+                ? DESKTOPS.length
+                : cat.id === 'Specialized'
+                  ? DESKTOPS.filter(d => d.type === 'Headless' || d.type === 'Appliance').length
+                  : DESKTOPS.filter(d => d.type === cat.id).length;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setDesktopCategory(cat.id as any)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.73rem',
+                    padding: '5px 10px',
+                    borderRadius: '6px',
+                    whiteSpace: 'nowrap',
+                    background: isSelected ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                    border: isSelected ? '1px solid var(--violet)' : '1px solid var(--border-subtle)',
+                    color: isSelected ? 'var(--violet)' : 'var(--text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    fontWeight: isSelected ? 600 : 400,
+                  }}
+                >
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                  <span style={{
+                    fontSize: '0.62rem',
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    background: isSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                    color: isSelected ? '#fff' : 'var(--text-dim)',
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bandeau si le bureau sélectionné est masqué par le filtre */}
+          {recipe.desktop && !filteredDesktops.some(d => d.id === recipe.desktop) && (
+            <div style={{
+              padding: '7px 12px',
+              borderRadius: '6px',
+              background: 'rgba(168, 85, 247, 0.08)',
+              border: '1px solid rgba(168, 85, 247, 0.25)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '0.76rem',
+            }}>
+              <span style={{ color: 'var(--violet)' }}>
+                {lang === 'fr'
+                  ? `Bureau sélectionné : ${DESKTOPS.find(d => d.id === recipe.desktop)?.name || recipe.desktop} (hors du filtre actif)`
+                  : `Selected desktop: ${DESKTOPS.find(d => d.id === recipe.desktop)?.name || recipe.desktop} (filtered out)`}
+              </span>
+              <button
+                onClick={() => {
+                  setDesktopCategory('all');
+                  setProtocolFilter('all');
+                  setDesktopSearch('');
+                }}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.68rem', padding: '2px 8px', color: 'var(--violet)' }}
+              >
+                {lang === 'fr' ? 'Afficher' : 'Show'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Message si aucun résultat */}
+        {filteredDesktops.length === 0 ? (
+          <div style={{
+            padding: '32px 20px',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            fontSize: '0.84rem',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderRadius: '8px',
+            border: '1px dashed var(--border-subtle)',
+          }}>
+            <p style={{ marginBottom: '10px' }}>
+              {lang === 'fr' ? 'Aucun environnement ne correspond aux critères sélectionnés.' : 'No desktop matches the selected criteria.'}
+            </p>
+            <button
+              onClick={() => {
+                setDesktopCategory('all');
+                setProtocolFilter('all');
+                setDesktopSearch('');
+              }}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.74rem', padding: '4px 10px' }}
+            >
+              {lang === 'fr' ? 'Réinitialiser les filtres' : 'Reset filters'}
+            </button>
+          </div>
+        ) : (
+          <div className="cards-grid">
+            {filteredDesktops.map(de => {
             const isSelected = recipe.desktop === de.id;
             return (
               <div
@@ -249,6 +477,7 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Special Configuration: Kiosk URL if Kiosk mode selected */}

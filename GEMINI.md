@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **726 tests**, tous verts (100%). CI + Pages fonctionnels.
+- Suite de tests : **748 tests**, tous verts (100%). CI + Pages fonctionnels.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -321,6 +321,20 @@ après.
   6. 🚀 **4 Nouveaux Presets Officiels en 1-Clic** : `dietpi_iot_micro`, `retropie_arcade_box`, `armbian_sbc_pro`, `raspap_travel_router`.
   7. 🛡️ **Résolution du Crash Critique de Nettoyage RootFS [4/7] (`fuser -k -m`)** : Remplacement de l'appel dangereux `fuser -k -m "${ROOTFS_DIR}"` qui ciblait la partition hôte racine `/` de WSL2 et provoquait le suicide du shell bash (erreur code 137 / SIGKILL) par un scanner sélectif basé sur `/proc/*/root` et démontages non-bloquants `umount -lf`.
   8. 🧪 **Suite de tests : 726 tests (100% verts)**. Compilation Vite et TypeScript vérifiées.
+- **38. 🗂️ 🏷️ Catégorisation Granulaire des Noyaux, Distributions et Environnements de Bureau (Mode Expert)** :
+  1. 💻 **Distributions Linux (21 distributions classées & filtrables)** :
+     - 6 catégories thématiques : Grand Public & Bureau (`general` : Debian, Ubuntu, Linux Mint, Pop!_OS, Fedora, openSUSE), Gaming & Performance (`gaming` : CachyOS, EndeavourOS, RetroPie), Entreprise & Serveurs (`enterprise` : Rocky, AlmaLinux), Cybersécurité & Pentest (`security` : Kali, Parrot), SBC ARM & Raspberry Pi (`sbc_iot` : Raspbian, DietPi, Armbian, RaspAP), Minimaliste & Puriste (`minimal` : Arch, Alpine, Void, NixOS).
+     - Champ de recherche textuelle instantanée (nom, description, mots-clés, badges).
+     - Filtre secondaire par écosystème / gestionnaire de paquets (Tous, APT, Pacman, DNF, Autres).
+     - Badges de comptage d'items en temps réel et bandeau de rappel si la sélection active est temporairement masquée par un filtre.
+  2. ⚡ **Noyaux Linux (13 variantes de kernels classées & filtrables)** :
+     - 4 catégories d'usage ciblées : Gaming & Faible Latence (`gaming` : CachyOS BORE, TkG, XanMod, Liquorix, Zen), Stabilité & LTS (`stable` : generic kernel.org, LTS 5 ans), Sécurité & Temps Réel (`security` : Hardened KSPP, PREEMPT_RT, Libre GNU), Cloud & Spécialisés (`specialized` : MicroVM, Surface tactile, Mainline Beta).
+     - Recherche textuelle de noyau et onglets avec compteurs dynamiques.
+  3. 🖥️ **Environnements de Bureau (21 bureaux et Window Managers classés & filtrables)** :
+     - 5 catégories claires : Bureaux Complets (`Full Desktop` : KDE Plasma, GNOME, Cinnamon, MATE, Budgie, Deepin, Pantheon, Wayfire 3D), Tiling Window Managers (`Tiling WM` : Hyprland, Sway, i3wm, BSPWM, Qtile), Légers & Économes (`Lightweight` : XFCE, LXQt, LXDE, Openbox), Écosystème Rust (`Next-Gen Rust` : COSMIC, Niri), Serveur & Kiosk (`Specialized` : Headless sans GUI, Borne Kiosk Web).
+     - Filtre secondaire par protocole d'affichage : Tous, Wayland natif, X11 classique, Sans GUI (Console/Headless).
+     - Recherche instantanée par nom, description et fonctionnalités clés.
+  4. 🧪 **Suite de tests : 748 tests (100% verts)** avec 22 nouveaux tests unitaires dans `src/data/categories.test.ts`. Zéro régression, compilation TypeScript (`tsc -b`) et Vite validées.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

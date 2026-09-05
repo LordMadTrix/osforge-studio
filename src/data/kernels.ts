@@ -1,10 +1,13 @@
 import { KernelType } from '../types/os';
 
+export type KernelCategory = 'gaming' | 'stable' | 'security' | 'specialized';
+
 export interface KernelOption {
   id: KernelType;
   name: string;
   badge: string;
   version: string;
+  category: KernelCategory;
   description: string;
   recommendation: string;
   bootSpeed: 'Très rapide' | 'Standard' | 'Instantané';
@@ -18,6 +21,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'generic',
     name: 'Linux 7.1 Stable (Officiel kernel.org)',
     version: 'v7.1.9 Stable',
+    category: 'stable',
     badge: 'Standard & Fiable',
     description: 'Noyau Linux officiel stable fourni par kernel.org. Testé en profondeur pour assurer une compatibilité matérielle universelle.',
     recommendation: 'Recommandé pour la majorité des usages généralistes et postes bureautiques.',
@@ -30,6 +34,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'mainline_beta',
     name: 'Linux 7.2 Mainline (Bleeding Edge Beta)',
     version: 'v7.2 Mainline Beta',
+    category: 'specialized',
     badge: 'Mainline Beta',
     description: 'Dernière version absolue du noyau Linux de Linus Torvalds. Support des GPU AMD RDNA4, Intel Battlemage, WiFi 7 et ordonnanceur EEVDF.',
     recommendation: 'Idéal si vous possédez du matériel sorti très récemment (processeurs et cartes graphiques 2025/2026).',
@@ -42,6 +47,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'cachyos',
     name: 'Linux-CachyOS (BORE Scheduler & Auto-FDO)',
     version: 'v7.1.9-cachyos (BORE v5.4)',
+    category: 'gaming',
     badge: 'Gaming & Latence Zéro',
     description: 'Noyau ultra-optimisé combinant l’ordonnanceur BORE (Burst-Oriented Response Enhancer), compilations x86-64-v3/v4 et zRAM LZ4 à 1000Hz.',
     recommendation: 'Le choix #1 pour les joueurs d’e-sport et les développeurs cherchant un multitâche d’une fluidité absolue.',
@@ -54,6 +60,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'zen',
     name: 'Linux-Zen 7.1 (Tuning Desktop & Réactivité)',
     version: 'v7.1-zen',
+    category: 'gaming',
     badge: 'Faible Latence Desktop',
     description: 'Résultat d’une collaboration de développeurs du noyau pour offrir le meilleur compromis de réactivité sur un desktop quotidien.',
     recommendation: 'Idéal pour les postes interactifs, le multitâche fluide et la navigation web ultra-réactive.',
@@ -66,6 +73,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'liquorix',
     name: 'Linux-Liquorix 7.1 (Gaming & Multimédia)',
     version: 'v7.1.1-lqx',
+    category: 'gaming',
     badge: 'Gaming & Audio Pro',
     description: 'Noyau optimisé pour le streaming, la production audio/vidéo et les jeux vidéo (ordonnanceur PDS, 1000Hz, Zen interactive tuning).',
     recommendation: 'Parfait pour éliminer les micro-saccades (stuttering) dans les jeux Steam et l’enregistrement audio sans latence.',
@@ -78,6 +86,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'xanmod',
     name: 'Linux-XanMod 6.13 (Faible Latence & E-Sport)',
     version: 'v6.13-xanmod (x64v3/v2)',
+    category: 'gaming',
     badge: 'Ultra-Performance & Gaming',
     description: 'Noyau Linux haute performance conçu pour maximiser le débit, réduire la latence système et optimiser le multitâche (patchs TT / BORE, préemption complète, tickrate 500Hz/1000Hz, TCP BBRv3).',
     recommendation: 'Recommandé pour les stations de travail audio/vidéo, le gaming haute performance et les serveurs nécessitant une latence minimale.',
@@ -90,6 +99,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'hardened',
     name: 'Linux-Hardened 6.12/7.1 (Sécurité Maximale & KSPP)',
     version: 'v6.12.14-hardened',
+    category: 'security',
     badge: 'Sécurité Militaire KSPP',
     description: 'Patchs de sécurité PaX/grsecurity, désactivation des appels système non sûrs et protection avancée de la mémoire kernel.',
     recommendation: 'Indispensable pour les infrastructures bancaires, serveurs exposés sur Internet et pentest sécurisé.',
@@ -102,6 +112,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'realtime',
     name: 'Linux-RT (PREEMPT_RT Temps Réel 6.12/7.1)',
     version: 'v6.12.14-rt5',
+    category: 'security',
     badge: 'Temps Réel Déterministe',
     description: 'Noyau à préemption totale garantissant des temps de réponse sous la milliseconde pour les applications industrielles et audio bit-perfect.',
     recommendation: 'Robotique, automates d’usines, traitement audio pro studio et acquisition de données capteurs.',
@@ -114,6 +125,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'cloud_micro',
     name: 'Linux MicroVM / Cloud Guest (Taille < 15 Mo)',
     version: 'v7.1-microvm',
+    category: 'specialized',
     badge: 'MicroVM Cloud',
     description: 'Noyau épuré de tous les pilotes superflus, optimisé pour les hyperviseurs QEMU, KVM, Firecracker et Cloud Hypervisor.',
     recommendation: 'Démarrage d’instances cloud en moins de 100ms et consommation mémoire minime.',
@@ -126,6 +138,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'lts',
     name: 'Linux-LTS 6.12 (Long Term Support 2024-2029)',
     version: 'v6.12.14 LTS',
+    category: 'stable',
     badge: 'Support 5 Ans LTS',
     description: 'Branche LTS officielle recevant les correctifs de sécurité critiques et backports sans perturbation fonctionnelle.',
     recommendation: 'Serveurs d’entreprises qui doivent tourner plusieurs années en haute disponibilité.',
@@ -138,6 +151,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'surface',
     name: 'Linux-Surface 6.12/7.1 (Tablettes & Portables Microsoft)',
     version: 'v6.12.14-surface',
+    category: 'specialized',
     badge: 'Microsoft Surface & Stylet',
     description: 'Noyau intégrant les patchs officiels linux-surface : support de l’écran tactile IPTS/HID, stylet actif, capteurs de luminosité, boutons matériels et caméras.',
     recommendation: 'Indispensable pour faire fonctionner Linux sur Surface Pro (3 à 9), Surface Laptop, Surface Go et Surface Book.',
@@ -150,6 +164,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'libre',
     name: 'Linux-Libre 6.12/7.1 (100% Logiciel Libre GNU/FSF)',
     version: 'v6.12.14-gnu',
+    category: 'security',
     badge: '100% Libre FSF/GNU',
     description: 'Version du noyau Linux purgée de tout microcode et firmware binaire non libre (aucun blob privateur). Conforme aux recommandations de la Free Software Foundation.',
     recommendation: 'Recommandé pour les puristes du logiciel libre et le matériel certifié Respects Your Freedom.',
@@ -162,6 +177,7 @@ export const KERNEL_OPTIONS: KernelOption[] = [
     id: 'tkg',
     name: 'Linux-TkG 6.13 (Gaming E-Sport & BORE/PDS)',
     version: 'v6.13-tkg-bore',
+    category: 'gaming',
     badge: 'E-Sport & Fsync Proton',
     description: 'Noyau gaming par Étienne Salle (Tk-Glitch) intégrant les ordonnanceurs BORE/PDS/MuQSS, les patchs Futex2 et Fsync pour Wine/Proton, et des optimisations de compilation processeur ciblées.',
     recommendation: 'Optimisé pour les joueurs compétitifs exigeant un framerate ultra-stable et la latence d’affichage la plus faible possible.',
