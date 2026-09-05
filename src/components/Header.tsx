@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Layers, Wand2, Sliders, Search, Share2, Check, Download, Heart, 
   ChevronDown, Sparkles, Activity, BookOpen, Image as ImageIcon, 
-  Lightbulb, Zap, Globe 
+  Lightbulb, Zap, Globe, Save 
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
@@ -18,6 +18,7 @@ interface HeaderProps {
   onOpenVersionChecker: () => void;
   onOpenPresentation?: () => void;
   onOpenAudit?: () => void;
+  onOpenProfiles?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenVersionChecker,
   onOpenPresentation,
   onOpenAudit,
+  onOpenProfiles,
   uiMode,
   setUiMode,
   lang,
@@ -275,6 +277,30 @@ export const Header: React.FC<HeaderProps> = ({
                   <span>{lang === 'fr' ? 'Modèles & Presets' : 'Presets & Templates'}</span>
                 </button>
 
+                {onOpenProfiles && (
+                  <button
+                    onClick={() => { onOpenProfiles(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Save size={14} color="#38bdf8" />
+                    <span>{lang === 'fr' ? 'Profils & Sauvegardes' : 'Profiles & Backups'}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => { onOpenAI(); setToolsDropdownOpen(false); }}
                   style={{
@@ -413,6 +439,30 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+
+          {/* Bouton Sauvegardes & Profils */}
+          {onOpenProfiles && (
+            <button
+              onClick={onOpenProfiles}
+              style={{
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                color: '#38bdf8',
+                padding: '5px 9px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600,
+              }}
+              title={lang === 'fr' ? 'Gérer les profils et sauvegardes' : 'Manage profiles and backups'}
+            >
+              <Save size={13} color="#38bdf8" />
+              <span>{lang === 'fr' ? 'Sauvegardes' : 'Backups'}</span>
+            </button>
+          )}
 
           {/* Bouton Partager */}
           {recipe && (

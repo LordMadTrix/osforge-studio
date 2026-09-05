@@ -43,6 +43,9 @@ import {
   heroicSetupCmd,
   metasploitSetupCmd,
   firstbootTriggerCmd,
+  btrfsSnapshotsCmd,
+  proAudioSetupCmd,
+  crowdsecSetupCmd,
 } from './helpers';
 import { offlineRepoConfigCmd } from './offlineCache';
 import { generateBrandingChrootCommands } from './branding';
@@ -634,6 +637,9 @@ ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
 ${heroicSetupCmd(recipe, family)}
 ${metasploitSetupCmd(recipe, family)}
+${btrfsSnapshotsCmd(recipe, family)}
+${proAudioSetupCmd(recipe, family)}
+${crowdsecSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -925,6 +931,9 @@ ${vscodiumSetupCmd(recipe, family)}
 ${uvSetupCmd(recipe, family)}
 ${heroicSetupCmd(recipe, family)}
 ${metasploitSetupCmd(recipe, family)}
+${btrfsSnapshotsCmd(recipe, family)}
+${proAudioSetupCmd(recipe, family)}
+${crowdsecSetupCmd(recipe, family)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh

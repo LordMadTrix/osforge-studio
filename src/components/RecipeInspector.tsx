@@ -18,7 +18,9 @@ import {
   generatePxeServerScript,
   generateVentoyJson,
   generateUsbFlashScript,
-  generateOfflineCacheBundleScript
+  generateOfflineCacheBundleScript,
+  generatePartitionDiskScript,
+  generateTechnicalManualMarkdown
 } from '../services/scriptGenerators';
 import { copyShareableLink } from '../services/recipeSharing';
 import { ContextTip } from './ContextTip';
@@ -71,6 +73,18 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       lang: 'bash',
       content: generateBuildScript(recipe),
       desc: lang === 'fr' ? 'Script bash autonome exécutable sur n’importe quelle machine Linux (Debian, Ubuntu, Arch, WSL2).' : 'Autonomous bash build script.',
+    },
+    'partition-disk.sh': {
+      title: 'partition-disk.sh (Formatage Disque & Montage Fstab)',
+      lang: 'bash',
+      content: generatePartitionDiskScript(recipe),
+      desc: lang === 'fr' ? 'Script bash de partitionnement GPT, EFI, LUKS2, Btrfs/ext4 et fstab automatique pour disque physique ou VM.' : 'Automated GPT, EFI, LUKS2, Btrfs/ext4 disk partitioning script.',
+    },
+    'fiche-technique.md': {
+      title: 'fiche-technique.md (Fiche Technique & Dossier d’Architecture)',
+      lang: 'markdown',
+      content: generateTechnicalManualMarkdown(recipe),
+      desc: lang === 'fr' ? 'Dossier d’architecture complet, commandes d’administration, sécurité et inventaire logiciel.' : 'Complete technical architecture manual, administration commands and package inventory.',
     },
     'Containerfile': {
       title: 'Containerfile / Dockerfile (Image OCI Autonome)',

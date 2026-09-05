@@ -206,11 +206,21 @@ export interface SecurityConfig {
   customAllowedPorts?: string;
   appArmorOrSELinux: boolean;
   fail2ban: boolean;
+  enableCrowdSec?: boolean;
   luksEncryption: boolean;
   luksPassword?: string;
   disableRootSSH: boolean;
   autoSecurityUpdates: boolean;
   enableZram?: boolean;
+}
+
+export interface DiskPartitionConfig {
+  targetDiskSizeGB: number;
+  efiSizeMB: number;
+  bootSizeMB: number;
+  swapSizeMB: number;
+  customHomePartition: boolean;
+  homeSizeGB?: number;
 }
 
 export interface BrandingConfig {
@@ -269,6 +279,8 @@ export interface OSRecipe {
   enableGamingOptimizations?: boolean;
   enableSteamConsoleMode?: boolean;
   enablePowerSaving?: boolean;
+  enableProAudio?: boolean;
+  diskPartitionConfig?: DiskPartitionConfig;
   enableLocalAiStack?: boolean;
   localAiModel?: string;
   enableOpenWebUi?: boolean;

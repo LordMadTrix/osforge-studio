@@ -3,6 +3,7 @@ import { OSRecipe, NetworkConfig as NetworkConfigType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield } from 'lucide-react';
+import { DiskLayoutCalculator } from './DiskLayoutCalculator';
 
 interface SystemConfigProps {
   recipe: OSRecipe;
@@ -642,6 +643,58 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
             </label>
           </div>
 
+          {/* Audio Pro & MAO Faible Latence */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableProAudio ? 'rgba(236, 72, 153, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableProAudio ? '1px solid #ec4899' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableProAudio ? '#f472b6' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🎛️</span>
+                <span>{lang === 'fr' ? 'Station Audio Pro & MAO Faible Latence' : 'Pro Audio & Low-Latency DAW Station'}</span>
+                <span className="badge" style={{ background: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', fontSize: '0.62rem' }}>PipeWire RT</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Quantum 64/128 (< 5ms), priorités PAM temps réel @audio, JACK, sysctl inotify'
+                  : 'Quantum 64/128 (< 5ms), @audio realtime PAM limits, JACK, inotify sysctl'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableProAudio ?? false}
+                onChange={(e) => onChange({ enableProAudio: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* Appliance IA Locale OOB */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableLocalAiStack ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableLocalAiStack ? '1px solid #38bdf8' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableLocalAiStack ? '#38bdf8' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🧠</span>
+                <span>{lang === 'fr' ? 'Appliance IA Locale OOB (Ollama + Open WebUI)' : 'Local AI Appliance OOB (Ollama + Open WebUI)'}</span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>Ollama</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Moteur LLM Ollama auto-démarré, modèles pré-téléchargés, interface web ChatGPT locale sur port 3000'
+                  : 'Self-hosted Ollama LLM engine, pre-pulled models, local ChatGPT web interface on port 3000'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableLocalAiStack ?? false}
+                onChange={(e) => onChange({
+                  enableLocalAiStack: e.target.checked,
+                  localAiModel: e.target.checked ? (recipe.localAiModel || 'llama3.2:3b') : recipe.localAiModel,
+                  enableOpenWebUi: e.target.checked ? true : recipe.enableOpenWebUi,
+                })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
           {/* Calamares Installer */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableCalamaresInstaller ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableCalamaresInstaller ? '1px solid #38bdf8' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
             <div>
@@ -775,6 +828,11 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
                 />
               </div>
             )}
+          </div>
+
+          {/* Simulateur Visuel de Partitionnement Disque */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <DiskLayoutCalculator recipe={recipe} onChange={onChange} lang={lang} />
           </div>
 
           {/* Btrfs Filesystem & Snapshots */}

@@ -59,3 +59,5 @@ export * from './ventoy';
 export * from './branding';
 export * from './usbFlash';
 export * from './offlineCache';
+export * from './partitionDisk';
+export * from './technicalManual';

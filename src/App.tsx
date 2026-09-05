@@ -9,6 +9,7 @@ import { ExpertProStudio } from './components/ExpertProStudio';
 import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
 import { extractRecipeFromUrl } from './services/recipeSharing';
+import { saveCurrentAutosave, loadCurrentAutosave } from './services/configStorage';
 
 // Code-split heavy, non-first-paint views and modals to shrink the initial bundle.
 const BuildPipelineModal = lazy(() => import('./components/BuildPipelineModal').then(m => ({ default: m.BuildPipelineModal })));
@@ -20,6 +21,7 @@ const ScreenshotPreviewModal = lazy(() => import('./components/ScreenshotPreview
 const VersionCheckerModal = lazy(() => import('./components/VersionCheckerModal').then(m => ({ default: m.VersionCheckerModal })));
 const PresentationModal = lazy(() => import('./components/PresentationModal').then(m => ({ default: m.PresentationModal })));
 const HardwareAuditModal = lazy(() => import('./components/HardwareAuditModal').then(m => ({ default: m.HardwareAuditModal })));
+const SavedProfilesModal = lazy(() => import('./components/SavedProfilesModal').then(m => ({ default: m.SavedProfilesModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -72,11 +74,18 @@ const DEFAULT_RECIPE: OSRecipe = {
 export const App: React.FC = () => {
   const [recipe, setRecipe] = useState<OSRecipe>(() => {
     const shared = extractRecipeFromUrl();
-    return shared ? { ...DEFAULT_RECIPE, ...shared } : DEFAULT_RECIPE;
+    if (shared) return { ...DEFAULT_RECIPE, ...shared };
+    const autosaved = loadCurrentAutosave();
+    return autosaved ? { ...DEFAULT_RECIPE, ...autosaved } : DEFAULT_RECIPE;
   });
   const [uiMode, setUiMode] = useState<'wizard' | 'expert'>('wizard');
   const [activeTab, setActiveTab] = useState<string>('builder');
   const [lang, setLang] = useState<'fr' | 'en'>('fr');
+
+  // Autosave automatique à chaque modification de la recette
+  useEffect(() => {
+    saveCurrentAutosave(recipe);
+  }, [recipe]);
 
   // Modals state
   const [isPresetsOpen, setIsPresetsOpen] = useState<boolean>(false);
@@ -88,6 +97,7 @@ export const App: React.FC = () => {
   const [isVersionCheckerOpen, setIsVersionCheckerOpen] = useState<boolean>(false);
   const [isPresentationOpen, setIsPresentationOpen] = useState<boolean>(false);
   const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
+  const [isProfilesOpen, setIsProfilesOpen] = useState<boolean>(false);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
   const [previewDesktopId, setPreviewDesktopId] = useState<string | undefined>(undefined);
 
@@ -142,6 +152,7 @@ export const App: React.FC = () => {
         onOpenVersionChecker={() => setIsVersionCheckerOpen(true)}
         onOpenPresentation={() => setIsPresentationOpen(true)}
         onOpenAudit={() => setIsAuditOpen(true)}
+        onOpenProfiles={() => setIsProfilesOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -396,6 +407,14 @@ export const App: React.FC = () => {
           onApplyRecipe={handleUpdateRecipe}
           lang={lang}
           currentRecipe={recipe}
+        />
+
+        <SavedProfilesModal
+          isOpen={isProfilesOpen}
+          onClose={() => setIsProfilesOpen(false)}
+          currentRecipe={recipe}
+          onLoadRecipe={(loadedRecipe) => setRecipe(loadedRecipe)}
+          lang={lang}
         />
       </Suspense>
     </div>

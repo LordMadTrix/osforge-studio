@@ -34,6 +34,9 @@ import {
   heroicSetupCmd,
   metasploitSetupCmd,
   firstbootTriggerCmd,
+  btrfsSnapshotsCmd,
+  proAudioSetupCmd,
+  crowdsecSetupCmd,
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
 
@@ -66,7 +69,7 @@ echo " | | | | |/ _ \\\\ __| |_) | |"
 echo " | |_| | |  __/ |_|  __/| |"
 echo " |____/|_|\\\\___|\\\\__|_|   |_|"
 echo -e "\\033[0m"
-echo " DietPi v9.8 (ARM64) | RAMlog Active | RAM: \\\$(free -h 2>/dev/null | awk '/^Mem:/{print \\\$3\" / \"\\\$2}')"
+echo " DietPi v9.8 (ARM64) | RAMlog Active | RAM: $(free -h 2>/dev/null | awk '/^Mem:/{print $3" / "$2}')"
 echo ""
 DIETPI_WELCOME_EOF
 chmod +x /etc/profile.d/dietpi-welcome.sh
@@ -83,7 +86,7 @@ chown -R ${shQuote(username)}:${shQuote(username)} /opt/retropie-setup 2>/dev/nu
 
 mkdir -p "/home/${shQuote(username)}/RetroPie/BIOS"
 for sys in nes snes megadrive gba psx arcade n64 gbc; do
-    mkdir -p "/home/${shQuote(username)}/RetroPie/roms/\\$sys"
+    mkdir -p "/home/${shQuote(username)}/RetroPie/roms/$sys"
 done
 chown -R ${shQuote(username)}:${shQuote(username)} "/home/${shQuote(username)}/RetroPie" 2>/dev/null || true
 
@@ -96,7 +99,7 @@ SUBSYSTEM=="input", ATTRS{name}=="*Controller*", MODE="0666"
 GAMEPAD_EOF
 
 cat << 'RETROPIE_AUTO_EOF' >> "/home/${shQuote(username)}/.profile"
-if [ -z "\\$DISPLAY" ] && [ "\\\$(tty)" = "/dev/tty1" ]; then
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
     which emulationstation >/dev/null 2>&1 && exec emulationstation
 fi
 RETROPIE_AUTO_EOF
@@ -109,10 +112,10 @@ RETROPIE_AUTO_EOF
 apt-get install -y --no-install-recommends armbian-config zram-config || true
 cat << 'ARMBIAN_MONITOR_EOF' > /usr/local/bin/armbianmonitor
 #!/usr/bin/env bash
-echo "Armbian SoC Telemetry Monitor — \\\$(uname -m)"
-echo "CPU Freq : \\\$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 'N/A') kHz"
-echo "Temp SoC : \\\$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf \"%.1f°C\", \\\$1/1000}' || echo 'N/A')"
-echo "Memory   : \\\$(free -h 2>/dev/null | awk '/^Mem:/{print \\\$3\" / \"\\\$2}')"
+echo "Armbian SoC Telemetry Monitor — $(uname -m)"
+echo "CPU Freq : $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo 'N/A') kHz"
+echo "Temp SoC : $(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{printf "%.1f°C", $1/1000}' || echo 'N/A')"
+echo "Memory   : $(free -h 2>/dev/null | awk '/^Mem:/{print $3" / "$2}')"
 ARMBIAN_MONITOR_EOF
 chmod +x /usr/local/bin/armbianmonitor
 `;
@@ -156,8 +159,8 @@ netfilter-persistent save 2>/dev/null || true
 mkdir -p /var/www/html
 cat << 'RASPAP_WEB_EOF' > /var/www/html/index.php
 <?php
-\\$hostname = gethostname();
-\\$ip = \\\$_SERVER['SERVER_ADDR'] ?? '10.3.141.1';
+$hostname = gethostname();
+$ip = $_SERVER['SERVER_ADDR'] ?? '10.3.141.1';
 ?>
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>RaspAP Dashboard</title>
@@ -332,6 +335,9 @@ ${vscodiumSetupCmd(recipe, 'debian')}
 ${uvSetupCmd(recipe, 'debian')}
 ${heroicSetupCmd(recipe, 'debian')}
 ${metasploitSetupCmd(recipe, 'debian')}
+${btrfsSnapshotsCmd(recipe, 'debian')}
+${proAudioSetupCmd(recipe, 'debian')}
+${crowdsecSetupCmd(recipe, 'debian')}
 ${firewallCmd(recipe, 'debian')}
 ${generateRpiDistroChrootCmd(recipe)}
 

@@ -39,6 +39,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
     // Toggles de durcissement
     if (sec.disableRootSSH) score += 10;
     if (sec.fail2ban) score += 10;
+    if (sec.enableCrowdSec) score += 10;
     if (sec.appArmorOrSELinux) score += 10;
     if (sec.luksEncryption) score += 10;
     if (sec.autoSecurityUpdates) score += 5;
@@ -155,6 +156,10 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: recipe.security.luksEncryption ? 'var(--emerald)' : 'var(--text-muted)' }}>
             {recipe.security.luksEncryption ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} color="#f59e0b" />}
             {recipe.security.luksEncryption ? 'Chiffrement LUKS2' : 'Disque Non Chiffré'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: recipe.security.enableCrowdSec ? 'var(--emerald)' : 'var(--text-muted)' }}>
+            {recipe.security.enableCrowdSec ? <CheckCircle2 size={13} /> : <span style={{ width: '13px', height: '13px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />}
+            {recipe.security.enableCrowdSec ? 'CrowdSec Actif' : 'Sans CrowdSec'}
           </div>
         </div>
       </div>
@@ -408,6 +413,30 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
                 type="checkbox"
                 checked={recipe.security.fail2ban}
                 onChange={(e) => updateSec({ fail2ban: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {/* CrowdSec Collaborative Defense */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: recipe.security.enableCrowdSec ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.security.enableCrowdSec ? '1px solid #38bdf8' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.security.enableCrowdSec ? '#38bdf8' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🛡️</span>
+                <span>{lang === 'fr' ? 'Cyber-Défense Active CrowdSec' : 'CrowdSec Collaborative Defense'}</span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>Consensus IP</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr'
+                  ? 'Analyse comportementale en temps réel et bouncer de pare-feu alimenté par le consensus mondial de menaces'
+                  : 'Real-time behavioral analysis and firewall bouncer powered by global threat intelligence'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.security.enableCrowdSec ?? false}
+                onChange={(e) => updateSec({ enableCrowdSec: e.target.checked })}
               />
               <span className="toggle-slider"></span>
             </label>

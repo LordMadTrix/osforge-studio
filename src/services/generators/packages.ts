@@ -579,6 +579,36 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     else if (distroId === 'alpine') pkgs.push('font-hack');
   }
 
+  // Audio Pro & MAO Faible Latence (PipeWire Pro, JACK, PAM Realtime)
+  if (recipe.enableProAudio) {
+    if (isDebianLike) {
+      pkgs.push('pipewire-jack', 'wireplumber', 'pavucontrol', 'qjackctl');
+    } else if (isArchLike) {
+      pkgs.push('pipewire-jack', 'wireplumber', 'pavucontrol', 'qjackctl');
+    } else if (isFedoraLike) {
+      pkgs.push('pipewire-jack-audio-connection-kit', 'wireplumber', 'pavucontrol', 'qjackctl');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('pipewire-jack', 'wireplumber', 'pavucontrol', 'qjackctl');
+    } else if (distroId === 'alpine' || distroId === 'void') {
+      pkgs.push('pipewire-jack', 'wireplumber', 'pavucontrol');
+    }
+  }
+
+  // Snapshots Btrfs & Restauration Système Snapper / GRUB
+  if (recipe.enableBtrfsSnapshots) {
+    if (isDebianLike) {
+      pkgs.push('btrfs-progs', 'snapper', 'inotify-tools');
+    } else if (isArchLike) {
+      pkgs.push('btrfs-progs', 'snapper', 'snap-pac', 'grub-btrfs', 'inotify-tools');
+    } else if (isFedoraLike) {
+      pkgs.push('btrfs-progs', 'snapper', 'python3-dnf-plugin-snapper', 'inotify-tools');
+    } else if (distroId === 'opensuse') {
+      pkgs.push('btrfs-progs', 'snapper', 'grub2-snapper-plugin', 'inotify-tools');
+    } else if (distroId === 'alpine' || distroId === 'void') {
+      pkgs.push('btrfs-progs', 'snapper');
+    }
+  }
+
   // Support des images vectorielles SVG et de la configuration DConf système
   if (recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk') {
     if (isDebianLike) {

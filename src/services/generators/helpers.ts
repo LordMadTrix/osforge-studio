@@ -1352,3 +1352,165 @@ GATEWAY_ISSUE_EOF
 `;
 }
 
+/**
+ * Configure les Snapshots Système Btrfs automatiques & la restauration GRUB (Snapper + grub-btrfs)
+ */
+export function btrfsSnapshotsCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableBtrfsSnapshots) return '';
+
+  let script = `# ==============================================================================
+# Snapshots Btrfs Automatiques & Restauration Système (Snapper + GRUB)
+# ==============================================================================
+echo -e "\${BLUE}[BTRFS] Configuration des snapshots système Snapper et de la restauration GRUB...\${NC}"
+
+# Création de la configuration Snapper pour la racine
+mkdir -p /etc/snapper/configs
+cat << 'SNAPPER_ROOT_EOF' > /etc/snapper/configs/root
+# Fichier de configuration Snapper généré par OSForge Studio
+SUBVOLUME="/"
+FSTYPE="btrfs"
+ALLOW_USERS=""
+ALLOW_GROUPS=""
+SYNC_ACL="no"
+BACKGROUND_COMPARISON="yes"
+NUMBER_CLEANUP="yes"
+NUMBER_MIN_AGE="1800"
+NUMBER_LIMIT="20"
+NUMBER_LIMIT_IMPORTANT="5"
+TIMELINE_CREATE="yes"
+TIMELINE_CLEANUP="yes"
+TIMELINE_MIN_AGE="1800"
+TIMELINE_LIMIT_HOURLY="5"
+TIMELINE_LIMIT_DAILY="7"
+TIMELINE_LIMIT_WEEKLY="4"
+TIMELINE_LIMIT_MONTHLY="2"
+TIMELINE_LIMIT_YEARLY="0"
+EMPTY_PRE_POST_CLEANUP="yes"
+EMPTY_PRE_POST_MIN_AGE="1800"
+SNAPPER_ROOT_EOF
+
+sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="root"/' /etc/default/snapper 2>/dev/null || true
+sed -i 's/^SNAPPER_CONFIGS=.*/SNAPPER_CONFIGS="root"/' /etc/conf.d/snapper 2>/dev/null || true
+`;
+
+  if (family !== 'alpine' && family !== 'void') {
+    script += `
+# Activation des timers de nettoyage et chronologie Snapper (systemd)
+if command -v systemctl &>/dev/null; then
+    systemctl enable snapper-timeline.timer 2>/dev/null || true
+    systemctl enable snapper-cleanup.timer 2>/dev/null || true
+    # Activation du démon de mise à jour des entrées GRUB pour les snapshots si présent
+    if [ -f /lib/systemd/system/grub-btrfsd.service ] || [ -f /usr/lib/systemd/system/grub-btrfsd.service ]; then
+        systemctl enable grub-btrfsd.service 2>/dev/null || true
+    fi
+fi
+`;
+  } else {
+    script += `
+# Sur Alpine/Void, avertissement ou configuration alternative
+echo -e "\${YELLOW}[BTRFS] Snapshots configurés via Snapper. Timers systemd non applicables sur cet init.\${NC}"
+`;
+  }
+
+  return script;
+}
+
+/**
+ * Configure la station Audio Pro / MAO faible latence (PipeWire Quantum 64/128, PAM RT, groupe audio)
+ */
+export function proAudioSetupCmd(recipe: OSRecipe, _family: 'debian' | NonDebianFamily): string {
+  if (!recipe.enableProAudio) return '';
+
+  const user = sanitizeHostname(recipe.user?.username || 'user');
+
+  return `# ==============================================================================
+# Optimisation Audio Pro & MAO Faible Latence (PipeWire Quantum, PAM RT, Audio Group)
+# ==============================================================================
+echo -e "\${BLUE}[PRO-AUDIO] Configuration de la station de travail audio faible latence...\${NC}"
+
+# 1. Limites PAM temps réel (/etc/security/limits.d/99-realtime-audio.conf)
+mkdir -p /etc/security/limits.d
+cat << 'LIMITS_AUDIO_EOF' > /etc/security/limits.d/99-realtime-audio.conf
+# Priorités temps réel et verrouillage mémoire pour la production musicale (OSForge Studio)
+@audio   -  rtprio     95
+@audio   -  memlock    unlimited
+@audio   -  nice      -19
+LIMITS_AUDIO_EOF
+
+# 2. Ajout de l'utilisateur au groupe audio
+groupadd -f audio 2>/dev/null || true
+groupadd -f realtime 2>/dev/null || true
+usermod -aG audio ${user} 2>/dev/null || true
+usermod -aG realtime ${user} 2>/dev/null || true
+
+# 3. Réglages noyau faible latence & inotify (/etc/sysctl.d/99-pro-audio.conf)
+mkdir -p /etc/sysctl.d
+cat << 'SYSCTL_AUDIO_EOF' > /etc/sysctl.d/99-pro-audio.conf
+# Optimisations noyau pour STAN / DAWs (Bitwig, Reaper, Ardour, JACK)
+fs.inotify.max_user_watches = 524288
+vm.swappiness = 10
+SYSCTL_AUDIO_EOF
+sysctl -p /etc/sysctl.d/99-pro-audio.conf 2>/dev/null || true
+
+# 4. Profil PipeWire Quantum 64/128 pour latence ultra-faible (< 5ms)
+mkdir -p /etc/pipewire/pipewire.conf.d
+cat << 'PW_AUDIO_EOF' > /etc/pipewire/pipewire.conf.d/10-pro-audio.conf
+# Paramètres PipeWire Audio Pro (OSForge Studio)
+context.properties = {
+    default.clock.rate          = 48000
+    default.clock.quantum       = 128
+    default.clock.min-quantum   = 64
+    default.clock.max-quantum   = 1024
+}
+PW_AUDIO_EOF
+`;
+}
+
+/**
+ * Déploie la cyber-défense collaborative active CrowdSec et le bouncer de pare-feu
+ */
+export function crowdsecSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
+  if (!recipe.security?.enableCrowdSec) return '';
+
+  let script = `# ==============================================================================
+# Cyber-Défense Collaborative Active CrowdSec & Bouncer Pare-feu
+# ==============================================================================
+echo -e "\${BLUE}[CROWDSEC] Déploiement de la cyber-défense collaborative CrowdSec...\${NC}"
+
+`;
+
+  if (family === 'debian') {
+    script += `# Installation via le dépôt officiel CrowdSec Debian/Ubuntu
+curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh | bash 2>/dev/null || true
+apt-get update -qq 2>/dev/null || true
+DEBIAN_FRONTEND=noninteractive apt-get install -y crowdsec crowdsec-firewall-bouncer-iptables 2>/dev/null || \\
+DEBIAN_FRONTEND=noninteractive apt-get install -y crowdsec 2>/dev/null || true
+`;
+  } else if (family === 'fedora') {
+    script += `# Installation via le dépôt officiel CrowdSec RPM
+curl -s https://packagecloud.io/install/repositories/crowdsec/crowdsec/script.rpm.sh | bash 2>/dev/null || true
+dnf install -y crowdsec crowdsec-firewall-bouncer-iptables 2>/dev/null || dnf install -y crowdsec 2>/dev/null || true
+`;
+  } else {
+    script += `# Sur ${family}, avertissement ou installation générique
+echo -e "\${YELLOW}[CROWDSEC] CrowdSec recommandé via conteneur ou paquet local sur cette distribution.\${NC}"
+`;
+  }
+
+  script += `
+# Activation des collections et services
+if command -v cscli &>/dev/null; then
+    cscli collections install crowdsecurity/linux 2>/dev/null || true
+    cscli collections install crowdsecurity/sshd 2>/dev/null || true
+fi
+
+if command -v systemctl &>/dev/null; then
+    systemctl enable crowdsec 2>/dev/null || true
+    systemctl enable crowdsec-firewall-bouncer 2>/dev/null || true
+fi
+`;
+
+  return script;
+}
+
+

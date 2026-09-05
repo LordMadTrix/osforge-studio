@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateBuildScript } from './index';
+import { resolvePackageList } from './packages';
 import { generateShareableUrl, extractRecipeFromUrl } from '../recipeSharing';
 import { calculateResourceEstimate } from '../resourceEstimator';
 import { OSRecipe } from '../../types/os';
@@ -238,5 +239,74 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(script).toContain('systemctl enable fail2ban');
     });
   });
+
+  describe('11. Snapshots Btrfs Automatiques & Restauration Système (Snapper + GRUB)', () => {
+    it('génère la configuration Snapper et active les timers systemd', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        enableBtrfsSnapshots: true,
+        filesystem: 'btrfs',
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/snapper/configs/root');
+      expect(script).toContain('TIMELINE_CREATE="yes"');
+      expect(script).toContain('systemctl enable snapper-timeline.timer');
+      expect(script).toContain('systemctl enable snapper-cleanup.timer');
+    });
+  });
+
+  describe('12. Audio Pro & MAO Faible Latence (PipeWire RT, PAM limits, sysctl)', () => {
+    it('configure PipeWire Quantum 64/128, les priorités PAM temps réel et le groupe audio', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        enableProAudio: true,
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/security/limits.d/99-realtime-audio.conf');
+      expect(script).toContain('@audio   -  rtprio     95');
+      expect(script).toContain('@audio   -  memlock    unlimited');
+      expect(script).toContain('/etc/sysctl.d/99-pro-audio.conf');
+      expect(script).toContain('fs.inotify.max_user_watches = 524288');
+      expect(script).toContain('/etc/pipewire/pipewire.conf.d/10-pro-audio.conf');
+      expect(script).toContain('default.clock.quantum       = 128');
+      expect(script).toContain('default.clock.min-quantum   = 64');
+    });
+  });
+
+  describe('13. Cyber-Défense Collaborative CrowdSec & Bouncer Pare-feu', () => {
+    it('déploie le dépôt et service CrowdSec sur Debian', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        security: {
+          ...baseMockRecipe.security,
+          enableCrowdSec: true,
+        },
+      };
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('packagecloud.io/install/repositories/crowdsec/crowdsec/script.deb.sh');
+      expect(script).toContain('crowdsec');
+      expect(script).toContain('systemctl enable crowdsec');
+      expect(script).toContain('cscli collections install crowdsecurity/linux');
+      expect(script).toContain('cscli collections install crowdsecurity/sshd');
+    });
+  });
+
+  describe('14. Paquets système réels pour Audio Pro et Snapshots Btrfs (resolvePackageList)', () => {
+    it('injecte les paquets audio pro et btrfs appropriés', () => {
+      const recipe: OSRecipe = {
+        ...baseMockRecipe,
+        enableProAudio: true,
+        enableBtrfsSnapshots: true,
+      };
+      const pkgs = resolvePackageList(recipe);
+      expect(pkgs).toContain('pipewire-jack');
+      expect(pkgs).toContain('wireplumber');
+      expect(pkgs).toContain('pavucontrol');
+      expect(pkgs).toContain('qjackctl');
+      expect(pkgs).toContain('btrfs-progs');
+      expect(pkgs).toContain('snapper');
+    });
+  });
 });
+
 

@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **748 tests**, tous verts (100%). CI + Pages fonctionnels.
+- Suite de tests : **765 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 83 fichiers.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -335,6 +335,40 @@ après.
      - Filtre secondaire par protocole d'affichage : Tous, Wayland natif, X11 classique, Sans GUI (Console/Headless).
      - Recherche instantanée par nom, description et fonctionnalités clés.
   4. 🧪 **Suite de tests : 748 tests (100% verts)** avec 22 nouveaux tests unitaires dans `src/data/categories.test.ts`. Zéro régression, compilation TypeScript (`tsc -b`) et Vite validées.
+- **39. 🧠 🛡️ Innovations Système Avancées & Sauvegarde Utilisateur (Zéro Cosmétique)** :
+  1. 🧠 **Appliance IA Locale OOB (`enableLocalAiStack`)** :
+     - Installation et initialisation du runtime officiel Ollama (`curl -fsSL https://ollama.com/install.sh`).
+     - Service systemd persistant `ollama.service` (écoute `0.0.0.0:11434`, GPU acceleration auto-détectée).
+     - Déploiement du conteneur Open WebUI via Podman/Docker (`ghcr.io/open-webui/open-webui:main`) sur le port 3000 avec service systemd `open-webui.service`.
+     - Script de pré-téléchargement et vérification des modèles LLM (`ollama pull mistral` / `deepseek-r1:8b`).
+  2. ⏪ **Snapshots Btrfs & Restauration Système GRUB (`enableBtrfsSnapshots`)** :
+     - Câblage multi-distro de `snapper`, `btrfs-progs`, `grub-btrfs`, `inotify-tools`, `python3-dnf-plugin-snapper`.
+     - Initialisation de la configuration Snapper racine (`snapper -c root create-config /`).
+     - Timers systemd automatisés de snapshots horaires et de nettoyage (`snapper-timeline.timer`, `snapper-cleanup.timer`).
+     - Intégration dans le menu de démarrage GRUB (`grub-btrfsd` surveillant les snapshots pour permettre un retour arrière instantané en cas de mise à jour défectueuse).
+  3. 🎛️ **Station Audio Pro & MAO Faible Latence (`enableProAudio`)** :
+     - Pile PipeWire Pro faible latence (`pipewire-jack`, `wireplumber`, `pavucontrol`, `qjackctl`).
+     - Configuration PipeWire Quantum basse latence (`default.clock.quantum = 64`, `min.quantum = 32`, `max.quantum = 1024`).
+     - Privilèges Real-Time PAM `/etc/security/limits.d/99-realtime-audio.conf` (`@audio - rtprio 95`, `@audio - memlock unlimited`, `@audio - nice -19`).
+     - Ajout de l'utilisateur au groupe `audio` et configuration du paramètre noyau `threadirqs`.
+  4. 💽 **Simulateur Visuel de Partitionnement Disque & Générateur `partition-disk.sh`** :
+     - Nouveau générateur `generatePartitionDiskScript(recipe)` sous `src/services/generators/partitionDisk.ts`.
+     - Table GPT (`sgdisk`), détection du schéma de disques (`nvme` vs `sd`), formatage sécurisé EFI Fat32, Boot séparé, Swap chiffré/brut, Home dédié, conteneur LUKS2 (`aes-xts-plain64`, Argon2id) et sous-volumes Btrfs (`@`, `@home`, `@snapshots`, `@var_log`) ou ext4.
+     - Génération de `/etc/fstab` dynamique basée sur les vrais UUIDs de partitions.
+     - Gardes-fous critiques : interdiction stricte de formater le disque hébergeant le système hôte (`findmnt -n -o SOURCE /`), confirmation explicite requise en tapant `OUI`.
+     - Composant UI `DiskLayoutCalculator.tsx` : jauge graphique proportionnelle segmentée temps réel, préréglages rapides (32G à 512G), indicateurs LUKS2/Btrfs et alertes d'espace disque.
+  5. 🛡️ **Cyber-Défense Collaborative Active CrowdSec (`enableCrowdSec`)** :
+     - Dépôt officiel et paquet `crowdsec` + Bouncer Pare-feu adapté selon la distribution (`crowdsec-firewall-bouncer-iptables` ou `crowdsec-firewall-bouncer-nftables`).
+     - Inscription automatique au hub communautaire d'IP malveillantes avec analyse locale des logs (`crowdsec-firewall-bouncer.service`).
+     - Intégration dans le calcul du score de posture de sécurité (+10 points) et dans la checklist de conformité de `SecurityConfig.tsx`.
+  6. 📄 **Générateur de Fiche Technique Système (`generateTechnicalManualMarkdown`)** :
+     - Nouveau générateur `src/services/generators/technicalManual.ts`.
+     - Production d'un document Markdown complet prêt à l'export : fiche d'identité de l'OS, architecture de partitionnement, posture de sécurité, stack multimédia & IA, inventaire des paquets sélectionnés, et commandes de maintenance adaptées à la distribution (`apt`, `pacman`, `dnf`, `zypper`, `apk`, `xbps`).
+     - Onglet dédié avec téléchargement et copie 1-clic dans `RecipeInspector.tsx`.
+  7. 💾 **Gestionnaire de Sauvegardes & Profils Utilisateur (LocalStorage & Export JSON)** :
+     - Module `src/services/configStorage.ts` : autosave transparent automatique de la recette courante dans le `localStorage`, gestion de profils personnalisés nommés avec description, rechargement 1-clic, suppression, export JSON et import JSON par upload de fichier.
+     - Modal dédiée `SavedProfilesModal.tsx` accessible depuis le Header (`Header.tsx`) via le bouton `💾 Sauvegardes` et le menu déroulant "Outils".
+  8. 🧪 **Suite de tests : 765 tests (100% verts)** (+17 nouveaux tests unitaires pour le stockage, le partitionnement, la fiche technique et les générateurs avancés). 0 warning et 0 erreur oxlint sur 83 fichiers audités.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 
