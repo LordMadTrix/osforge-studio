@@ -146,7 +146,11 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **773 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 87 fichiers.
+- Suite de tests : **796 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 97 fichiers.
+- **Résolution Définitive Téléchargements Chromium (GUID sans extension)** :
+  - Création de `triggerFileDownload` dans `src/utils/downloadHelper.ts` avec attachement obligatoire au DOM actif (`document.body.appendChild`) et forçage du type MIME `application/zip`, éliminant le comportement de Chrome/Edge qui ignorait l'attribut `download` lors de l'utilisation de `file-saver` et sauvegardait le fichier sous son UUID brut sans extension.
+  - Déploiement sur GitHub Pages (`main`).
+  - Intégration complète du pack marketing et tutoriel vidéo dans `tutorial_assets/` (Master 1080p, Shorts 9:16, sous-titres .srt/.vtt, BGM Synthwave et description YouTube).
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
