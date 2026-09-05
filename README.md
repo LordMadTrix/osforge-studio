@@ -1,21 +1,30 @@
-# 🚀 OSForge Studio — Constructeur Graphique d'OS Linux & ISO Builder
+# 🚀 OSForge Studio by LordMadTrix — The Ultimate Linux Distro & Cloud Image Builder
 
 <div align="center">
 
+[![MadOS Ecosystem](https://img.shields.io/badge/%F0%9F%8E%AE_Écosystème-MadOS-f43f5e?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/LordMadTrix)
 [![Patreon](https://img.shields.io/badge/Patreon-LordMad-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/LordMad)
 [![GitHub Pages](https://img.shields.io/badge/Web_App-En_Ligne-06b6d4?style=for-the-badge&logo=githubpages&logoColor=white)](https://lordmadtrix.github.io/osforge-studio/)
-[![Tests Vitest](https://img.shields.io/badge/Tests-651%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
+[![Tests Vitest](https://img.shields.io/badge/Tests-773%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
 [![Oxlint](https://img.shields.io/badge/Oxlint-0%20Warning%20/%200%20Erreur-84cc16?style=for-the-badge&logo=oxc&logoColor=white)](https://github.com/LordMadTrix/osforge-studio)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite 8](https://img.shields.io/badge/Vite-8.2-646cff?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 
-**Plateforme web complète et interactive pour concevoir, personnaliser, simuler et compiler des distributions Linux sur mesure.**  
-*Créé et maintenu par **LordMadTrix**.*
+**Le constructeur graphique d'OS Linux & Cloud Image Builder ultime — Propulsé par l'écosystème MadOS.**  
+*Conçu, architecturé et maintenu par **LordMadTrix**.*
 
 [🌐 Ouvrir l'Application en Ligne](https://lordmadtrix.github.io/osforge-studio/) • [📖 Documentation](#-sommaire) • [☕ Soutenir sur Patreon](https://www.patreon.com/c/LordMad)
 
 </div>
+
+---
+
+## 🛡️ IDENTITÉ & ANCRAGE DANS L'ÉCOSYSTÈME MADOS
+
+> **OSForge Studio by LordMadTrix** est l'environnement officiel d'ingénierie et de création de distributions de l'écosystème **MadOS** (optimisations système, interface de build moderne, stack gaming ROG Edition, durcissement et IA locale).  
+>
+> ⚠️ **Distinction importante** : Face à divers projets homonymes ou expérimentaux dispersés sur le net portant le mot-clé « osforge », **OSForge Studio** se distingue par sa suite complète de génération de scripts bash natifs débootstrappés, de manifestes cloud-init et de conteneurs OCI testés et éprouvés en virtualisation matérielle réelle QEMU/KVM.
 
 ---
 

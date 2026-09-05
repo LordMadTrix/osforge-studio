@@ -256,10 +256,15 @@ export const App: React.FC = () => {
           fontSize: '0.78rem',
           color: 'var(--text-muted)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>OSForge Studio</span>
-            <span>—</span>
-            <span>Concepteur & Compilateur de Distributions Linux</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>OSForge Studio</span>
+            <span style={{ color: 'var(--cyan)', fontWeight: 600 }}>by LordMadTrix</span>
+            <span style={{ color: 'rgba(255, 255, 255, 0.2)' }}>—</span>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {lang === 'fr' 
+                ? 'The Ultimate Linux Distro & Cloud Image Builder • Écosystème MadOS' 
+                : 'The Ultimate Linux Distro & Cloud Image Builder • MadOS Ecosystem'}
+            </span>
           </div>
 
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>

@@ -8,19 +8,21 @@ import { saveAs } from 'file-saver';
 export function generateWindowsBatchLauncher(): string {
   return `@echo off
 chcp 65001 >nul
-title OSForge Studio PRO - Serveur Local & Application Desktop
+title OSForge Studio by LordMadTrix - The Ultimate Linux Distro & Cloud Image Builder
 color 0b
 
 :: Activation des séquences ANSI dans l'invite de commandes Windows
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
 echo ===============================================================================
-echo     [1;36m  ___  ____  _____                     ____  _             _ _       [0m
-echo     [1;36m / _ \\/ ___||  ___|__  _ __ __ _  ___ / ___|| |_ _   _  __| (_) ___  [0m
-echo     [1;36m| | | \\___ \\| |_ / _ \\| '__/ _\` |/ _ \\\\___ \\| __| | | |/ _\` | |/ _ \\ [0m
-echo     [1;36m| |_| |___) |  _| (_) | | | (_| |  __/ ___) | |_| |_| | (_| | | (_) |[0m
-echo     [1;36m \\___/|____/|_|  \\___/|_|  \\__, |\\___|____/ \\__|\\__,_|\\__,_|_|\\___/ [0m
-echo     [1;36m                           |___/             ÉDITION LOCALE PRO     [0m
+echo      [1;36m  ___  ____  _____                     ____  _             _ _        [0m
+echo      [1;36m / _ \\/ ___||  ___|__  _ __ __ _  ___ / ___|| |_ _   _  __| (_) ___   [0m
+echo      [1;36m| | | \\___ \\| |_ / _ \\| '__/ _\` |/ _ \\\\___ \\| __| | | |/ _\` | |/ _ \\  [0m
+echo      [1;36m| |_| |___) |  _| (_) | | | (_| |  __/ ___) | |_| |_| | (_| | | (_) | [0m
+echo      [1;36m \\___/|____/|_|  \\___/|_|  \\__, |\\___|____/ \\__|\\__,_|\\__,_|_|\\___/  [0m
+echo      [1;36m                           |___/    BY LORDMADTRIX • MADOS ECOSYSTEM [0m
+echo ===============================================================================
+echo    The Ultimate Linux Distro & Cloud Image Builder (Édition Locale Autonome)
 echo ===============================================================================
 echo.
 echo [1/3] Initialisation de l'environnement local OSForge Studio...
@@ -210,14 +212,14 @@ export function generateLinuxDesktopFile(): string {
   return `[Desktop Entry]
 Version=1.0
 Type=Application
-Name=OSForge Studio
-GenericName=Linux OS & ISO Builder
-Comment=Créez, personnalisez et compilez votre distribution Linux sur-mesure
+Name=OSForge Studio (by LordMadTrix)
+GenericName=The Ultimate Linux Distro & Cloud Image Builder
+Comment=The Ultimate Linux Distro & Cloud Image Builder par LordMadTrix • Écosystème MadOS
 Exec=bash -c 'cd "$(dirname "%k")" && ./lancer-osforge-studio.sh'
 Icon=osforge-studio
 Terminal=true
 Categories=Development;System;Utility;
-Keywords=linux;iso;distro;builder;debian;arch;ubuntu;fedora;
+Keywords=linux;iso;distro;builder;debian;arch;ubuntu;fedora;cloud;qcow2;lordmadtrix;mados;
 StartupNotify=true
 `;
 }

@@ -195,16 +195,27 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({ isOpen, on
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.02em', margin: 0 }}>
-                  OSForge <span style={{ color: 'var(--cyan)' }}>Studio</span> — {lang === 'fr' ? 'Présentation Complète' : 'Project Showcase'}
+                  OSForge <span style={{ color: 'var(--cyan)' }}>Studio</span> <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>by LordMadTrix</span>
                 </h2>
                 <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
                   {lang === 'fr' ? '100% Zéro Cosmétique' : '100% Zero Cosmetic'}
                 </span>
+                <span style={{
+                  fontSize: '0.62rem',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: 'rgba(244, 63, 94, 0.15)',
+                  color: '#f43f5e',
+                  border: '1px solid rgba(244, 63, 94, 0.3)',
+                  fontWeight: 700,
+                }}>
+                  🎮 MadOS Ecosystem
+                </span>
               </div>
               <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
-                {lang === 'fr'
-                  ? 'Architecture, vision d\'ingénierie et catalogue des 30 chantiers majeurs créés par LordMadTrix'
-                  : 'Architecture, engineering vision, and catalog of all 30 major milestones by LordMadTrix'}
+                <strong>The Ultimate Linux Distro & Cloud Image Builder</strong> — {lang === 'fr'
+                  ? 'Architecture, vision d\'ingénierie et catalogue des 41 chantiers majeurs créés par LordMadTrix'
+                  : 'Architecture, engineering vision, and catalog of all 41 major milestones by LordMadTrix'}
               </p>
             </div>
           </div>
@@ -364,7 +375,7 @@ export const PresentationModal: React.FC<PresentationModalProps> = ({ isOpen, on
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-              {lang === 'fr' ? 'Créé par' : 'Created by'} <strong style={{ color: '#ffffff' }}>LordMadTrix</strong> • Licence MIT
+              {lang === 'fr' ? 'Conçu et développé par' : 'Designed & developed by'} <strong style={{ color: '#ffffff' }}>LordMadTrix</strong> • Écosystème <strong style={{ color: '#f43f5e' }}>MadOS</strong> • Licence MIT
             </span>
           </div>
 

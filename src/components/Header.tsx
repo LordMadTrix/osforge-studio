@@ -104,21 +104,77 @@ export const Header: React.FC<HeaderProps> = ({
             }}>
               <Layers size={16} color="#ffffff" strokeWidth={2.2} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-                OSForge <span style={{ color: 'var(--cyan)' }}>Studio</span>
-              </span>
-              <span style={{
-                fontSize: '0.62rem',
-                padding: '1px 5px',
-                borderRadius: '4px',
-                background: 'rgba(2, 132, 199, 0.15)',
-                color: 'var(--cyan)',
-                border: '1px solid rgba(2, 132, 199, 0.3)',
-                fontWeight: 700,
-              }}>
-                PRO
-              </span>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                  OSForge <span style={{ color: 'var(--cyan)' }}>Studio</span>
+                </span>
+                <span style={{
+                  fontSize: '0.58rem',
+                  padding: '1px 4px',
+                  borderRadius: '3px',
+                  background: 'rgba(2, 132, 199, 0.15)',
+                  color: 'var(--cyan)',
+                  border: '1px solid rgba(2, 132, 199, 0.3)',
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                }}>
+                  PRO
+                </span>
+                <span
+                  title={lang === 'fr' ? "Fait partie intégrante de l'écosystème de création et d'optimisation d'OS MadOS par LordMadTrix" : "Part of the MadOS & OS Optimization Ecosystem by LordMadTrix"}
+                  style={{
+                    fontSize: '0.56rem',
+                    padding: '1px 5px',
+                    borderRadius: '3px',
+                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(168, 85, 247, 0.15))',
+                    color: '#f43f5e',
+                    border: '1px solid rgba(244, 63, 94, 0.3)',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    cursor: 'help',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  <span style={{ fontSize: '0.52rem' }}>🎮</span> MadOS Ecosystem
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
+                <a
+                  href="https://github.com/LordMadTrix"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: '0.62rem',
+                    color: 'var(--text-muted)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    letterSpacing: '-0.01em',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    transition: 'color 0.15s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--cyan)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
+                  by <span style={{ color: '#e2e8f0', fontWeight: 700 }}>LordMadTrix</span>
+                </a>
+                <span style={{ fontSize: '0.55rem', color: 'rgba(255, 255, 255, 0.2)' }}>•</span>
+                <span
+                  style={{
+                    fontSize: '0.58rem',
+                    color: 'rgba(148, 163, 184, 0.8)',
+                    letterSpacing: '-0.01em',
+                  }}
+                  title="The Ultimate Linux Distro & Cloud Image Builder"
+                >
+                  {lang === 'fr' ? 'Constructeur Ultime Linux & Cloud' : 'Ultimate Linux & Cloud Builder'}
+                </span>
+              </div>
             </div>
           </div>
 

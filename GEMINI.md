@@ -379,15 +379,15 @@ après.
   7. 💾 **Gestionnaire de Sauvegardes & Profils Utilisateur** : LocalStorage et export JSON.
   8. 🧪 **Suite de tests : 765 tests (100% verts)**.
 - **40. 💻 📦 Version Desktop & Téléchargement Local OSForge Studio (Windows, Linux, PWA, Docker)** :
-  4. 💻 **Composant UI Dédié `DownloadDesktopModal.tsx`** :
-     - Auto-détection de l'OS client (`navigator.userAgent`), onglets Windows / Linux / Docker.
-     - Boutons de téléchargement direct de bundles portables ZIP via `JSZip` et `FileSaver`.
-     - Bouton d'accès direct `💻 App Desktop` dans le Header et entrée dans le menu `Outils ▾`.
-  5. 🧪 **Suite de tests : 773 tests (100% verts)** (+8 tests unitaires dans `desktopPackager.test.ts`). 0 warning et 0 erreur oxlint sur 87 fichiers.
-- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
+  - PWA officielle avec mode hors-ligne, bundles portables Windows (avec mini-serveur natif PowerShell HTTP sans dépendance) et Linux (lanceur multi-serveurs avec raccourci Freedesktop).
+  - Modal dédiée DownloadDesktopModal.tsx et workflow GitHub Actions release-desktop.yml.
+- **41. 🚀 🖴 Validation Réelle Multi-Distro en Machine Virtuelle QEMU/KVM (Zéro Cosmétique)** :
+  - Preuve empirique du démarrage réel de 4 familles d'OS en environnement accéléré matériellement KVM (/dev/kvm) sous QEMU : Ubuntu/MadOS ROG Edition (QCOW2), Alpine Linux (QCOW2), Debian 13 Trixie (Live ISO hybride) et Arch Linux (QCOW2).
+  - Résolution des anomalies réelles découvertes : injection universelle des modules GRUB (ext2, gzio, part_msdos), résolution root=UUID=... et rootfstype=ext4 modules=... pour l'initramfs Alpine.
+- **42. 🛡️ 💎 Consolidation de l'Identité de Marque, SEO & Signature Créateur (Les 3 Pistes)** :
+  - Piste 1 : SEO d'Autorité & Métadonnées OpenGraph : Balises canoniques, meta author (LordMadTrix), OpenGraph og:site_name, og:title, Twitter Cards (@LordMadTrix) et mots-clés d'autorité dans index.html et manifest.webmanifest.
+  - Piste 2 : Slogan Officiel Distinctif : Déploiement de « The Ultimate Linux Distro & Cloud Image Builder » dans le header, footer, PresentationModal, README.md, paquets desktop (batchs et .desktop).
+  - Piste 3 : Signature Officielle Créateur & Badge Écosystème MadOS : Signature by LordMadTrix avec lien direct vers le profil GitHub, badge élégant 🎮 MadOS Ecosystem dans le header et mise en valeur des liens créateur (Patreon / Sponsors).
+- **Suite de tests** : **773 tests (100% verts)**. 0 warning et 0 erreur oxlint sur 87 fichiers.
+- **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour sanitizeWifiStr(), sanitizeLuksPassword(), sanitizeGithubUser(), sanitizeHostname() et parseAllowedPorts().
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
-
-
-
-
-
