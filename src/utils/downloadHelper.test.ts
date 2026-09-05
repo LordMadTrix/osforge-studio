@@ -15,15 +15,44 @@ describe('triggerFileDownload utility (Chromium DOM attachment compliance)', () 
     globalThis.document = originalDocument;
   });
 
-  it('safely exits if window or document is undefined (SSR / Node environment)', () => {
+  it('safely exits if window or document is undefined (SSR / Node environment)', async () => {
     delete (globalThis as unknown as { window?: unknown }).window;
     delete (globalThis as unknown as { document?: unknown }).document;
 
     const blob = new Blob(['test']);
-    expect(() => triggerFileDownload(blob, 'test.zip')).not.toThrow();
+    await expect(triggerFileDownload(blob, 'test.zip')).resolves.not.toThrow();
   });
 
-  it('creates an anchor, attaches it to document.body, sets download attribute and triggers click in DOM environment', () => {
+  it('uses showSaveFilePicker when available in modern Chromium/Edge', async () => {
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+    const closeMock = vi.fn().mockResolvedValue(undefined);
+    const showSaveFilePickerMock = vi.fn().mockResolvedValue({
+      createWritable: vi.fn().mockResolvedValue({
+        write: writeMock,
+        close: closeMock,
+      }),
+    });
+
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        showSaveFilePicker: showSaveFilePickerMock,
+      },
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'document', { value: {}, writable: true, configurable: true });
+
+    const blob = new Blob(['test content'], { type: 'application/zip' });
+    await triggerFileDownload(blob, 'OSForge-Studio-Windows-Portable.zip');
+
+    expect(showSaveFilePickerMock).toHaveBeenCalledWith(expect.objectContaining({
+      suggestedName: 'OSForge-Studio-Windows-Portable.zip',
+    }));
+    expect(writeMock).toHaveBeenCalledWith(blob);
+    expect(closeMock).toHaveBeenCalled();
+  });
+
+  it('falls back to DOM anchor click when showSaveFilePicker is absent', async () => {
     const createObjectURLMock = vi.fn().mockReturnValue('blob:http://localhost:5173/mock-uuid');
     const revokeObjectURLMock = vi.fn();
 
@@ -67,9 +96,9 @@ describe('triggerFileDownload utility (Chromium DOM attachment compliance)', () 
     Object.defineProperty(globalThis, 'document', { value: documentMock, writable: true, configurable: true });
 
     const blob = new Blob(['test content'], { type: 'application/zip' });
-    triggerFileDownload(blob, 'test-package.zip');
+    await triggerFileDownload(blob, 'test-package.zip');
 
-    expect(createObjectURLMock).toHaveBeenCalledWith(blob);
+    expect(createObjectURLMock).toHaveBeenCalled();
     expect(documentMock.createElement).toHaveBeenCalledWith('a');
     expect(bodyMock.appendChild).toHaveBeenCalled();
     expect(mockAnchor.download).toBe('test-package.zip');
