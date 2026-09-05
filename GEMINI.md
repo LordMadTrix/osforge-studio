@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **796 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 97 fichiers.
+- Suite de tests : **797 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 97 fichiers.
 - **Résolution Définitive Téléchargements Chromium (GUID sans extension)** :
   - Création de `triggerFileDownload` dans `src/utils/downloadHelper.ts` avec attachement obligatoire au DOM actif (`document.body.appendChild`) et forçage du type MIME `application/zip`, éliminant le comportement de Chrome/Edge qui ignorait l'attribut `download` lors de l'utilisation de `file-saver` et sauvegardait le fichier sous son UUID brut sans extension.
   - Déploiement sur GitHub Pages (`main`).
