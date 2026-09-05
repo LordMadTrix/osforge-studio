@@ -41,10 +41,11 @@ async function packageDesktop() {
   addDirToZip(winZip, distDir);
   // Alias de compatibilité /osforge-studio/ pour serveurs Python/HTTP sans réécriture
   addDirToZip(winZip, distDir, 'osforge-studio');
+  const toBom = (s: string) => '\uFEFF' + toCrlf(s);
   winZip.file('Lancer-OSForge-Studio.bat', toCrlf(generateWindowsBatchLauncher()));
-  winZip.file('Lancer-OSForge-Studio.ps1', toCrlf(generateWindowsPowerShellLauncher()));
-  winZip.file('server.ps1', toCrlf(generateWindowsPowerShellLauncher()));
-  winZip.file('README.txt', toCrlf(generateDesktopReadme('windows')));
+  winZip.file('Lancer-OSForge-Studio.ps1', toBom(generateWindowsPowerShellLauncher()));
+  winZip.file('server.ps1', toBom(generateWindowsPowerShellLauncher()));
+  winZip.file('README.txt', toBom(generateDesktopReadme('windows')));
 
   const winBuffer = await winZip.generateAsync({
     type: 'nodebuffer',

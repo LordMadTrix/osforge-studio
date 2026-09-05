@@ -11,13 +11,13 @@ chcp 65001 >nul
 title "OSForge Studio Desktop Launcher - The Ultimate Linux Distro ^& Cloud Image Builder"
 color 0b
 
-:: Activation des séquences ANSI dans l'invite de commandes Windows
+:: Activation des sequences ANSI dans l'invite de commandes Windows
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
 echo ===============================================================================
 echo       OSFORGE STUDIO BY LORDMADTRIX - MADOS ECOSYSTEM
 echo ===============================================================================
-echo    The Ultimate Linux Distro ^& Cloud Image Builder (Édition Locale Autonome)
+echo    The Ultimate Linux Distro ^& Cloud Image Builder (Edition Locale Autonome)
 echo ===============================================================================
 echo.
 echo [1/3] Initialisation de l'environnement local OSForge Studio...
@@ -26,13 +26,13 @@ set "PORT=5173"
 set "APP_DIR=%~dp0"
 cd /d "%APP_DIR%"
 
-:: Si server.ps1 existe, délégation directe et propre à PowerShell (évite les bogues cmd)
+:: Si server.ps1 existe, delegation directe et propre a PowerShell (evite les bogues cmd)
 if exist "%APP_DIR%server.ps1" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%APP_DIR%server.ps1"
     goto end
 )
 
-:: Détection du moteur de serveur web local
+:: Detection du moteur de serveur web local
 set "SERVER_TYPE=none"
 
 where python >nul 2>&1
@@ -50,7 +50,7 @@ if %ERRORLEVEL% equ 0 (
 set "SERVER_TYPE=powershell"
 
 :start_server
-echo [2/3] Démarrage du serveur web local sur le port %PORT% (%SERVER_TYPE%)...
+echo [2/3] Demarrage du serveur web local sur le port %PORT% (%SERVER_TYPE%)...
 
 if "%SERVER_TYPE%"=="python" (
     start "OSForge Studio Server" /min python -m http.server %PORT%
@@ -88,9 +88,9 @@ start http://localhost:%PORT%/
 :ready
 echo.
 echo ===============================================================================
-echo    [SUCCÈS] OSForge Studio s'exécute localement sur http://localhost:%PORT%/
-echo   Cette fenêtre maintient le serveur actif. Minimisez-la pour continuer.
-echo   Pour arrêter l'application, fermez simplement cette fenêtre.
+echo    [SUCCES] OSForge Studio s'execute localement sur http://localhost:%PORT%/
+echo   Cette fenetre maintient le serveur actif. Minimisez-la pour continuer.
+echo   Pour arreter l'application, fermez simplement cette fenetre.
 echo ===============================================================================
 echo.
 pause
@@ -106,6 +106,7 @@ export function generateWindowsPowerShellLauncher(): string {
   return `# OSForge Studio Desktop - Serveur Local Autonome
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 $port = 5173
 $appDir = $PSScriptRoot
@@ -113,12 +114,12 @@ if (-not $appDir) { $appDir = (Get-Location).Path }
 Set-Location $appDir
 
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host "   OSFORGE STUDIO BY LORDMADTRIX - ÉDITION LOCALE AUTONOME" -ForegroundColor Cyan
+Write-Host "   OSFORGE STUDIO BY LORDMADTRIX - EDITION LOCALE AUTONOME" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "[1/3] Démarrage du serveur local sur http://localhost:$port..." -ForegroundColor Yellow
+Write-Host "[1/3] Demarrage du serveur local sur http://localhost:$port..." -ForegroundColor Yellow
 
-Write-Host "-> Moteur : Serveur HTTP natif PowerShell (haute performance, zéro dépendance)" -ForegroundColor Green
+Write-Host "-> Moteur : Serveur HTTP natif PowerShell (haute performance, zero dependance)" -ForegroundColor Green
 
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$port/")
@@ -146,9 +147,9 @@ if ($edge) {
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Green
-Write-Host " [SUCCÈS] OSForge Studio s'exécute localement sur http://localhost:$port/" -ForegroundColor Green
-Write-Host " Laissez cette fenêtre ouverte pour maintenir l'application active." -ForegroundColor Gray
-Write-Host " Pour arrêter, appuyez sur [Ctrl + C] ou fermez cette fenêtre." -ForegroundColor Gray
+Write-Host " [SUCCES] OSForge Studio s'execute localement sur http://localhost:$port/" -ForegroundColor Green
+Write-Host " Laissez cette fenetre ouverte pour maintenir l'application active." -ForegroundColor Gray
+Write-Host " Pour arreter, appuyez sur [Ctrl + C] ou fermez cette fenetre." -ForegroundColor Gray
 Write-Host "===============================================================================" -ForegroundColor Green
 Write-Host ""
 
