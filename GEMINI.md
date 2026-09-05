@@ -158,6 +158,14 @@ après.
     3. Forçage strict des fins de ligne Windows CRLF (`\r\n`) sur tous les fichiers générés dans `downloadWindowsPortableZip()`.
     4. Ajout de `Lancer-OSForge-Studio.ps1` et `server.ps1` aux côtés de `Lancer-OSForge-Studio.bat` dans l'archive ZIP.
     5. Suite de tests Vitest enrichie à 800 tests (100% verts), build de production Vite validé.
+- **Résolution Définitive Écran Blanc Localhost 5173 & Packaging Intégral de Production** :
+  - Diagnostic de l'écran blanc sur `http://localhost:5173/` :
+    1. `vite.config.ts` configurait `base: '/osforge-studio/'`, forçant le runtime ES Module (`rolldown-runtime`) et les chunks dynamiques à requérir `/osforge-studio/assets/...` alors que le serveur local s'exécutait à la racine `/`.
+    2. La méthode de téléchargement dynamique précédente n'extrayait que les balises `<script src>` du DOM actif, omettant les balises `<link rel="modulepreload">` (notamment le runtime ES) et les composants modaux lazy-loaded (`PresetsModal`, `HardwareAuditModal`, etc.).
+  - Correctifs appliqués :
+    1. Bascule vers un `base: './'` relatif universel dans `vite.config.ts` assurant une portabilité totale (GitHub Pages, localhost racine, sous-dossiers et hors-ligne).
+    2. Création du générateur `scripts/package-desktop.ts` exécuté directement à l'issue de `npm run build` : compression intégrale de `dist/` sans omission de chunk, inclusion des lanceurs Windows (.bat, .ps1, server.ps1) et Linux, et miroir d'alias `/osforge-studio/` pour compatibilité multi-serveurs Python/PowerShell.
+    3. Mise à jour de `downloadWindowsPortableZip()` et `downloadLinuxPortableZip()` pour servir prioritairement les archives officielles complètes avec fallback JSZip complet.
 - **Résolution Définitive Téléchargements Chromium (GUID sans extension)** :
   - Création de `triggerFileDownload` dans `src/utils/downloadHelper.ts` avec attachement obligatoire au DOM actif (`document.body.appendChild`) et forçage du type MIME `application/zip`, éliminant le comportement de Chrome/Edge qui ignorait l'attribut `download` lors de l'utilisation de `file-saver` et sauvegardait le fichier sous son UUID brut sans extension.
   - Déploiement sur GitHub Pages (`main`).

@@ -424,6 +424,27 @@ Toutes les recettes et scripts bash sont générés à 100% en local.
  * Télécharge le pack Windows Portable au format .zip
  */
 export async function downloadWindowsPortableZip(): Promise<void> {
+  const zipFilename = 'OSForge-Studio-Windows-Portable.zip';
+
+  // 1. Essai de téléchargement direct du pack complet officiel pré-compilé
+  if (typeof window !== 'undefined') {
+    try {
+      const baseUrl = (import.meta.env.BASE_URL || './').replace(/\/+$/, '');
+      const zipUrl = `${baseUrl}/${zipFilename}`;
+      const res = await fetch(zipUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 1000) {
+          triggerFileDownload(blob, zipFilename);
+          return;
+        }
+      }
+    } catch {
+      // Fallback vers génération JSZip à la volée
+    }
+  }
+
+  // 2. Fallback dynamique JSZip
   const zip = new JSZip();
   const toCrlf = (str: string) => str.replace(/\r?\n/g, '\r\n');
 
@@ -440,75 +461,49 @@ export async function downloadWindowsPortableZip(): Promise<void> {
     theme_color: '#0284c7'
   }, null, 2));
 
-  let htmlContent = `<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OSForge Studio PRO — Mode Local</title>
-    <meta http-equiv="refresh" content="0; url=https://lordmadtrix.github.io/osforge-studio/" />
-    <style>
-      body { background: #090d16; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-      .box { max-width: 500px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: #0f172a; }
-      h2 { color: #0284c7; margin-bottom: 10px; }
-      a { color: #38bdf8; text-decoration: none; font-weight: bold; }
-    </style>
-  </head>
-  <body>
-    <div class="box">
-      <h2>OSForge Studio PRO</h2>
-      <p>Lancement de l'environnement en cours...</p>
-      <p><a href="https://lordmadtrix.github.io/osforge-studio/">Cliquez ici si la redirection ne démarre pas</a></p>
-    </div>
-  </body>
-</html>`;
+  let htmlContent = '<!doctype html><html><head><meta charset="UTF-8"><title>OSForge Studio</title></head><body><div id="root"></div></body></html>';
 
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     try {
+      const indexRes = await fetch('./index.html');
+      if (indexRes.ok) {
+        htmlContent = await indexRes.text();
+      } else {
+        htmlContent = '<!doctype html>\n' + document.documentElement.outerHTML.replace(/\/osforge-studio\//g, './');
+      }
+
       const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>('script[src]'));
+      const preloads = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"][href]'));
       const styles = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'));
 
-      let clonedHtml = document.documentElement.outerHTML;
-      clonedHtml = clonedHtml.replace(/\/osforge-studio\//g, './');
+      const allUrls = [
+        ...scripts.map(s => s.src),
+        ...preloads.map(p => p.href),
+        ...styles.map(st => st.href)
+      ].filter(Boolean);
 
-      for (const s of scripts) {
-        if (s.src && (s.src.includes('/assets/') || s.src.includes('assets/'))) {
+      for (const u of allUrls) {
+        if (u.includes('/assets/') || u.includes('assets/')) {
           try {
-            const res = await fetch(s.src);
-            if (res.ok) {
-              const code = await res.text();
-              const filename = s.src.split('/').pop()?.split('?')[0] || 'bundle.js';
-              zip.folder('assets')?.file(filename, code);
+            const r = await fetch(u);
+            if (r.ok) {
+              const data = await r.text();
+              const fname = u.split('/').pop()?.split('?')[0] || 'bundle.js';
+              zip.folder('assets')?.file(fname, data);
+              zip.folder('osforge-studio')?.folder('assets')?.file(fname, data);
             }
           } catch {
-            // Ignorer les échecs de bundle optionnels
+            // Ignorer échecs individuels
           }
         }
       }
-
-      for (const st of styles) {
-        if (st.href && (st.href.includes('/assets/') || st.href.includes('assets/'))) {
-          try {
-            const res = await fetch(st.href);
-            if (res.ok) {
-              const css = await res.text();
-              const filename = st.href.split('/').pop()?.split('?')[0] || 'style.css';
-              zip.folder('assets')?.file(filename, css);
-            }
-          } catch {
-            // Ignorer les échecs de styles optionnels
-          }
-        }
-      }
-
-      htmlContent = '<!doctype html>\n' + clonedHtml;
     } catch {
-      // Fallback vers le HTML par défaut
+      // Fallback
     }
   }
 
   zip.file('index.html', htmlContent);
+  zip.folder('osforge-studio')?.file('index.html', htmlContent);
 
   const blob = await zip.generateAsync({
     type: 'blob',
@@ -517,13 +512,34 @@ export async function downloadWindowsPortableZip(): Promise<void> {
     compressionOptions: { level: 6 }
   });
 
-  triggerFileDownload(blob, 'OSForge-Studio-Windows-Portable.zip');
+  triggerFileDownload(blob, zipFilename);
 }
 
 /**
  * Télécharge le pack Linux Portable au format .zip
  */
 export async function downloadLinuxPortableZip(): Promise<void> {
+  const zipFilename = 'OSForge-Studio-Linux-Portable.zip';
+
+  // 1. Essai de téléchargement direct du pack complet officiel pré-compilé
+  if (typeof window !== 'undefined') {
+    try {
+      const baseUrl = (import.meta.env.BASE_URL || './').replace(/\/+$/, '');
+      const zipUrl = `${baseUrl}/${zipFilename}`;
+      const res = await fetch(zipUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 1000) {
+          triggerFileDownload(blob, zipFilename);
+          return;
+        }
+      }
+    } catch {
+      // Fallback vers génération JSZip à la volée
+    }
+  }
+
+  // 2. Fallback dynamique JSZip
   const zip = new JSZip();
 
   zip.file('lancer-osforge-studio.sh', generateLinuxBashLauncher());
@@ -531,75 +547,49 @@ export async function downloadLinuxPortableZip(): Promise<void> {
   zip.file('osforge-studio.desktop', generateLinuxDesktopFile());
   zip.file('README.md', generateDesktopReadme('linux'));
 
-  let htmlContent = `<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OSForge Studio PRO — Mode Local Linux</title>
-    <meta http-equiv="refresh" content="0; url=https://lordmadtrix.github.io/osforge-studio/" />
-    <style>
-      body { background: #090d16; color: #f8fafc; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-      .box { max-width: 500px; padding: 30px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; background: #0f172a; }
-      h2 { color: #0284c7; margin-bottom: 10px; }
-      a { color: #38bdf8; text-decoration: none; font-weight: bold; }
-    </style>
-  </head>
-  <body>
-    <div class="box">
-      <h2>OSForge Studio PRO</h2>
-      <p>Lancement de l'environnement Linux...</p>
-      <p><a href="https://lordmadtrix.github.io/osforge-studio/">Cliquez ici si la redirection ne démarre pas</a></p>
-    </div>
-  </body>
-</html>`;
+  let htmlContent = '<!doctype html><html><head><meta charset="UTF-8"><title>OSForge Studio</title></head><body><div id="root"></div></body></html>';
 
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     try {
+      const indexRes = await fetch('./index.html');
+      if (indexRes.ok) {
+        htmlContent = await indexRes.text();
+      } else {
+        htmlContent = '<!doctype html>\n' + document.documentElement.outerHTML.replace(/\/osforge-studio\//g, './');
+      }
+
       const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>('script[src]'));
+      const preloads = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"][href]'));
       const styles = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'));
 
-      let clonedHtml = document.documentElement.outerHTML;
-      clonedHtml = clonedHtml.replace(/\/osforge-studio\//g, './');
+      const allUrls = [
+        ...scripts.map(s => s.src),
+        ...preloads.map(p => p.href),
+        ...styles.map(st => st.href)
+      ].filter(Boolean);
 
-      for (const s of scripts) {
-        if (s.src && (s.src.includes('/assets/') || s.src.includes('assets/'))) {
+      for (const u of allUrls) {
+        if (u.includes('/assets/') || u.includes('assets/')) {
           try {
-            const res = await fetch(s.src);
-            if (res.ok) {
-              const code = await res.text();
-              const filename = s.src.split('/').pop()?.split('?')[0] || 'bundle.js';
-              zip.folder('assets')?.file(filename, code);
+            const r = await fetch(u);
+            if (r.ok) {
+              const data = await r.text();
+              const fname = u.split('/').pop()?.split('?')[0] || 'bundle.js';
+              zip.folder('assets')?.file(fname, data);
+              zip.folder('osforge-studio')?.folder('assets')?.file(fname, data);
             }
           } catch {
             // Ignorer
           }
         }
       }
-
-      for (const st of styles) {
-        if (st.href && (st.href.includes('/assets/') || st.href.includes('assets/'))) {
-          try {
-            const res = await fetch(st.href);
-            if (res.ok) {
-              const css = await res.text();
-              const filename = st.href.split('/').pop()?.split('?')[0] || 'style.css';
-              zip.folder('assets')?.file(filename, css);
-            }
-          } catch {
-            // Ignorer
-          }
-        }
-      }
-
-      htmlContent = '<!doctype html>\n' + clonedHtml;
     } catch {
       // Fallback
     }
   }
 
   zip.file('index.html', htmlContent);
+  zip.folder('osforge-studio')?.file('index.html', htmlContent);
 
   const blob = await zip.generateAsync({
     type: 'blob',
@@ -608,5 +598,5 @@ export async function downloadLinuxPortableZip(): Promise<void> {
     compressionOptions: { level: 6 }
   });
 
-  triggerFileDownload(blob, 'OSForge-Studio-Linux-Portable.zip');
+  triggerFileDownload(blob, zipFilename);
 }
