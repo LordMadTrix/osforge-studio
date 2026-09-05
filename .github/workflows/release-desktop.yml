@@ -1,0 +1,82 @@
+name: 💻 Release Desktop (Windows & Linux Packages)
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package-desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build production bundle
+        run: npm run build
+
+      - name: 🪟 Assemble Windows Portable Package
+        run: |
+          mkdir -p release-win/OSForge-Studio-Windows
+          cp -r dist/* release-win/OSForge-Studio-Windows/
+          
+          # Ajout du lanceur Windows
+          cat << 'EOF' > release-win/OSForge-Studio-Windows/Lancer-OSForge-Studio.bat
+          @echo off
+          chcp 65001 >nul
+          title OSForge Studio PRO
+          cd /d "%~dp0"
+          start "OSForge Server" /min powershell -NoProfile -ExecutionPolicy Bypass -Command "$l = New-Object System.Net.HttpListener; $l.Prefixes.Add('http://localhost:5173/'); $l.Start(); while ($l.IsListening) { $c = $l.GetContext(); $p = Join-Path (Get-Location) ($c.Request.Url.LocalPath.TrimStart('/') -replace '^$', 'index.html'); if (-not (Test-Path $p)) { $p = 'index.html' }; $b = [System.IO.File]::ReadAllBytes($p); $c.Response.OutputStream.Write($b, 0, $b.Length); $c.Response.Close(); }"
+          timeout /t 2 >nul
+          start msedge --app=http://localhost:5173/ || start chrome --app=http://localhost:5173/ || start http://localhost:5173/
+          EOF
+          
+          cd release-win
+          zip -r ../OSForge-Studio-Windows-Portable.zip OSForge-Studio-Windows
+          cd ..
+
+      - name: 🐧 Assemble Linux Portable Package
+        run: |
+          mkdir -p release-lin/OSForge-Studio-Linux
+          cp -r dist/* release-lin/OSForge-Studio-Linux/
+          
+          # Ajout du lanceur Linux
+          cat << 'EOF' > release-lin/OSForge-Studio-Linux/lancer-osforge-studio.sh
+          #!/usr/bin/env bash
+          cd "$(dirname "${BASH_SOURCE[0]}")"
+          PORT=5173
+          python3 -m http.server ${PORT} >/dev/null 2>&1 &
+          PID=$!
+          trap "kill ${PID} 2>/dev/null || true" EXIT
+          sleep 1
+          xdg-open "http://localhost:${PORT}" || sensible-browser "http://localhost:${PORT}"
+          wait ${PID}
+          EOF
+          chmod +x release-lin/OSForge-Studio-Linux/lancer-osforge-studio.sh
+          
+          cd release-lin
+          tar -czf ../OSForge-Studio-Linux-Portable.tar.gz OSForge-Studio-Linux
+          zip -r ../OSForge-Studio-Linux-Portable.zip OSForge-Studio-Linux
+          cd ..
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: OSForge-Studio-Desktop-Packages
+          path: |
+            OSForge-Studio-Windows-Portable.zip
+            OSForge-Studio-Linux-Portable.tar.gz
+            OSForge-Studio-Linux-Portable.zip

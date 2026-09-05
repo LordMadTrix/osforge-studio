@@ -146,7 +146,7 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **765 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 83 fichiers.
+- Suite de tests : **773 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 87 fichiers.
 - **19 Chantiers Majeurs Réalisés (Zéro Cosmétique)** :
   1. 🔐 **Chiffrement Intégral du Disque LUKS2 (`luksEncryption`)** : Câblage réel dans `generateNonDebianDiskImageScript` (formatage `cryptsetup luksFormat --type luks2`, ouverture `cryptsetup open`, création ext4 sur `/dev/mapper/cryptroot`, `/etc/crypttab`, arguments GRUB `rd.luks.name=` / `cryptdevice=`, et nettoyage `cryptsetup close`).
   2. 📶 **Pré-configuration Réseau & Wi-Fi Headless OOB (`NetworkConfig`)** : Profil NetworkManager `/etc/NetworkManager/system-connections/preconfigured-wifi.nmconnection` (mode `0600`), profil IP statique systemd-networkd (`10-static-eth0.network`), et export cloud-init `network: version: 2` (wifis + ethernets).
@@ -369,6 +369,24 @@ après.
      - Module `src/services/configStorage.ts` : autosave transparent automatique de la recette courante dans le `localStorage`, gestion de profils personnalisés nommés avec description, rechargement 1-clic, suppression, export JSON et import JSON par upload de fichier.
      - Modal dédiée `SavedProfilesModal.tsx` accessible depuis le Header (`Header.tsx`) via le bouton `💾 Sauvegardes` et le menu déroulant "Outils".
   8. 🧪 **Suite de tests : 765 tests (100% verts)** (+17 nouveaux tests unitaires pour le stockage, le partitionnement, la fiche technique et les générateurs avancés). 0 warning et 0 erreur oxlint sur 83 fichiers audités.
+- **40. 💻 📦 Version Desktop & Téléchargement Local OSForge Studio (Windows, Linux, PWA, Docker)** :
+  1. 🌐 **Progressive Web App (PWA) & Mode Hors-Ligne** :
+     - `public/manifest.webmanifest` officiel avec métadonnées de bureau, `display: standalone`, icône SVG, thème `#0284c7`.
+     - Service Worker `public/sw.js` (mise en cache des assets avec stratégie Stale-While-Revalidate pour exécution 100% hors-ligne).
+     - Intégration de l'événement `beforeinstallprompt` dans `App.tsx` permettant une installation native en 1 clic dans Windows (menu Démarrer, barre des tâches) et Linux.
+  2. 🪟 **Version Windows Autonome & Portable** :
+     - Lanceur batch interactif `Lancer-OSForge-Studio.bat` avec support VT100 / ANSI, détection de Python, et **serveur HTTP PowerShell natif embarqué (`System.Net.HttpListener`) sans aucune dépendance logicielle ni droit administrateur**.
+     - Ouverture automatique en mode application Edge/Chrome (`--app=http://localhost:5173/`).
+     - Script d'installation PowerShell 1-ligne `scripts/install-windows.ps1`.
+  3. 🐧 **Version Linux Autonome & Multi-Distro** :
+     - Lanceur bash `lancer-osforge-studio.sh` avec détection multi-serveurs (`python3`, `php`, `busybox`, `ncat`) et gestion propre des signaux de fermeture (`trap`).
+     - Raccourci Freedesktop standard `osforge-studio.desktop` et script d'installation d'icône `installer-raccourci.sh`.
+     - Script d'installation Bash 1-ligne `scripts/install-linux.sh`.
+  4. 💻 **Composant UI Dédié `DownloadDesktopModal.tsx`** :
+     - Auto-détection de l'OS client (`navigator.userAgent`), onglets Windows / Linux / Docker.
+     - Boutons de téléchargement direct de bundles portables ZIP via `JSZip` et `FileSaver`.
+     - Bouton d'accès direct `💻 App Desktop` dans le Header et entrée dans le menu `Outils ▾`.
+  5. 🧪 **Suite de tests : 773 tests (100% verts)** (+8 tests unitaires dans `desktopPackager.test.ts`). 0 warning et 0 erreur oxlint sur 87 fichiers.
 - **Sanitizers & Sécurité Shell** : Sanitization stricte appliquée pour `sanitizeWifiStr()`, `sanitizeLuksPassword()`, `sanitizeGithubUser()`, `sanitizeHostname()` et `parseAllowedPorts()`.
 - Mandat général maintenu : « Zéro cosmétique », chaque option UI est réellement câblée et vérifiée.
 

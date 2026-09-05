@@ -1,0 +1,28 @@
+{
+  "name": "OSForge Studio PRO — Constructeur d'OS Linux & ISO Builder",
+  "short_name": "OSForge Studio",
+  "description": "Créez, personnalisez et compilez votre distribution Linux sur-mesure depuis votre bureau ou navigateur.",
+  "start_url": "/osforge-studio/",
+  "scope": "/osforge-studio/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090d16",
+  "theme_color": "#0284c7",
+  "categories": ["developer", "utilities", "productivity"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouveau Projet OS",
+      "short_name": "Nouveau",
+      "description": "Créer une nouvelle recette de distribution Linux",
+      "url": "/osforge-studio/?action=new"
+    }
+  ]
+}

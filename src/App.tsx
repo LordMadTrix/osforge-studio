@@ -22,6 +22,7 @@ const VersionCheckerModal = lazy(() => import('./components/VersionCheckerModal'
 const PresentationModal = lazy(() => import('./components/PresentationModal').then(m => ({ default: m.PresentationModal })));
 const HardwareAuditModal = lazy(() => import('./components/HardwareAuditModal').then(m => ({ default: m.HardwareAuditModal })));
 const SavedProfilesModal = lazy(() => import('./components/SavedProfilesModal').then(m => ({ default: m.SavedProfilesModal })));
+const DownloadDesktopModal = lazy(() => import('./components/DownloadDesktopModal').then(m => ({ default: m.DownloadDesktopModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -98,8 +99,34 @@ export const App: React.FC = () => {
   const [isPresentationOpen, setIsPresentationOpen] = useState<boolean>(false);
   const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
   const [isProfilesOpen, setIsProfilesOpen] = useState<boolean>(false);
+  const [isDesktopDownloadOpen, setIsDesktopDownloadOpen] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
   const [previewDesktopId, setPreviewDesktopId] = useState<string | undefined>(undefined);
+
+  // Interception de l'événement PWA BeforeInstallPrompt pour installation 1-clic
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (!deferredPrompt) return;
+    try {
+      await deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice?.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } catch (err) {
+      console.warn('Installation PWA ignorée ou annulée:', err);
+    }
+  };
 
   // Global Keyboard Shortcut: Ctrl+K / Cmd+K / Ctrl+P to open Quick Launcher
   useEffect(() => {
@@ -153,6 +180,7 @@ export const App: React.FC = () => {
         onOpenPresentation={() => setIsPresentationOpen(true)}
         onOpenAudit={() => setIsAuditOpen(true)}
         onOpenProfiles={() => setIsProfilesOpen(true)}
+        onOpenDesktopDownload={() => setIsDesktopDownloadOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -415,6 +443,14 @@ export const App: React.FC = () => {
           currentRecipe={recipe}
           onLoadRecipe={(loadedRecipe) => setRecipe(loadedRecipe)}
           lang={lang}
+        />
+
+        <DownloadDesktopModal
+          isOpen={isDesktopDownloadOpen}
+          onClose={() => setIsDesktopDownloadOpen(false)}
+          lang={lang}
+          deferredPrompt={deferredPrompt}
+          onInstallPwa={handleInstallPwa}
         />
       </Suspense>
     </div>

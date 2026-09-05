@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Layers, Wand2, Sliders, Search, Share2, Check, Download, Heart, 
   ChevronDown, Sparkles, Activity, BookOpen, Image as ImageIcon, 
-  Lightbulb, Zap, Globe, Save 
+  Lightbulb, Zap, Globe, Save, Monitor 
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenPresentation?: () => void;
   onOpenAudit?: () => void;
   onOpenProfiles?: () => void;
+  onOpenDesktopDownload?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPresentation,
   onOpenAudit,
   onOpenProfiles,
+  onOpenDesktopDownload,
   uiMode,
   setUiMode,
   lang,
@@ -436,6 +438,30 @@ export const Header: React.FC<HeaderProps> = ({
                     <span>{lang === 'fr' ? 'Présentation du Projet' : 'Project Showcase'}</span>
                   </button>
                 )}
+
+                {onOpenDesktopDownload && (
+                  <button
+                    onClick={() => { onOpenDesktopDownload(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Monitor size={14} color="#0284c7" />
+                    <span>{lang === 'fr' ? 'Application Desktop (PC)' : 'Desktop App (PC)'}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -461,6 +487,30 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Save size={13} color="#38bdf8" />
               <span>{lang === 'fr' ? 'Sauvegardes' : 'Backups'}</span>
+            </button>
+          )}
+
+          {/* Bouton Application Desktop */}
+          {onOpenDesktopDownload && (
+            <button
+              onClick={onOpenDesktopDownload}
+              style={{
+                background: 'rgba(2, 132, 199, 0.08)',
+                border: '1px solid rgba(2, 132, 199, 0.25)',
+                color: 'var(--cyan)',
+                padding: '5px 9px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600,
+              }}
+              title={lang === 'fr' ? 'Télécharger OSForge Studio pour Windows ou Linux' : 'Download OSForge Studio for Windows or Linux'}
+            >
+              <Monitor size={13} color="var(--cyan)" />
+              <span>{lang === 'fr' ? 'App Desktop' : 'Desktop App'}</span>
             </button>
           )}
 
