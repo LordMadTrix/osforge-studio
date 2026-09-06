@@ -1008,6 +1008,31 @@ ZRAM_EOF
 systemctl enable systemd-zram-setup@zram0.service 2>/dev/null || true`;
 }
 
+export function systemPerformanceTuningCmd(family: 'debian' | NonDebianFamily = 'debian'): string {
+  const isSystemd = family !== 'alpine' && family !== 'void';
+  return `# Optimisations réelles du sous-système de mémoire virtuelle, VFS et descripteurs
+mkdir -p /etc/sysctl.d
+cat > /etc/sysctl.d/99-osforge-performance.conf << 'SYSCTL_PERF_EOF'
+# Maintien du cache d'inodes/dentries en RAM (accélère la navigation fichiers, git, compilation)
+vm.vfs_cache_pressure = 50
+# Lissage des écritures disques en tâche de fond (évite les saccades et pics d'I/O)
+vm.dirty_background_ratio = 5
+vm.dirty_ratio = 10
+# Augmentation des descripteurs surveillés (requis pour VS Code, Electron, Vite, Webpack)
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 1024
+SYSCTL_PERF_EOF
+sysctl -p /etc/sysctl.d/99-osforge-performance.conf 2>/dev/null || true
+${isSystemd ? `
+# Limitation de la rétention des journaux systemd pour préserver l'espace disque et la RAM
+mkdir -p /etc/systemd/journald.conf.d
+cat > /etc/systemd/journald.conf.d/00-osforge-limits.conf << 'JOURNAL_LIMITS_EOF'
+[Journal]
+SystemMaxUse=100M
+RuntimeMaxUse=50M
+JOURNAL_LIMITS_EOF` : ''}`;
+}
+
 export function flatpakSetupCmd(recipe: OSRecipe, _family?: 'debian' | NonDebianFamily): string {
   if (!recipe.enableFlatpak) return '';
   return `# Configuration Flatpak & Dépôt distant officiel Flathub

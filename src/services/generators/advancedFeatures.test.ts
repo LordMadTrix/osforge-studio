@@ -186,7 +186,7 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(script).toContain('btrfs subvolume create "${MNT_DIR}/@snapshots"');
       expect(script).toContain('btrfs subvolume create "${MNT_DIR}/@var_log"');
       expect(script).toContain('mount -o subvol=@,compress=zstd:3');
-      expect(script).toContain('subvol=@,compress=zstd:3,defaults');
+      expect(script).toContain('subvol=@,compress=zstd:3,defaults,noatime');
       expect(script).toContain('rootflags=subvol=@');
     });
   });
@@ -326,6 +326,38 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       const script = generateBuildScript(archRecipe);
       expect(script).toContain('systemctl enable fstrim.timer');
       expect(script).toContain('pacman -Scc --noconfirm');
+    });
+  });
+
+  describe('16. Optimisations Avancées Système & I/O (eatmydata, SquashFS 1M BCJ, Sysctl & Journald)', () => {
+    it('accélère APT avec eatmydata et optimise la compression SquashFS (-b 1048576 -Xbcj x86)', () => {
+      const script = generateBuildScript(baseMockRecipe);
+      expect(script).toContain('eatmydata');
+      expect(script).toContain('APT_INSTALL="eatmydata apt-get install -y --no-install-recommends"');
+      expect(script).toContain('-b 1048576 -Xbcj x86');
+    });
+
+    it('injecte le fichier de tuning I/O /etc/sysctl.d/99-osforge-performance.conf et les limites journald', () => {
+      const script = generateBuildScript(baseMockRecipe);
+      expect(script).toContain('/etc/sysctl.d/99-osforge-performance.conf');
+      expect(script).toContain('vm.vfs_cache_pressure = 50');
+      expect(script).toContain('vm.dirty_background_ratio = 5');
+      expect(script).toContain('fs.inotify.max_user_watches = 524288');
+      expect(script).toContain('/etc/systemd/journald.conf.d/00-osforge-limits.conf');
+      expect(script).toContain('SystemMaxUse=100M');
+    });
+
+    it('injecte les réglages de performance sysctl et noatime fstab sur les images non-Debian (Fedora)', () => {
+      const fedoraRecipe: OSRecipe = {
+        ...baseMockRecipe,
+        distro: 'fedora',
+        outputFormat: 'qcow2',
+      };
+      const script = generateBuildScript(fedoraRecipe);
+      expect(script).toContain('defaults,noatime');
+      expect(script).toContain('/etc/sysctl.d/99-osforge-performance.conf');
+      expect(script).toContain('vm.vfs_cache_pressure = 50');
+      expect(script).toContain('SystemMaxUse=100M');
     });
   });
 });

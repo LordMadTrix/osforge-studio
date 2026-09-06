@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { OSRecipe, PackageCategory } from '../types/os';
 import { SOFTWARE_PACKAGES } from '../data/packages';
 import { DISTROS } from '../data/distros';
@@ -42,21 +42,25 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
     { id: 'system', name: lang === 'fr' ? 'Utilitaires & CLI Rust' : 'System Tools & Rust CLI', icon: Cpu, categoryKey: 'system' },
   ];
 
-  // Extraction de tous les tags uniques pour filtrage rapide
-  const allTags = Array.from(new Set(SOFTWARE_PACKAGES.flatMap(p => p.tags))).slice(0, 16);
+  // Extraction de tous les tags uniques pour filtrage rapide (mémoïsé)
+  const allTags = useMemo(() => Array.from(new Set(SOFTWARE_PACKAGES.flatMap(p => p.tags))).slice(0, 16), []);
 
-  // Suggestions de paquets personnalisés populaires
-  const popularCustomPackages = ['jq', 'tree', 'ncdu', 'micro', 'fish', 'zellij', 'tmux', 'lazygit', 'eza', 'bat', 'strace', 'gdb', 'duf', 'tealdeer'];
+  // Suggestions de paquets personnalisés populaires (mémoïsé)
+  const popularCustomPackages = useMemo(() => ['jq', 'tree', 'ncdu', 'micro', 'fish', 'zellij', 'tmux', 'lazygit', 'eza', 'bat', 'strace', 'gdb', 'duf', 'tealdeer'], []);
 
-  const filteredPackages = SOFTWARE_PACKAGES.filter(pkg => {
-    const matchesCategory = selectedCategory === 'all' || pkg.category === selectedCategory;
-    const matchesType = selectedType === 'all' || pkg.appType === selectedType;
-    const matchesTag = !selectedTag || pkg.tags.includes(selectedTag);
-    const matchesQuery = pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         pkg.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         pkg.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesType && matchesTag && matchesQuery;
-  });
+  const filteredPackages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return SOFTWARE_PACKAGES.filter(pkg => {
+      const matchesCategory = selectedCategory === 'all' || pkg.category === selectedCategory;
+      const matchesType = selectedType === 'all' || pkg.appType === selectedType;
+      const matchesTag = !selectedTag || pkg.tags.includes(selectedTag);
+      if (!matchesCategory || !matchesType || !matchesTag) return false;
+      if (!q) return true;
+      return pkg.name.toLowerCase().includes(q) ||
+             pkg.description.toLowerCase().includes(q) ||
+             pkg.tags.some(t => t.toLowerCase().includes(q));
+    });
+  }, [selectedCategory, selectedType, selectedTag, searchQuery]);
 
   const togglePackage = (pkgId: string) => {
     const isSelected = recipe.selectedPackages.includes(pkgId);

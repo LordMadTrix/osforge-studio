@@ -24,6 +24,7 @@ import {
   autoSecurityUpdatesCmd,
   cisHardeningCmd,
   zramSetupCmd,
+  systemPerformanceTuningCmd,
   flatpakSetupCmd,
   calamaresInstallerCmd,
   gpuDriverCmd,
@@ -490,16 +491,16 @@ mount ${targetDev} "\${MNT_DIR}"`;
   if (isBtrfs) {
     const rootDevFstab = recipe.security.luksEncryption ? '/dev/mapper/cryptroot' : 'UUID=${ROOT_UUID}';
     fstabBlock = `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
-${rootDevFstab} / btrfs subvol=@,compress=zstd:3,defaults 0 0
-${rootDevFstab} /home btrfs subvol=@home,compress=zstd:3,defaults 0 0
-${rootDevFstab} /.snapshots btrfs subvol=@snapshots,compress=zstd:3,defaults 0 0
-${rootDevFstab} /var/log btrfs subvol=@var_log,compress=zstd:3,defaults 0 0
+${rootDevFstab} / btrfs subvol=@,compress=zstd:3,defaults,noatime 0 0
+${rootDevFstab} /home btrfs subvol=@home,compress=zstd:3,defaults,noatime 0 0
+${rootDevFstab} /.snapshots btrfs subvol=@snapshots,compress=zstd:3,defaults,noatime 0 0
+${rootDevFstab} /var/log btrfs subvol=@var_log,compress=zstd:3,defaults,noatime 0 0
 FSTAB_EOF`;
   } else {
     fstabBlock = recipe.security.luksEncryption ? `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
-/dev/mapper/cryptroot / ext4 defaults 0 1
+/dev/mapper/cryptroot / ext4 defaults,noatime 0 1
 FSTAB_EOF` : `cat > "\${MNT_DIR}/etc/fstab" << FSTAB_EOF
-UUID=\${ROOT_UUID} / ext4 defaults 0 1
+UUID=\${ROOT_UUID} / ext4 defaults,noatime 0 1
 FSTAB_EOF`;
   }
 
@@ -623,6 +624,7 @@ ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
 ${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, family)}
+${systemPerformanceTuningCmd(family)}
 ${flatpakSetupCmd(recipe, family)}
 ${calamaresInstallerCmd(recipe, family)}
 ${gpuDriverCmd(recipe, family)}
@@ -947,6 +949,7 @@ ${autoSecurityUpdatesCmd(recipe, family)}
 ${cisHardeningCmd(recipe, family)}
 ${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, family)}
+${systemPerformanceTuningCmd(family)}
 ${flatpakSetupCmd(recipe, family)}
 ${calamaresInstallerCmd(recipe, family)}
 ${gpuDriverCmd(recipe, family)}

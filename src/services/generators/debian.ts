@@ -23,6 +23,7 @@ import {
   autoSecurityUpdatesCmd,
   cisHardeningCmd,
   zramSetupCmd,
+  systemPerformanceTuningCmd,
   flatpakSetupCmd,
   calamaresInstallerCmd,
   gpuDriverCmd,
@@ -174,7 +175,7 @@ echo -e "\${GREEN}   Empreinte SHA256  : $(sha256sum "\${OUTPUT_DIR}/${rootfsTar
 echo -e "\${GREEN}=======================================================\${NC}"
 ` : `${formatWarning}echo -e "\${YELLOW}[5/7] 🗜️ Compression SquashFS du système d'exploitation...\${NC}"
 mkdir -p "\${ISO_DIR}/live"
-mksquashfs "\${ROOTFS_DIR}" "\${ISO_DIR}/live/filesystem.squashfs" -comp xz -processors $(nproc 2>/dev/null || echo 2) -e boot
+mksquashfs "\${ROOTFS_DIR}" "\${ISO_DIR}/live/filesystem.squashfs" -comp xz -b 1048576 -Xbcj x86 -processors $(nproc 2>/dev/null || echo 2) -e boot
 
 echo -e "\${YELLOW}[6/7] 🖲️ Préparation du chargeur de démarrage GRUB (BIOS & UEFI)...\${NC}"
 mkdir -p "\${ISO_DIR}/boot/grub/i386-pc" "\${ISO_DIR}/EFI/BOOT"
@@ -395,6 +396,13 @@ dpkg --add-architecture i386 2>/dev/null || true
 ` : ''}# Mise à jour des index de paquets
 apt-get update -y
 
+# Accélération drastique des installations APT dans le chroot (désactivation des fsync synchrones temporaires)
+apt-get install -y --no-install-recommends eatmydata 2>/dev/null || true
+APT_INSTALL="apt-get install -y --no-install-recommends"
+if command -v eatmydata &>/dev/null; then
+    APT_INSTALL="eatmydata apt-get install -y --no-install-recommends"
+fi
+
 ${recipe.distro === 'raspbian' && recipe.arch === 'aarch64' ? `# Noyau et firmware Raspberry Pi (absents du miroir Debian utilisé pour le bootstrap initial)
 apt-get install -y --no-install-recommends raspberrypi-kernel raspi-firmware
 
@@ -495,7 +503,7 @@ apt-get install -y --no-install-recommends ${kernelPkg}
 
 ` : ''}# Installation sécurisée et résiliente des logiciels sélectionnés
 for pkg in ${pkgs}; do
-    apt-get install -y --no-install-recommends "$pkg" || echo "Info: $pkg omis ou non disponible dans le miroir apt principal."
+    $APT_INSTALL "$pkg" || echo "Info: $pkg omis ou non disponible dans le miroir apt principal."
 done
 
 # Utilitaires modernes (installations automatisées directes si absents du miroir Debian)
@@ -571,6 +579,7 @@ ${autoSecurityUpdatesCmd(recipe, 'debian')}
 ${cisHardeningCmd(recipe, 'debian')}
 ${generateCryptenrollCommand(recipe.security)}
 ${zramSetupCmd(recipe, 'debian')}
+${systemPerformanceTuningCmd('debian')}
 ${flatpakSetupCmd(recipe, 'debian')}
 ${calamaresInstallerCmd(recipe, 'debian')}
 ${gpuDriverCmd(recipe, 'debian')}

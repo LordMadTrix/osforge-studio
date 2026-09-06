@@ -4,8 +4,6 @@ import { DISTROS } from './data/distros';
 import { DESKTOPS } from './data/desktopEnvironments';
 import { Header } from './components/Header';
 import { StatsBanner } from './components/StatsBanner';
-import { WizardMode } from './components/WizardMode';
-import { ExpertProStudio } from './components/ExpertProStudio';
 import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, Heart } from 'lucide-react';
 
 import { extractRecipeFromUrl } from './services/recipeSharing';
@@ -23,6 +21,8 @@ const PresentationModal = lazy(() => import('./components/PresentationModal').th
 const HardwareAuditModal = lazy(() => import('./components/HardwareAuditModal').then(m => ({ default: m.HardwareAuditModal })));
 const SavedProfilesModal = lazy(() => import('./components/SavedProfilesModal').then(m => ({ default: m.SavedProfilesModal })));
 const DownloadDesktopModal = lazy(() => import('./components/DownloadDesktopModal').then(m => ({ default: m.DownloadDesktopModal })));
+const WizardMode = lazy(() => import('./components/WizardMode').then(m => ({ default: m.WizardMode })));
+const ExpertProStudio = lazy(() => import('./components/ExpertProStudio').then(m => ({ default: m.ExpertProStudio })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -200,41 +200,50 @@ export const App: React.FC = () => {
         padding: uiMode === 'expert' ? '0' : '20px 24px',
         flex: 1,
       }}>
-        {/* Mode 1: Guided Wizard Mode */}
-        {uiMode === 'wizard' && (
-          <WizardMode
-            recipe={recipe}
-            onUpdateRecipe={handleUpdateRecipe}
-            onStartBuild={() => setIsBuildOpen(true)}
-            onSwitchToExpert={() => setUiMode('expert')}
-            onOpenScreenshots={handleOpenScreenshots}
-            onOpenAudit={() => setIsAuditOpen(true)}
-            lang={lang}
-          />
-        )}
+        <Suspense fallback={
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '380px', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="spinner" style={{ display: 'inline-block', width: '18px', height: '18px', border: '2px solid var(--border-subtle)', borderTopColor: 'var(--cyan)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <span>{lang === 'fr' ? 'Chargement du module...' : 'Loading module...'}</span>
+            </div>
+          </div>
+        }>
+          {/* Mode 1: Guided Wizard Mode */}
+          {uiMode === 'wizard' && (
+            <WizardMode
+              recipe={recipe}
+              onUpdateRecipe={handleUpdateRecipe}
+              onStartBuild={() => setIsBuildOpen(true)}
+              onSwitchToExpert={() => setUiMode('expert')}
+              onOpenScreenshots={handleOpenScreenshots}
+              onOpenAudit={() => setIsAuditOpen(true)}
+              lang={lang}
+            />
+          )}
 
-        {/* Mode 2: Expert Studio Pro (Master-Detail Architecture) */}
-        {uiMode === 'expert' && (
-          <ExpertProStudio
-            recipe={recipe}
-            onChange={handleUpdateRecipe}
-            lang={lang}
-            onStartBuild={() => setIsBuildOpen(true)}
-            onOpenTips={() => setIsTipsOpen(true)}
-            onOpenScreenshots={handleOpenScreenshots}
-            onOpenAudit={() => setIsAuditOpen(true)}
-            onOpenPresets={() => setIsPresetsOpen(true)}
-            onOpenAI={() => setIsAIOpen(true)}
-            initialSection={
-              activeTab === 'packages' ? 'pkgs_catalog'
-              : activeTab === 'system' ? 'sys_config'
-              : activeTab === 'security' ? 'sec_hardening'
-              : activeTab === 'postinstall' ? 'post_scripts'
-              : activeTab === 'inspector' ? 'export_inspector'
-              : 'base_distro'
-            }
-          />
-        )}
+          {/* Mode 2: Expert Studio Pro (Master-Detail Architecture) */}
+          {uiMode === 'expert' && (
+            <ExpertProStudio
+              recipe={recipe}
+              onChange={handleUpdateRecipe}
+              lang={lang}
+              onStartBuild={() => setIsBuildOpen(true)}
+              onOpenTips={() => setIsTipsOpen(true)}
+              onOpenScreenshots={handleOpenScreenshots}
+              onOpenAudit={() => setIsAuditOpen(true)}
+              onOpenPresets={() => setIsPresetsOpen(true)}
+              onOpenAI={() => setIsAIOpen(true)}
+              initialSection={
+                activeTab === 'packages' ? 'pkgs_catalog'
+                : activeTab === 'system' ? 'sys_config'
+                : activeTab === 'security' ? 'sec_hardening'
+                : activeTab === 'postinstall' ? 'post_scripts'
+                : activeTab === 'inspector' ? 'export_inspector'
+                : 'base_distro'
+              }
+            />
+          )}
+        </Suspense>
       </main>
 
       {/* Footer (Shown in Wizard Mode) */}
