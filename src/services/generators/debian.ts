@@ -174,7 +174,7 @@ echo -e "\${GREEN}   Empreinte SHA256  : $(sha256sum "\${OUTPUT_DIR}/${rootfsTar
 echo -e "\${GREEN}=======================================================\${NC}"
 ` : `${formatWarning}echo -e "\${YELLOW}[5/7] 🗜️ Compression SquashFS du système d'exploitation...\${NC}"
 mkdir -p "\${ISO_DIR}/live"
-mksquashfs "\${ROOTFS_DIR}" "\${ISO_DIR}/live/filesystem.squashfs" -comp xz -e boot
+mksquashfs "\${ROOTFS_DIR}" "\${ISO_DIR}/live/filesystem.squashfs" -comp xz -processors $(nproc 2>/dev/null || echo 2) -e boot
 
 echo -e "\${YELLOW}[6/7] 🖲️ Préparation du chargeur de démarrage GRUB (BIOS & UEFI)...\${NC}"
 mkdir -p "\${ISO_DIR}/boot/grub/i386-pc" "\${ISO_DIR}/EFI/BOOT"
@@ -646,6 +646,17 @@ ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
 ${recipe.firstBootScript ? firstbootTriggerCmd('debian') : ''}
+
+# Activation de fstrim.timer pour la préservation et réclamation d'espace SSD/NVMe/Sparse
+if command -v systemctl &>/dev/null; then
+    systemctl enable fstrim.timer 2>/dev/null || true
+fi
+
+# 🧹 [OPTIMISATION] Nettoyage approfondi du RootFS avant packaging (gain de 200 à 500 Mo)
+echo -e "\${BLUE}[OPTIMISATION] Purge des caches de paquets et fichiers temporaires...\${NC}"
+apt-get autoremove -y 2>/dev/null || true
+apt-get clean 2>/dev/null || true
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*.deb /var/log/*.log /var/log/journal/* 2>/dev/null || true
 
 # Suppression de la politique temporaire anti-démons
 rm -f /usr/sbin/policy-rc.d

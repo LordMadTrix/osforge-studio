@@ -7,8 +7,9 @@ import { Monitor, CheckCircle2, Globe, Sliders, Palette, Image as ImageIcon, Rss
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
-import { BootPreviewSimulator } from './BootPreviewSimulator';
-import { LiveDesktopSimulator } from './LiveDesktopSimulator';
+
+const BootPreviewSimulator = React.lazy(() => import('./BootPreviewSimulator').then(m => ({ default: m.BootPreviewSimulator })));
+const LiveDesktopSimulator = React.lazy(() => import('./LiveDesktopSimulator').then(m => ({ default: m.LiveDesktopSimulator })));
 
 interface DesktopSelectorProps {
   recipe: OSRecipe;
@@ -863,11 +864,17 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                 </button>
               </div>
 
-              {previewSimulatorTab === 'boot' ? (
-                <BootPreviewSimulator recipe={recipe} lang={lang} />
-              ) : (
-                <LiveDesktopSimulator recipe={recipe} lang={lang} />
-              )}
+              <React.Suspense fallback={
+                <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                  ⏳ {lang === 'fr' ? 'Chargement du simulateur...' : 'Loading simulator...'}
+                </div>
+              }>
+                {previewSimulatorTab === 'boot' ? (
+                  <BootPreviewSimulator recipe={recipe} lang={lang} />
+                ) : (
+                  <LiveDesktopSimulator recipe={recipe} lang={lang} />
+                )}
+              </React.Suspense>
             </div>
 
             {/* 7. Feature Toggles */}

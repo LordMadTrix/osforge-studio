@@ -653,6 +653,27 @@ ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
 ${recipe.firstBootScript ? firstbootTriggerCmd(family) : ''}
+
+# Activation de fstrim.timer pour la préservation et réclamation d'espace SSD/NVMe/Sparse
+if command -v systemctl &>/dev/null; then
+    systemctl enable fstrim.timer 2>/dev/null || true
+fi
+
+# 🧹 [OPTIMISATION] Nettoyage des caches de paquets selon la distribution
+if command -v pacman &>/dev/null; then
+    pacman -Scc --noconfirm 2>/dev/null || true
+    rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
+elif command -v dnf &>/dev/null; then
+    dnf clean all 2>/dev/null || true
+    rm -rf /var/cache/dnf/* 2>/dev/null || true
+elif command -v apk &>/dev/null; then
+    rm -rf /var/cache/apk/* 2>/dev/null || true
+elif command -v zypper &>/dev/null; then
+    zypper clean --all 2>/dev/null || true
+elif command -v xbps-remove &>/dev/null; then
+    xbps-remove -O -o -y 2>/dev/null || true
+fi
+rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
 CHROOT_EOF
 
 umount -lf "\${ROOTFS_DIR}/sys" || true
@@ -955,6 +976,27 @@ ${recipe.firstBootScript || '# Aucun script first-boot spécifique'}
 FIRSTBOOT_EOF
 chmod +x /root/firstboot.sh
 ${recipe.firstBootScript ? firstbootTriggerCmd(family) : ''}
+
+# Activation de fstrim.timer pour la préservation et réclamation d'espace SSD/NVMe/Sparse
+if command -v systemctl &>/dev/null; then
+    systemctl enable fstrim.timer 2>/dev/null || true
+fi
+
+# 🧹 [OPTIMISATION] Nettoyage des caches de paquets selon la distribution
+if command -v pacman &>/dev/null; then
+    pacman -Scc --noconfirm 2>/dev/null || true
+    rm -rf /var/cache/pacman/pkg/* 2>/dev/null || true
+elif command -v dnf &>/dev/null; then
+    dnf clean all 2>/dev/null || true
+    rm -rf /var/cache/dnf/* 2>/dev/null || true
+elif command -v apk &>/dev/null; then
+    rm -rf /var/cache/apk/* 2>/dev/null || true
+elif command -v zypper &>/dev/null; then
+    zypper clean --all 2>/dev/null || true
+elif command -v xbps-remove &>/dev/null; then
+    xbps-remove -O -o -y 2>/dev/null || true
+fi
+rm -rf /tmp/* /var/tmp/* 2>/dev/null || true
 CHROOT_EOF
 
 echo -e "\${YELLOW}[4/4] 🧹 Démontage et archivage du RootFS...\${NC}"

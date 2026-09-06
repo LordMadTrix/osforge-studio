@@ -491,6 +491,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Swap compressé en RAM (zRAM)
+  if (recipe.enableZram || (recipe.security as any)?.enableZram) {
+    if (isDebianLike) {
+      pkgs.push('systemd-zram-generator');
+    } else if (isFedoraLike || isArchLike) {
+      pkgs.push('zram-generator');
+    } else if (distroId === 'alpine') {
+      pkgs.push('zram-init');
+    }
+  }
+
   // Proxmox Template
   if (recipe.outputFormat === 'proxmox_qcow2') {
     if (isDebianLike || isFedoraLike || isArchLike || distroId === 'alpine' || distroId === 'opensuse' || distroId === 'void') {

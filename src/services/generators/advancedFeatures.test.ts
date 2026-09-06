@@ -307,6 +307,27 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(pkgs).toContain('snapper');
     });
   });
+
+  describe('15. Optimisations Système & Build (Nettoyage Chroot, fstrim, Parallélisation)', () => {
+    it('injecte fstrim.timer, apt-get clean et la parallélisation mksquashfs sur Debian', () => {
+      const script = generateBuildScript(baseMockRecipe);
+      expect(script).toContain('systemctl enable fstrim.timer');
+      expect(script).toContain('apt-get clean');
+      expect(script).toContain('mksquashfs');
+      expect(script).toContain('-processors $(nproc');
+    });
+
+    it('injecte fstrim.timer et le nettoyage de paquets pacman sur Arch Linux', () => {
+      const archRecipe: OSRecipe = {
+        ...baseMockRecipe,
+        distro: 'arch',
+        outputFormat: 'qcow2',
+      };
+      const script = generateBuildScript(archRecipe);
+      expect(script).toContain('systemctl enable fstrim.timer');
+      expect(script).toContain('pacman -Scc --noconfirm');
+    });
+  });
 });
 
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { OSRecipe } from '../types/os';
 import {
   generateBuildScript,
@@ -35,162 +35,198 @@ interface RecipeInspectorProps {
   onOpenTips?: () => void;
 }
 
+interface FileDef {
+  title: string;
+  lang: string;
+  descFr: string;
+  descEn: string;
+  generate: (recipe: OSRecipe) => string;
+}
+
+const FILE_DEFINITIONS: Record<string, FileDef> = {
+  'launch.bat': {
+    title: 'launch.bat (Lanceur Universel Interactif Windows)',
+    lang: 'bat',
+    descFr: 'Double-cliquez sous Windows pour accéder au menu 1-clic (WSL2, QEMU Live, Compilation locale).',
+    descEn: '1-Click interactive launcher for Windows.',
+    generate: generateUniversalLauncherBat,
+  },
+  'launch.sh': {
+    title: 'launch.sh (Lanceur Universel Linux / macOS)',
+    lang: 'bash',
+    descFr: 'Menu interactif en console pour compiler, tester sous QEMU ou pousser sur GitHub.',
+    descEn: 'Interactive terminal launcher for Linux/macOS.',
+    generate: generateUniversalLauncherSh,
+  },
+  'install-wsl.bat': {
+    title: 'install-wsl.bat (Installation 1-Click Windows WSL2)',
+    lang: 'bat',
+    descFr: 'Double-cliquez sous Windows pour importer et lancer instantanément votre OS dans WSL2.',
+    descEn: '1-Click Windows installer for WSL2.',
+    generate: generateWslInstallerBat,
+  },
+  'tester-en-vm.bat': {
+    title: 'tester-en-vm.bat (Banc d’Essai QEMU Windows WHPX)',
+    lang: 'bat',
+    descFr: 'Lance instantanément une VM locale sous Windows avec accélération matérielle WHPX et détection automatique.',
+    descEn: 'Instant local VM testing on Windows with WHPX hardware acceleration.',
+    generate: generateQemuTestBat,
+  },
+  'tester-en-vm.sh': {
+    title: 'tester-en-vm.sh (Banc d’Essai QEMU Linux KVM)',
+    lang: 'bash',
+    descFr: 'Lance un banc d’essai virtuel QEMU sous Linux avec accélération KVM et redirection SSH.',
+    descEn: 'Instant local VM test on Linux with KVM acceleration.',
+    generate: generateQemuTestSh,
+  },
+  'run-live-windows.bat': {
+    title: 'run-live-windows.bat (Live Linux sous Windows)',
+    lang: 'bat',
+    descFr: 'Lance votre système d’exploitation en Live sur Windows sans aucune installation.',
+    descEn: 'Run Linux live on Windows without install.',
+    generate: generateLiveWindowsBat,
+  },
+  'MangoHud.conf': {
+    title: 'MangoHud.conf (Overlay FPS & Télémétrie Gaming)',
+    lang: 'ini',
+    descFr: 'Configuration de l’overlay télémétrie MangoHUD (FPS, frametime, températures CPU/GPU, VRAM).',
+    descEn: 'MangoHUD telemetry overlay configuration.',
+    generate: (r) => generateMangoHudConfig(r.gamingConfig?.mangoHudPreset || 'compact_topbar'),
+  },
+  'wsl.conf': {
+    title: 'wsl.conf (Configuration WSL2 & WSLg)',
+    lang: 'ini',
+    descFr: 'Active Systemd, l’intégration graphique WSLg et l’utilisateur par défaut sous Windows.',
+    descEn: 'WSL2 systemd and graphics configuration.',
+    generate: generateWslConf,
+  },
+  'build.sh': {
+    title: 'build.sh (Script Bash Local)',
+    lang: 'bash',
+    descFr: 'Script bash autonome exécutable sur n’importe quelle machine Linux (Debian, Ubuntu, Arch, WSL2).',
+    descEn: 'Autonomous bash build script.',
+    generate: generateBuildScript,
+  },
+  'partition-disk.sh': {
+    title: 'partition-disk.sh (Formatage Disque & Montage Fstab)',
+    lang: 'bash',
+    descFr: 'Script bash de partitionnement GPT, EFI, LUKS2, Btrfs/ext4 et fstab automatique pour disque physique ou VM.',
+    descEn: 'Automated GPT, EFI, LUKS2, Btrfs/ext4 disk partitioning script.',
+    generate: generatePartitionDiskScript,
+  },
+  'fiche-technique.md': {
+    title: 'fiche-technique.md (Fiche Technique & Dossier d’Architecture)',
+    lang: 'markdown',
+    descFr: 'Dossier d’architecture complet, commandes d’administration, sécurité et inventaire logiciel.',
+    descEn: 'Complete technical architecture manual, administration commands and package inventory.',
+    generate: generateTechnicalManualMarkdown,
+  },
+  'Containerfile': {
+    title: 'Containerfile / Dockerfile (Image OCI Autonome)',
+    lang: 'dockerfile',
+    descFr: 'Image de conteneur OCI prête pour Podman / Docker reprenant votre configuration et vos paquets.',
+    descEn: 'Standalone OCI container image for Podman / Docker.',
+    generate: generateContainerfile,
+  },
+  'playbook.yml': {
+    title: 'playbook.yml (Manifeste Ansible Playbook)',
+    lang: 'yaml',
+    descFr: 'Playbook Ansible déclaratif pour provisionner et automatiser la configuration de machines.',
+    descEn: 'Declarative Ansible playbook for automated provisioning.',
+    generate: generateAnsiblePlaybook,
+  },
+  'main.tf': {
+    title: 'main.tf (Infrastructure as Code Terraform / OpenTofu)',
+    lang: 'hcl',
+    descFr: 'Manifeste Terraform / OpenTofu pour instancier la VM et injecter cloud-init.',
+    descEn: 'Terraform / OpenTofu manifest for VM provisioning.',
+    generate: generateTerraformTf,
+  },
+  'boot.ipxe': {
+    title: 'boot.ipxe (Démarrage Réseau Netboot / iPXE)',
+    lang: 'bash',
+    descFr: 'Script iPXE pour booter l’OS sur le réseau local (TFTP/HTTP) sans clé USB.',
+    descEn: 'iPXE script for network booting without USB.',
+    generate: generateIpxeScript,
+  },
+  'setup-pxe.sh': {
+    title: 'setup-pxe-server.sh (Serveur PXE Clé-en-main)',
+    lang: 'bash',
+    descFr: 'Script de déploiement automatique d’un serveur PXE (dnsmasq, nginx, tftp) sur le réseau local.',
+    descEn: 'PXE server deployment script.',
+    generate: generatePxeServerScript,
+  },
+  'ventoy.json': {
+    title: 'ventoy.json (Clé Multi-Boot Ventoy)',
+    lang: 'json',
+    descFr: 'Configuration Ventoy pour l’amorçage automatique et l’injection de scripts sur clé USB.',
+    descEn: 'Ventoy auto-install and multi-boot configuration.',
+    generate: generateVentoyJson,
+  },
+  'flash-usb.sh': {
+    title: 'flash-usb.sh (Gravure USB Sécurisée + Persistance Linux/macOS)',
+    lang: 'bash',
+    descFr: 'Grave votre ISO sur clé USB et configure automatiquement une partition de persistance pour sauvegarder vos fichiers en session Live.',
+    descEn: 'Flashes ISO to USB and configures persistence partition.',
+    generate: (r) => generateUsbFlashScript(r, 'bash'),
+  },
+  'flash-usb.bat': {
+    title: 'flash-usb.bat (Assistant de Gravure USB Windows)',
+    lang: 'bat',
+    descFr: 'Assistant de détection des clés USB et gravure sécurisée sous Windows.',
+    descEn: 'Windows USB detection and flashing assistant.',
+    generate: (r) => generateUsbFlashScript(r, 'powershell'),
+  },
+  'bundle-cache.sh': {
+    title: 'bundle-cache.sh (Mise en Cache Hors-Ligne & Air-Gapped)',
+    lang: 'bash',
+    descFr: 'Télécharge et indexe l’ensemble des paquets nécessaires pour compiler votre OS sans accès Internet en salle blanche.',
+    descEn: 'Downloads and indexes all packages for offline air-gapped builds.',
+    generate: generateOfflineCacheBundleScript,
+  },
+  'github-actions.yml': {
+    title: '.github/workflows/build-iso.yml',
+    lang: 'yaml',
+    descFr: 'Workflow GitHub Actions pour construire gratuitement votre ISO sur le cloud GitHub et la publier en Release !',
+    descEn: 'Free GitHub Actions automated ISO build workflow.',
+    generate: generateGitHubWorkflow,
+  },
+  'Dockerfile': {
+    title: 'Dockerfile (Build Conteneurisé de l’ISO)',
+    lang: 'dockerfile',
+    descFr: 'Compile l’ISO dans un conteneur Docker isolé sans installer d’outils sur votre machine hôte.',
+    descEn: 'Isolated Docker build environment.',
+    generate: generateDockerfile,
+  },
+  'cloud-init.yaml': {
+    title: 'cloud-init.yaml (Cloud Provisioning)',
+    lang: 'yaml',
+    descFr: 'Fichier user-data cloud-init standard pour déployer sur AWS, GCP, OpenStack, Proxmox ou Hetzner.',
+    descEn: 'Standard cloud-init user-data file.',
+    generate: generateCloudInitYaml,
+  },
+  'recipe.json': {
+    title: 'recipe.json (Manifeste OpenFactory)',
+    lang: 'json',
+    descFr: 'Recette JSON complète du système d’exploitation, réimportable et versionnable dans Git.',
+    descEn: 'OpenFactory standard JSON recipe format.',
+    generate: generateRecipeJson,
+  },
+};
+
 export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, onOpenTips }) => {
   const [activeFile, setActiveFile] = useState<string>('launch.bat');
   const [copied, setCopied] = useState<boolean>(false);
   const [shareCopied, setShareCopied] = useState<boolean>(false);
 
-  const files: Record<string, { title: string; lang: string; content: string; desc: string }> = {
-    'launch.bat': {
-      title: 'launch.bat (Lanceur Universel Interactif Windows)',
-      lang: 'bat',
-      content: generateUniversalLauncherBat(recipe),
-      desc: lang === 'fr' ? 'Double-cliquez sous Windows pour accéder au menu 1-clic (WSL2, QEMU Live, Compilation locale).' : '1-Click interactive launcher for Windows.',
-    },
-    'launch.sh': {
-      title: 'launch.sh (Lanceur Universel Linux / macOS)',
-      lang: 'bash',
-      content: generateUniversalLauncherSh(recipe),
-      desc: lang === 'fr' ? 'Menu interactif en console pour compiler, tester sous QEMU ou pousser sur GitHub.' : 'Interactive terminal launcher for Linux/macOS.',
-    },
-    'install-wsl.bat': {
-      title: 'install-wsl.bat (Installation 1-Click Windows WSL2)',
-      lang: 'bat',
-      content: generateWslInstallerBat(recipe),
-      desc: lang === 'fr' ? 'Double-cliquez sous Windows pour importer et lancer instantanément votre OS dans WSL2.' : '1-Click Windows installer for WSL2.',
-    },
-    'tester-en-vm.bat': {
-      title: 'tester-en-vm.bat (Banc d’Essai QEMU Windows WHPX)',
-      lang: 'bat',
-      content: generateQemuTestBat(recipe),
-      desc: lang === 'fr' ? 'Lance instantanément une VM locale sous Windows avec accélération matérielle WHPX et détection automatique.' : 'Instant local VM testing on Windows with WHPX hardware acceleration.',
-    },
-    'tester-en-vm.sh': {
-      title: 'tester-en-vm.sh (Banc d’Essai QEMU Linux KVM)',
-      lang: 'bash',
-      content: generateQemuTestSh(recipe),
-      desc: lang === 'fr' ? 'Lance un banc d’essai virtuel QEMU sous Linux avec accélération KVM et redirection SSH.' : 'Instant local VM test on Linux with KVM acceleration.',
-    },
-    'run-live-windows.bat': {
-      title: 'run-live-windows.bat (Live Linux sous Windows)',
-      lang: 'bat',
-      content: generateLiveWindowsBat(recipe),
-      desc: lang === 'fr' ? 'Lance votre système d’exploitation en Live sur Windows sans aucune installation.' : 'Run Linux live on Windows without install.',
-    },
-    'MangoHud.conf': {
-      title: 'MangoHud.conf (Overlay FPS & Télémétrie Gaming)',
-      lang: 'ini',
-      content: generateMangoHudConfig(recipe.gamingConfig?.mangoHudPreset || 'compact_topbar'),
-      desc: lang === 'fr' ? 'Configuration de l’overlay télémétrie MangoHUD (FPS, frametime, températures CPU/GPU, VRAM).' : 'MangoHUD telemetry overlay configuration.',
-    },
-    'wsl.conf': {
-      title: 'wsl.conf (Configuration WSL2 & WSLg)',
-      lang: 'ini',
-      content: generateWslConf(recipe),
-      desc: lang === 'fr' ? 'Active Systemd, l’intégration graphique WSLg et l’utilisateur par défaut sous Windows.' : 'WSL2 systemd and graphics configuration.',
-    },
-    'build.sh': {
-      title: 'build.sh (Script Bash Local)',
-      lang: 'bash',
-      content: generateBuildScript(recipe),
-      desc: lang === 'fr' ? 'Script bash autonome exécutable sur n’importe quelle machine Linux (Debian, Ubuntu, Arch, WSL2).' : 'Autonomous bash build script.',
-    },
-    'partition-disk.sh': {
-      title: 'partition-disk.sh (Formatage Disque & Montage Fstab)',
-      lang: 'bash',
-      content: generatePartitionDiskScript(recipe),
-      desc: lang === 'fr' ? 'Script bash de partitionnement GPT, EFI, LUKS2, Btrfs/ext4 et fstab automatique pour disque physique ou VM.' : 'Automated GPT, EFI, LUKS2, Btrfs/ext4 disk partitioning script.',
-    },
-    'fiche-technique.md': {
-      title: 'fiche-technique.md (Fiche Technique & Dossier d’Architecture)',
-      lang: 'markdown',
-      content: generateTechnicalManualMarkdown(recipe),
-      desc: lang === 'fr' ? 'Dossier d’architecture complet, commandes d’administration, sécurité et inventaire logiciel.' : 'Complete technical architecture manual, administration commands and package inventory.',
-    },
-    'Containerfile': {
-      title: 'Containerfile / Dockerfile (Image OCI Autonome)',
-      lang: 'dockerfile',
-      content: generateContainerfile(recipe),
-      desc: lang === 'fr' ? 'Image de conteneur OCI prête pour Podman / Docker reprenant votre configuration et vos paquets.' : 'Standalone OCI container image for Podman / Docker.',
-    },
-    'playbook.yml': {
-      title: 'playbook.yml (Manifeste Ansible Playbook)',
-      lang: 'yaml',
-      content: generateAnsiblePlaybook(recipe),
-      desc: lang === 'fr' ? 'Playbook Ansible déclaratif pour provisionner et automatiser la configuration de machines.' : 'Declarative Ansible playbook for automated provisioning.',
-    },
-    'main.tf': {
-      title: 'main.tf (Infrastructure as Code Terraform / OpenTofu)',
-      lang: 'hcl',
-      content: generateTerraformTf(recipe),
-      desc: lang === 'fr' ? 'Manifeste Terraform / OpenTofu pour instancier la VM et injecter cloud-init.' : 'Terraform / OpenTofu manifest for VM provisioning.',
-    },
-    'boot.ipxe': {
-      title: 'boot.ipxe (Démarrage Réseau Netboot / iPXE)',
-      lang: 'bash',
-      content: generateIpxeScript(recipe),
-      desc: lang === 'fr' ? 'Script iPXE pour booter l’OS sur le réseau local (TFTP/HTTP) sans clé USB.' : 'iPXE script for network booting without USB.',
-    },
-    'setup-pxe.sh': {
-      title: 'setup-pxe-server.sh (Serveur PXE Clé-en-main)',
-      lang: 'bash',
-      content: generatePxeServerScript(recipe),
-      desc: lang === 'fr' ? 'Script de déploiement automatique d’un serveur PXE (dnsmasq, nginx, tftp) sur le réseau local.' : 'PXE server deployment script.',
-    },
-    'ventoy.json': {
-      title: 'ventoy.json (Clé Multi-Boot Ventoy)',
-      lang: 'json',
-      content: generateVentoyJson(recipe),
-      desc: lang === 'fr' ? 'Configuration Ventoy pour l’amorçage automatique et l’injection de scripts sur clé USB.' : 'Ventoy auto-install and multi-boot configuration.',
-    },
-    'flash-usb.sh': {
-      title: 'flash-usb.sh (Gravure USB Sécurisée + Persistance Linux/macOS)',
-      lang: 'bash',
-      content: generateUsbFlashScript(recipe, 'bash'),
-      desc: lang === 'fr' ? 'Grave votre ISO sur clé USB et configure automatiquement une partition de persistance pour sauvegarder vos fichiers en session Live.' : 'Flashes ISO to USB and configures persistence partition.',
-    },
-    'flash-usb.bat': {
-      title: 'flash-usb.bat (Assistant de Gravure USB Windows)',
-      lang: 'bat',
-      content: generateUsbFlashScript(recipe, 'powershell'),
-      desc: lang === 'fr' ? 'Assistant de détection des clés USB et gravure sécurisée sous Windows.' : 'Windows USB detection and flashing assistant.',
-    },
-    'bundle-cache.sh': {
-      title: 'bundle-cache.sh (Mise en Cache Hors-Ligne & Air-Gapped)',
-      lang: 'bash',
-      content: generateOfflineCacheBundleScript(recipe),
-      desc: lang === 'fr' ? 'Télécharge et indexe l’ensemble des paquets nécessaires pour compiler votre OS sans accès Internet en salle blanche.' : 'Downloads and indexes all packages for offline air-gapped builds.',
-    },
-    'github-actions.yml': {
-      title: '.github/workflows/build-iso.yml',
-      lang: 'yaml',
-      content: generateGitHubWorkflow(recipe),
-      desc: lang === 'fr' ? 'Workflow GitHub Actions pour construire gratuitement votre ISO sur le cloud GitHub et la publier en Release !' : 'Free GitHub Actions automated ISO build workflow.',
-    },
-    'Dockerfile': {
-      title: 'Dockerfile (Build Conteneurisé de l’ISO)',
-      lang: 'dockerfile',
-      content: generateDockerfile(recipe),
-      desc: lang === 'fr' ? 'Compile l’ISO dans un conteneur Docker isolé sans installer d’outils sur votre machine hôte.' : 'Isolated Docker build environment.',
-    },
-    'cloud-init.yaml': {
-      title: 'cloud-init.yaml (Cloud Provisioning)',
-      lang: 'yaml',
-      content: generateCloudInitYaml(recipe),
-      desc: lang === 'fr' ? 'Fichier user-data cloud-init standard pour déployer sur AWS, GCP, OpenStack, Proxmox ou Hetzner.' : 'Standard cloud-init user-data file.',
-    },
-    'recipe.json': {
-      title: 'recipe.json (Manifeste OpenFactory)',
-      lang: 'json',
-      content: generateRecipeJson(recipe),
-      desc: lang === 'fr' ? 'Recette JSON complète du système d’exploitation, réimportable et versionnable dans Git.' : 'OpenFactory standard JSON recipe format.',
-    },
-  };
-
-  const current = files[activeFile] || files['launch.bat'];
+  const fileKeys = useMemo(() => Object.keys(FILE_DEFINITIONS), []);
+  const currentDef = FILE_DEFINITIONS[activeFile] || FILE_DEFINITIONS['launch.bat'];
+  const activeContent = useMemo(() => {
+    return currentDef.generate(recipe);
+  }, [currentDef, recipe]);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(current.content);
+    navigator.clipboard.writeText(activeContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -203,7 +239,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
       {/* Top File Switcher Bar */}
       <div className="glass-panel" style={{ padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
-          {Object.keys(files).map(key => (
+          {fileKeys.map(key => (
             <button
               key={key}
               onClick={() => setActiveFile(key)}
@@ -263,14 +299,14 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
         <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-              {current.title}
+              {currentDef.title}
             </h4>
             <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-              {current.desc}
+              {lang === 'fr' ? currentDef.descFr : currentDef.descEn}
             </p>
           </div>
           <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>
-            {current.lang.toUpperCase()}
+            {currentDef.lang.toUpperCase()}
           </span>
         </div>
 
@@ -285,7 +321,7 @@ export const RecipeInspector: React.FC<RecipeInspectorProps> = ({ recipe, lang, 
           color: '#fb923c',
           maxHeight: '500px',
         }}>
-          <code>{current.content}</code>
+          <code>{activeContent}</code>
         </pre>
       </div>
     </div>
