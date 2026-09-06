@@ -242,9 +242,9 @@ export interface BrandingConfig {
   editionName: string;
   version: string;
   accentColor: string;
-  wallpaperPreset: 'minimal' | 'cyberpunk' | 'matrix' | 'gaming_rog' | 'deep_space' | 'nordic_frost' | 'sunset_synthwave' | 'emerald_forest' | 'tokyo_neon' | string;
+  wallpaperPreset: 'minimal' | 'cyberpunk' | 'matrix' | 'gaming_rog' | 'deep_space' | 'nordic_frost' | 'sunset_synthwave' | 'emerald_forest' | 'tokyo_neon' | 'carbon_dark' | 'aurora_borealis' | string;
   customWallpaperUrl?: string;
-  bootSplashTheme: 'cyberpunk' | 'minimal' | 'matrix' | 'classic' | 'openfactory' | 'bgrt' | 'spinner' | 'fade-in' | 'tribar';
+  bootSplashTheme: 'cyberpunk' | 'minimal' | 'matrix' | 'classic' | 'openfactory' | 'bgrt' | 'spinner' | 'fade-in' | 'tribar' | 'osforge-custom' | 'solar' | 'glow';
   iconTheme?: 'papirus-dark' | 'papirus-light' | 'breeze-dark' | 'breeze' | 'adwaita' | 'yaru-dark';
   cursorTheme?: 'bibata-modern' | 'breeze' | 'adwaita' | 'dmz-black';
   fontFamily?: 'inter' | 'roboto' | 'jetbrains-mono' | 'fira-code' | 'cantarell' | 'dejavu';

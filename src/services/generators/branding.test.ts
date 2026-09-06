@@ -219,14 +219,16 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(cmd).toContain('plymouth-set-default-theme -R "bgrt"');
     });
 
-    it('generateGrubThemeCmd : génère le theme.txt GRUB 2 avec la couleur d’accentuation', () => {
+    it('generateGrubThemeCmd : génère le theme.txt GRUB 2 avec la couleur d’accentuation et l’arrière-plan', () => {
       const recipe = makeRecipe({ branding: { ...makeRecipe().branding, enableGrubTheme: true } });
       const cmd = generateGrubThemeCmd(recipe);
       expect(cmd).toContain('/boot/grub/themes/steammachineos/theme.txt');
       expect(cmd).toContain('title-color: "#ff003c"');
+      expect(cmd).toContain('desktop-image: "background.png"');
       expect(cmd).toContain('boot_menu');
       expect(cmd).toContain('progress_bar');
       expect(cmd).toContain('GRUB_THEME="/boot/grub/themes/steammachineos/theme.txt"');
+      expect(cmd).toContain('GRUB_BACKGROUND=');
     });
 
     it('generateBrandingChrootCommands : regroupe toutes les briques de personnalisation en un seul appel', () => {
@@ -243,7 +245,7 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(fullCmd).toContain('/boot/grub/themes');
     });
 
-    it('generateWallpaperSvg : génère les 4 nouveaux thèmes (nordic_frost, sunset_synthwave, emerald_forest, tokyo_neon)', () => {
+    it('generateWallpaperSvg : génère les thèmes SVG (nordic_frost, sunset_synthwave, emerald_forest, tokyo_neon, carbon_dark, aurora_borealis)', () => {
       const rFrost = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'nordic_frost' } });
       expect(generateWallpaperSvg(rFrost)).toContain('NORDIC FROST');
 
@@ -255,6 +257,40 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
 
       const rTokyo = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'tokyo_neon' } });
       expect(generateWallpaperSvg(rTokyo)).toContain('TOKYO NIGHT');
+
+      const rCarbon = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'carbon_dark' } });
+      expect(generateWallpaperSvg(rCarbon)).toContain('carbonGrid');
+      expect(generateWallpaperSvg(rCarbon)).toContain('PRO WORKSTATION');
+
+      const rAurora = makeRecipe({ branding: { ...makeRecipe().branding, wallpaperPreset: 'aurora_borealis' } });
+      expect(generateWallpaperSvg(rAurora)).toContain('AURORA BOREALIS');
+    });
+
+    it('generatePlymouthCmd : génère un thème sur-mesure complet avec script Plymouth et logo pour osforge-custom', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'CustomOS',
+          editionName: 'Pro Edition',
+          accentColor: '#10b981',
+          bootSplashTheme: 'osforge-custom',
+        },
+      });
+      const cmd = generatePlymouthCmd(recipe);
+      expect(cmd).toContain('/usr/share/plymouth/themes/customos/customos.plymouth');
+      expect(cmd).toContain('/usr/share/plymouth/themes/customos/customos.script');
+      expect(cmd).toContain('ModuleName=script');
+      expect(cmd).toContain('progress_bar.width');
+      expect(cmd).toContain('Plymouth.SetBootProgressFunction');
+      expect(cmd).toContain('plymouth-set-default-theme -R "customos"');
+    });
+
+    it('generatePlymouthCmd : prend en charge le thème solar et tribar', () => {
+      const rSolar = makeRecipe({ branding: { ...makeRecipe().branding, bootSplashTheme: 'solar' } });
+      expect(generatePlymouthCmd(rSolar)).toContain('plymouth-set-default-theme -R "solar"');
+
+      const rTribar = makeRecipe({ branding: { ...makeRecipe().branding, bootSplashTheme: 'tribar' } });
+      expect(generatePlymouthCmd(rTribar)).toContain('plymouth-set-default-theme -R "tribar"');
     });
 
     it('generateGlobalThemeCmd : configure les icônes, curseurs, polices et disposition des boutons à gauche', () => {

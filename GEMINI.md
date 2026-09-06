@@ -146,7 +146,23 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **800 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 98 fichiers.
+- Suite de tests : **805 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 98 fichiers.
+- **20. 🎨 & 🚀 Nouveaux Presets Spécialisés & Personnalisation Visuelle Avancée (Branding HD)** :
+  - **3 Nouveaux Presets Spécialisés Réels (Zéro Cosmétique)** :
+    - `homelab_nas_media` : Home Server NAS & Media Vault (Debian 12 + Cockpit Web port 9090 + Samba + NFS + SMART + Btrfs + Docker).
+    - `ai_studio_local_vllm` : AI Studio & LLM Inference Workstation (Ubuntu 24.04 LTS + Ollama + Python AI stack + Docker + Btop).
+    - `redteam_c2_stealth` : RedTeam C2 & Offensive Cyber Operative (Debian 12 + WireGuard VPN + Masscan + Trivy + Gobuster + Sqlmap).
+  - **Thème Plymouth Sur-Mesure Exclusif (`osforge-custom`)** :
+    - Génération dynamique dans le chroot de `/usr/share/plymouth/themes/${slug}/${slug}.plymouth` et `.script`.
+    - Centrage du logo vectoriel et barre de progression animée aux dimensions et couleur d'accentuation exactes de l'OS (`accentColor`).
+    - Support enrichi des thèmes officiels `solar`, `glow`, `tribar`, `bgrt`, `spinner`.
+  - **Nouveaux Fonds d'Écran SVG HD 1080p Réels** :
+    - `carbon_dark` : Texture fibre de carbone tressée, plaque métallique brossée avec chanfreins biseautés et badge de marque rétro-éclairé.
+    - `aurora_borealis` : Ondulations d'aurores boréales sur ciel polaire étoilé et crêtes montagneuses.
+  - **Arrière-plan Graphique GRUB 2 (`GRUB_BACKGROUND`)** :
+    - Continuité visuelle complète depuis la mise sous tension GRUB (`desktop-image: "background.png"`) jusqu'au bureau.
+  - **Simulateur de Démarrage Interactif (`BootPreviewSimulator.tsx`)** :
+    - Intégration des animations CSS réalistes pour `osforge-custom`, `solar` et `glow`.
 - **Résolution Définitive Syntaxe Batch & Lanceurs Portables Windows (`Lancer-OSForge-Studio.bat`, `Lancer-OSForge-Studio.ps1`, `server.ps1`)** :
   - Diagnostic précis des erreurs PowerShell (`'Cloud' n'est pas reconnu...`, `'tivation'`, `'6m'`, `| était inattendu`) :
     1. L'esperluette `&` non échappée dans le titre déclenchait l'exécution de `Cloud` comme commande cmd.exe distincte.

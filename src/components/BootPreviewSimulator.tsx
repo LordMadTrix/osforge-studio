@@ -325,6 +325,103 @@ export const BootPreviewSimulator: React.FC<BootPreviewSimulatorProps> = ({ reci
           </div>
         )}
 
+        {/* 7. Theme OSFORGE CUSTOM (Sur-mesure avec Logo & Accent Bar) */}
+        {(theme === 'osforge-custom' || !['spinner', 'bgrt', 'fade-in', 'tribar', 'cyberpunk', 'matrix', 'solar', 'glow'].includes(theme)) && (
+          <div key={animKey} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            position: 'relative',
+          }}>
+            {/* Logo vectoriel officiel centré */}
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                filter: `drop-shadow(0 0 20px ${accent}88)`,
+                animation: 'boot-pulse 2.5s ease-in-out infinite',
+              }}
+              dangerouslySetInnerHTML={{ __html: generateLogoSvg(recipe) }}
+            />
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 900, letterSpacing: '2px', color: '#f8fafc' }}>
+                {osName}
+              </div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '3px', color: accent, marginTop: '2px' }}>
+                {edition.toUpperCase()}
+              </div>
+            </div>
+
+            {/* Barre de chargement sur-mesure aux couleurs de l'accent */}
+            <div style={{
+              width: '180px',
+              height: '5px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: '3px',
+              overflow: 'hidden',
+              position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                bottom: 0,
+                background: accent,
+                borderRadius: '3px',
+                animation: 'boot-tribar-slide 1.6s ease-in-out infinite',
+                boxShadow: `0 0 10px ${accent}`,
+              }} />
+            </div>
+          </div>
+        )}
+
+        {/* 8. Theme SOLAR */}
+        {theme === 'solar' && (
+          <div key={animKey} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '18px',
+          }}>
+            <div style={{
+              width: '70px',
+              height: '70px',
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #fef08a 0%, #f59e0b 45%, #ea580c 70%, transparent 85%)',
+              boxShadow: '0 0 35px #f59e0b, inset 0 0 15px #fef08a',
+              animation: 'boot-pulse 1.8s ease-in-out infinite',
+            }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fed7aa', letterSpacing: '2px' }}>{osName}</div>
+              <div style={{ fontSize: '0.68rem', color: '#f59e0b', letterSpacing: '3px' }}>SOLAR INGESTION // {edition}</div>
+            </div>
+          </div>
+        )}
+
+        {/* 9. Theme GLOW */}
+        {theme === 'glow' && (
+          <div key={animKey} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              border: `2px solid ${accent}`,
+              boxShadow: `0 0 25px ${accent}, inset 0 0 15px ${accent}66`,
+              animation: 'boot-spin 2s linear infinite',
+            }} />
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '3px' }}>{osName}</div>
+              <div style={{ fontSize: '0.68rem', color: accent, letterSpacing: '4px' }}>{edition.toUpperCase()}</div>
+            </div>
+          </div>
+        )}
+
         {/* Footer info indicateur */}
         <div style={{
           position: 'absolute',

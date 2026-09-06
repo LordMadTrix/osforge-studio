@@ -608,6 +608,8 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                   })}
                 >
                   <option value="minimal">Minimal Slate (Ardoise sobre & géométrie épurée)</option>
+                  <option value="carbon_dark">Carbon Pro Dark (Fibre de carbone & plaque industrielle)</option>
+                  <option value="aurora_borealis">Aurora Borealis (Aurore boréale céleste & cimes)</option>
                   <option value="nordic_frost">Nordic Frost (Glacier arctique & aurore #88c0d0)</option>
                   <option value="sunset_synthwave">Sunset Synthwave (Soleil rétro 80s & grille)</option>
                   <option value="emerald_forest">Emerald Forest (Bio-matrice émeraude #10b981)</option>
@@ -806,10 +808,13 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                   branding: { ...recipe.branding, bootSplashTheme: e.target.value as any }
                 })}
               >
+                <option value="osforge-custom">⭐ OSForge Custom (Sur-mesure avec Logo & Accent)</option>
                 <option value="spinner">Minimal Spinner (Roue moderne)</option>
                 <option value="bgrt">BGRT (Logo UEFI constructeur natif)</option>
                 <option value="fade-in">Fade-In (Transition douce)</option>
                 <option value="tribar">Tribar (Barre de progression classique)</option>
+                <option value="solar">Solar (Éruptions coronales animées)</option>
+                <option value="glow">Glow Minimal (Lueur diffuse)</option>
                 <option value="cyberpunk">Cyberpunk Glow (Lueur futuriste)</option>
                 <option value="matrix">Matrix Glow</option>
               </select>

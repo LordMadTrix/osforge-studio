@@ -150,3 +150,47 @@ describe('DISTRO_PRESETS — Preset officiel "MadOS ROG Edition" (Gaming & ASUS 
     expect(script).toContain('steam-console.desktop');
   });
 });
+
+describe('DISTRO_PRESETS — Nouveaux Presets Spécialisés (Home Server NAS, AI Studio LLM, RedTeam C2)', () => {
+  it('homelab_nas_media : présent dans le catalogue, configure Cockpit, Samba, NFS et SMART', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'homelab_nas_media');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.selectedPackages).toContain('cockpit');
+    expect(preset!.recipe.selectedPackages).toContain('docker');
+    expect(preset!.recipe.selectedPackages).toContain('smartmontools');
+    expect(preset!.recipe.customPackages).toContain('samba');
+    expect(preset!.recipe.customPackages).toContain('nfs-kernel-server');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('cockpit');
+    expect(script).toContain('samba');
+  });
+
+  it('ai_studio_local_vllm : présent dans le catalogue, configure Ollama, Python AI stack et Docker', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'ai_studio_local_vllm');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('ubuntu');
+    expect(preset!.recipe.selectedPackages).toContain('ollama_cli');
+    expect(preset!.recipe.selectedPackages).toContain('python_ai_stack');
+    expect(preset!.recipe.selectedPackages).toContain('docker');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('python3-pip');
+    expect(script).toContain('docker');
+  });
+
+  it('redteam_c2_stealth : présent dans le catalogue, configure WireGuard, Masscan, Trivy et Gobuster', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'redteam_c2_stealth');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.selectedPackages).toContain('wireguard');
+    expect(preset!.recipe.selectedPackages).toContain('masscan');
+    expect(preset!.recipe.selectedPackages).toContain('trivy');
+    expect(preset!.recipe.selectedPackages).toContain('gobuster');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('masscan');
+    expect(script).toContain('wireguard');
+  });
+});

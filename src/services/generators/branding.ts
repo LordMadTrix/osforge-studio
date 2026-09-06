@@ -275,6 +275,81 @@ export function generateWallpaperSvg(recipe: OSRecipe): string {
   <text x="960" y="825" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="15" fill="#bb9af7" text-anchor="middle" letter-spacing="5">TOKYO NIGHT // ${edition.toUpperCase()}</text>
 </svg>`;
 
+    case 'carbon_dark':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="carbonBase" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090a0f"/>
+      <stop offset="50%" stop-color="#11131a"/>
+      <stop offset="100%" stop-color="#06070a"/>
+    </linearGradient>
+    <pattern id="carbonGrid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#171922"/>
+      <rect x="8" width="8" height="8" fill="#0e1017"/>
+      <rect y="8" width="8" height="8" fill="#0e1017"/>
+      <rect x="8" y="8" width="8" height="8" fill="#171922"/>
+    </pattern>
+    <linearGradient id="metalPlate" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1f2430" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#2a3040" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#181c26" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#carbonBase)"/>
+  <rect width="1920" height="1080" fill="url(#carbonGrid)" opacity="0.6"/>
+  <!-- Central Chamfered Plate -->
+  <polygon points="660,400 1260,400 1300,440 1300,640 1260,680 660,680 620,640 620,440" fill="url(#metalPlate)" stroke="${accent}" stroke-width="2" filter="drop-shadow(0 15px 30px rgba(0,0,0,0.7))"/>
+  <!-- Accent Bevel Line -->
+  <line x1="660" y1="400" x2="1260" y2="400" stroke="${accent}" stroke-width="3" opacity="0.9"/>
+  <line x1="660" y1="680" x2="1260" y2="680" stroke="${accent}" stroke-width="3" opacity="0.9"/>
+  <!-- Typography -->
+  <text x="960" y="525" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle" letter-spacing="4">${osName.toUpperCase()}</text>
+  <text x="960" y="575" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="16" fill="${accent}" text-anchor="middle" letter-spacing="6">${edition.toUpperCase()} // PRO WORKSTATION</text>
+</svg>`;
+
+    case 'aurora_borealis':
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <linearGradient id="nightSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#02040a"/>
+      <stop offset="60%" stop-color="#050e1d"/>
+      <stop offset="100%" stop-color="#0a192f"/>
+    </linearGradient>
+    <linearGradient id="auroraWave1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#10b981" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="${accent}" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="auroraWave2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0"/>
+      <stop offset="50%" stop-color="${accent}" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#nightSky)"/>
+  <!-- Stars -->
+  <g fill="#ffffff">
+    <circle cx="150" cy="120" r="1.5" opacity="0.8"/>
+    <circle cx="340" cy="220" r="1.2" opacity="0.6"/>
+    <circle cx="580" cy="80" r="1.8" opacity="0.9"/>
+    <circle cx="890" cy="180" r="2.2" opacity="0.85"/>
+    <circle cx="1180" cy="90" r="1.4" opacity="0.7"/>
+    <circle cx="1450" cy="230" r="2.0" opacity="0.8"/>
+    <circle cx="1720" cy="140" r="1.3" opacity="0.6"/>
+    <circle cx="1840" cy="260" r="1.7" opacity="0.9"/>
+  </g>
+  <!-- Aurora Ribbons -->
+  <path d="M 0,350 Q 480,180 960,320 T 1920,240 L 1920,620 Q 1440,780 960,600 T 0,680 Z" fill="url(#auroraWave1)" opacity="0.75"/>
+  <path d="M 0,420 Q 520,260 1020,400 T 1920,310 L 1920,580 Q 1400,690 920,540 T 0,610 Z" fill="url(#auroraWave2)" opacity="0.6"/>
+  <!-- Mountain Silhouettes -->
+  <polygon points="0,1080 320,780 640,1080" fill="#040812"/>
+  <polygon points="480,1080 960,700 1440,1080" fill="#060c18"/>
+  <polygon points="1280,1080 1620,760 1920,1080" fill="#040812"/>
+  <text x="960" y="880" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="36" fill="#ffffff" text-anchor="middle" letter-spacing="4">${osName}</text>
+  <text x="960" y="920" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="16" fill="${accent}" text-anchor="middle" letter-spacing="6">AURORA BOREALIS // ${edition.toUpperCase()}</text>
+</svg>`;
+
     case 'minimal':
     default:
       return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
@@ -1145,11 +1220,101 @@ chmod +x /etc/profile.d/00-fastfetch-welcome.sh
  */
 export function generatePlymouthCmd(recipe: OSRecipe): string {
   const theme = recipe.branding.bootSplashTheme || 'spinner';
+  const slug = sanitizeOsSlug(recipe.branding.osName);
+  const osName = recipe.branding.osName || 'Linux';
+  const edition = recipe.branding.editionName || 'Edition';
+  const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
+  const rgb = hexToRgb(accent);
+  const pr = (rgb.r / 255).toFixed(2);
+  const pg = (rgb.g / 255).toFixed(2);
+  const pb = (rgb.b / 255).toFixed(2);
+
+  if (theme === 'osforge-custom') {
+    return `# ==============================================================================
+# Configuration Plymouth (Thème Sur-Mesure Exclusif : ${slug})
+# ==============================================================================
+if command -v plymouth-set-default-theme &>/dev/null; then
+    echo -e "\${BLUE}[BRANDING] Création du thème Plymouth sur-mesure pour ${osName}...\${NC}"
+    mkdir -p "/usr/share/plymouth/themes/${slug}"
+
+    # Définition du fichier .plymouth
+    cat << 'PLYMOUTH_CONF_EOF' > "/usr/share/plymouth/themes/${slug}/${slug}.plymouth"
+[Plymouth Theme]
+Name=${osName} Boot Splash
+Description=Thème de démarrage dynamique OSForge Studio
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/${slug}
+ScriptFile=/usr/share/plymouth/themes/${slug}/${slug}.script
+PLYMOUTH_CONF_EOF
+
+    # Script d'animation Plymouth (Script Plugin)
+    cat << 'PLYMOUTH_SCRIPT_EOF' > "/usr/share/plymouth/themes/${slug}/${slug}.script"
+# Thème Plymouth Officiel ${osName} (${edition})
+Window.SetBackgroundTopColor(0.04, 0.05, 0.08);
+Window.SetBackgroundBottomColor(0.02, 0.02, 0.04);
+
+# Chargement du logo ou repli textuel
+logo.image = Image("logo.png");
+if (!logo.image) {
+    logo.image = Image("/usr/share/pixmaps/${slug}.png");
+}
+
+if (logo.image) {
+    logo.sprite = Sprite(logo.image);
+    logo.opacity_angle = 0;
+    logo.x = Window.GetX() + (Window.GetWidth() - logo.image.GetWidth()) / 2;
+    logo.y = Window.GetY() + (Window.GetHeight() - logo.image.GetHeight()) / 2 - 40;
+    logo.sprite.SetPosition(logo.x, logo.y, 10);
+    logo.sprite.SetOpacity(1);
+}
+
+# Barre de progression personnalisée aux couleurs de l'accentuation (${accent})
+progress_bar.width = Window.GetWidth() * 0.35;
+progress_bar.height = 8;
+progress_bar.x = Window.GetX() + (Window.GetWidth() - progress_bar.width) / 2;
+progress_bar.y = Window.GetY() + (Window.GetHeight() / 2) + 70;
+
+progress_box.image = Image.Clip(Image.Null(), 0, 0, progress_bar.width, progress_bar.height);
+progress_box.sprite = Sprite();
+progress_box.sprite.SetPosition(progress_bar.x, progress_bar.y, 5);
+
+fun progress_callback (duration, progress) {
+    current_w = progress_bar.width * progress;
+    if (current_w > 0) {
+        fill_img = Image.Constant(${pr}, ${pg}, ${pb}, 0.9);
+        bar_img = fill_img.Scale(current_w, progress_bar.height);
+        progress_box.sprite.SetImage(bar_img);
+    }
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+fun quit_callback () {
+    if (logo.sprite) logo.sprite.SetOpacity(0);
+    if (progress_box.sprite) progress_box.sprite.SetOpacity(0);
+}
+Plymouth.SetQuitFunction(quit_callback);
+PLYMOUTH_SCRIPT_EOF
+
+    # Si le logo existe, le dupliquer pour le thème Plymouth
+    if [ -f "/usr/share/pixmaps/${slug}.png" ]; then
+        cp -f "/usr/share/pixmaps/${slug}.png" "/usr/share/plymouth/themes/${slug}/logo.png" 2>/dev/null || true
+    fi
+
+    # Déclaration du thème auprès de Plymouth et mise à jour de l'initramfs
+    plymouth-set-default-theme -R "${slug}" 2>/dev/null || plymouth-set-default-theme -R "spinner" 2>/dev/null || true
+fi
+`;
+  }
+
   let plymouthTheme = 'spinner';
   if (theme === 'bgrt') plymouthTheme = 'bgrt';
   else if (theme === 'fade-in') plymouthTheme = 'fade-in';
   else if (theme === 'minimal') plymouthTheme = 'spinner';
-  else if (theme === 'cyberpunk' || theme === 'matrix') plymouthTheme = 'glow';
+  else if (theme === 'cyberpunk' || theme === 'matrix' || theme === 'glow') plymouthTheme = 'glow';
+  else if (theme === 'solar') plymouthTheme = 'solar';
+  else if (theme === 'tribar') plymouthTheme = 'tribar';
 
   return `# ==============================================================================
 # Configuration Plymouth (Boot Splash : ${plymouthTheme})
@@ -1180,12 +1345,18 @@ export function generateGrubThemeCmd(recipe: OSRecipe): string {
 echo -e "\${BLUE}[BRANDING] Installation du theme graphique GRUB 2...\${NC}"
 mkdir -p "/boot/grub/themes/${slug}"
 
+# Copie du fond d'écran s'il a été généré
+if [ -f "/usr/share/backgrounds/${slug}-wallpaper.png" ]; then
+    cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/boot/grub/themes/${slug}/background.png" 2>/dev/null || true
+fi
+
 cat << 'GRUBTHEME_EOF' > "/boot/grub/themes/${slug}/theme.txt"
 # OSForge Studio - GRUB 2 Theme
 title-text: "${osName} (${edition})"
 title-font: "DejaVu Sans Bold 18"
 title-color: "${accent}"
 desktop-color: "#0a0c14"
+desktop-image: "background.png"
 message-font: "DejaVu Sans Regular 14"
 message-color: "#94a3b8"
 terminal-font: "Fixed 14"
@@ -1221,7 +1392,11 @@ GRUBTHEME_EOF
 # Activation du theme dans /etc/default/grub si present
 if [ -f /etc/default/grub ]; then
     sed -i '/^GRUB_THEME=/d' /etc/default/grub
+    sed -i '/^GRUB_BACKGROUND=/d' /etc/default/grub
     echo 'GRUB_THEME="/boot/grub/themes/${slug}/theme.txt"' >> /etc/default/grub
+    if [ -f "/boot/grub/themes/${slug}/background.png" ]; then
+        echo 'GRUB_BACKGROUND="/boot/grub/themes/${slug}/background.png"' >> /etc/default/grub
+    fi
     if command -v update-grub &>/dev/null; then
         update-grub 2>/dev/null || true
     fi
