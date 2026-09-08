@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { OSRecipe } from './types/os';
+import { OSRecipe, DistroId } from './types/os';
 import { DISTROS } from './data/distros';
 import { DESKTOPS } from './data/desktopEnvironments';
 import { Header } from './components/Header';
@@ -23,6 +23,7 @@ const SavedProfilesModal = lazy(() => import('./components/SavedProfilesModal').
 const DownloadDesktopModal = lazy(() => import('./components/DownloadDesktopModal').then(m => ({ default: m.DownloadDesktopModal })));
 const WizardMode = lazy(() => import('./components/WizardMode').then(m => ({ default: m.WizardMode })));
 const ExpertProStudio = lazy(() => import('./components/ExpertProStudio').then(m => ({ default: m.ExpertProStudio })));
+const OfficialReleasesModal = lazy(() => import('./components/OfficialReleasesModal').then(m => ({ default: m.OfficialReleasesModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -100,10 +101,17 @@ export const App: React.FC = () => {
   const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
   const [isProfilesOpen, setIsProfilesOpen] = useState<boolean>(false);
   const [isDesktopDownloadOpen, setIsDesktopDownloadOpen] = useState<boolean>(false);
+  const [isOfficialReleasesOpen, setIsOfficialReleasesOpen] = useState<boolean>(false);
+  const [officialReleasesDistro, setOfficialReleasesDistro] = useState<DistroId | undefined>(undefined);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
   const [previewDesktopId, setPreviewDesktopId] = useState<string | undefined>(undefined);
+
+  const handleOpenOfficialReleases = (distroId?: DistroId) => {
+    setOfficialReleasesDistro(distroId || (recipe.distro as DistroId) || 'debian');
+    setIsOfficialReleasesOpen(true);
+  };
 
   // Interception de l'événement PWA BeforeInstallPrompt pour installation 1-clic
   useEffect(() => {
@@ -181,6 +189,7 @@ export const App: React.FC = () => {
         onOpenAudit={() => setIsAuditOpen(true)}
         onOpenProfiles={() => setIsProfilesOpen(true)}
         onOpenDesktopDownload={() => setIsDesktopDownloadOpen(true)}
+        onOpenOfficialReleases={handleOpenOfficialReleases}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -217,6 +226,7 @@ export const App: React.FC = () => {
               onSwitchToExpert={() => setUiMode('expert')}
               onOpenScreenshots={handleOpenScreenshots}
               onOpenAudit={() => setIsAuditOpen(true)}
+              onOpenOfficialReleases={handleOpenOfficialReleases}
               lang={lang}
             />
           )}
@@ -233,6 +243,7 @@ export const App: React.FC = () => {
               onOpenAudit={() => setIsAuditOpen(true)}
               onOpenPresets={() => setIsPresetsOpen(true)}
               onOpenAI={() => setIsAIOpen(true)}
+              onOpenOfficialReleases={handleOpenOfficialReleases}
               initialSection={
                 activeTab === 'packages' ? 'pkgs_catalog'
                 : activeTab === 'system' ? 'sys_config'
@@ -277,6 +288,14 @@ export const App: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+            <button
+              onClick={() => handleOpenOfficialReleases()}
+              style={{ background: 'none', border: 'none', color: '#34d399', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+              title={lang === 'fr' ? 'Télécharger les ISOs officielles sans modification' : 'Download official unmodified ISOs'}
+            >
+              <Download size={13} />
+              <span>{lang === 'fr' ? 'Releases Officielles' : 'Official Releases'}</span>
+            </button>
             <button
               onClick={() => setIsVersionCheckerOpen(true)}
               style={{ background: 'none', border: 'none', color: '#84a05c', cursor: 'pointer', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -465,6 +484,13 @@ export const App: React.FC = () => {
           lang={lang}
           deferredPrompt={deferredPrompt}
           onInstallPwa={handleInstallPwa}
+        />
+
+        <OfficialReleasesModal
+          isOpen={isOfficialReleasesOpen}
+          onClose={() => setIsOfficialReleasesOpen(false)}
+          lang={lang}
+          initialDistroId={officialReleasesDistro}
         />
       </Suspense>
     </div>

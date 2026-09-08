@@ -20,6 +20,7 @@ interface HeaderProps {
   onOpenAudit?: () => void;
   onOpenProfiles?: () => void;
   onOpenDesktopDownload?: () => void;
+  onOpenOfficialReleases?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAudit,
   onOpenProfiles,
   onOpenDesktopDownload,
+  onOpenOfficialReleases,
   uiMode,
   setUiMode,
   lang,
@@ -516,6 +518,30 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Monitor size={14} color="#0284c7" />
                     <span>{lang === 'fr' ? 'Application Desktop (PC)' : 'Desktop App (PC)'}</span>
+                  </button>
+                )}
+
+                {onOpenOfficialReleases && (
+                  <button
+                    onClick={() => { onOpenOfficialReleases(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#34d399',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Download size={14} color="#34d399" />
+                    <span>{lang === 'fr' ? 'Releases Officielles (Sans modif)' : 'Official Releases (Vanilla)'}</span>
                   </button>
                 )}
               </div>

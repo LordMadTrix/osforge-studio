@@ -146,7 +146,18 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **810 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 99 fichiers.
+- Suite de tests : **814 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 102 fichiers.
+- **23. 📥 & 🌐 Téléchargement des Releases Officielles Sans Modification (Vanilla ISOs & Checksums)** :
+  - **Catalogue des Releases Officielles Amont (`src/data/officialReleases.ts`)** :
+    - Couverture exhaustive des 21 distributions Linux du catalogue sans exception (Debian, Ubuntu, Arch, Fedora, Alpine, openSUSE, Rocky, Kali, Mint, CachyOS, NixOS, Void, Raspberry Pi OS, Pop!_OS, AlmaLinux, EndeavourOS, Parrot, DietPi, RetroPie, Armbian, RaspAP).
+    - URLs directes HTTPS authentiques vers les CDNs et serveurs d'origine officiels (cdimage.debian.org, releases.ubuntu.com, pkgbuild.com, download.fedoraproject.org, dl-cdn.alpinelinux.org, etc.).
+    - Liens BitTorrent officiels pour téléchargements volumineux rapides et résilients.
+    - URLs et méthodes de contrôle d'intégrité SHA256 / SHA512 et signatures GPG amont.
+    - Commandes terminal 1-clic (`curl -LO ...`, `wget ...`) pour téléchargement direct en ligne de commande.
+  - **Interface Utilisateur & Expérience Dédiée (`OfficialReleasesModal.tsx`)** :
+    - Modal Dark Glassmorphism avec sélecteur de distribution instantané, filtre par architecture (`x86_64`, `aarch64`) et par édition (Bureau Live, Netinst, Serveur, Minimal, SBC).
+    - Guides pas-à-pas de vérification d'empreinte SHA256 sous Linux/macOS (`sha256sum -c`) et Windows PowerShell (`Get-FileHash`).
+    - Intégration intuitive avec raccourcis directs dans `DistroSelector.tsx` (en-tête, cartes individuelles, sélecteur de version active), `Header.tsx` (menu outils rapides), `WizardMode.tsx` (carte récapitulative) et `App.tsx` (avec code-splitting lazy-loading).
 - **22. ⚡ & 🚀 Optimisations Avancées Système & Architecture Modulaire Web** :
   - **Moteur de Build & Optimisations Kernel/I/O (Zéro Cosmétique)** :
     - Accélération APT chroot avec `eatmydata` : neutralisation des `fsync` synchrones temporaires de `dpkg` dans le chroot de build, divisant par 2 à 3 le temps de déballage des paquets.

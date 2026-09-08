@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { OSRecipe, ArchType, OutputFormat, DistroCategory } from '../types/os';
+import { OSRecipe, ArchType, OutputFormat, DistroCategory, DistroId } from '../types/os';
 import { DISTROS } from '../data/distros';
 import { KERNEL_OPTIONS, KernelCategory } from '../data/kernels';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import { KernelUpdateChecker } from './KernelUpdateChecker';
-import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
+import { CheckCircle2, Cpu, HardDrive, Zap, Layers, Image as ImageIcon, Rss, Search, X, Download } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DISTRO_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
@@ -16,9 +16,10 @@ interface DistroSelectorProps {
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
   onOpenScreenshots?: (distroId?: string) => void;
+  onOpenOfficialReleases?: (distroId?: DistroId) => void;
 }
 
-export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
+export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots, onOpenOfficialReleases }) => {
   const { distros: liveDistros } = useLiveVersions();
   const [distroCategory, setDistroCategory] = useState<DistroCategory | 'all'>('all');
   const [distroPkgManager, setDistroPkgManager] = useState<'all' | 'apt' | 'pacman' | 'dnf' | 'other'>('all');
@@ -222,16 +223,36 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
             </p>
           </div>
 
-          {onOpenScreenshots && (
-            <button
-              onClick={() => onOpenScreenshots()}
-              className="btn btn-secondary"
-              style={{ fontSize: '0.78rem', padding: '5px 10px', color: 'var(--cyan)' }}
-            >
-              <ImageIcon size={13} />
-              <span>{lang === 'fr' ? '📸 Galerie des Captures & Aperçus' : '📸 Screenshot Gallery'}</span>
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {onOpenOfficialReleases && (
+              <button
+                onClick={() => onOpenOfficialReleases(recipe.distro as DistroId)}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '5px 10px',
+                  color: '#34d399',
+                  borderColor: 'rgba(16, 185, 129, 0.35)',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                }}
+                title={lang === 'fr' ? 'Télécharger les ISOs officielles sans modif' : 'Download official unmodified ISOs'}
+              >
+                <Download size={13} />
+                <span>{lang === 'fr' ? '📥 Releases Officielles (Sans modif)' : '📥 Official Releases (Vanilla)'}</span>
+              </button>
+            )}
+
+            {onOpenScreenshots && (
+              <button
+                onClick={() => onOpenScreenshots()}
+                className="btn btn-secondary"
+                style={{ fontSize: '0.78rem', padding: '5px 10px', color: 'var(--cyan)' }}
+              >
+                <ImageIcon size={13} />
+                <span>{lang === 'fr' ? '📸 Galerie des Captures & Aperçus' : '📸 Screenshot Gallery'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Barre de Recherche & Filtres de Catégories Distributions */}
@@ -500,31 +521,57 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                   color: 'var(--text-dim)',
                 }}>
                   <span>Gestionnaire: <strong style={{ color: 'var(--cyan)' }}>{distro.packageManager.toUpperCase()}</strong></span>
-                  {onOpenScreenshots ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenScreenshots(distro.id);
-                      }}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.06)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: '4px',
-                        padding: '2px 6px',
-                        color: '#fb923c',
-                        cursor: 'pointer',
-                        fontSize: '0.68rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                      }}
-                    >
-                      <ImageIcon size={11} />
-                      <span>{lang === 'fr' ? 'Aperçu' : 'Preview'}</span>
-                    </button>
-                  ) : (
-                    <span>Base ISO: <strong style={{ color: '#f1f5f9' }}>~{distro.baseIsoSizeMB} Mo</strong></span>
-                  )}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {onOpenOfficialReleases && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenOfficialReleases(distro.id);
+                        }}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          color: '#34d399',
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                        title={lang === 'fr' ? 'Télécharger l\'ISO officielle sans modif' : 'Download official vanilla ISO'}
+                      >
+                        <Download size={11} />
+                        <span>{lang === 'fr' ? 'ISO Pure' : 'Vanilla ISO'}</span>
+                      </button>
+                    )}
+                    {onOpenScreenshots ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenScreenshots(distro.id);
+                        }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          color: '#fb923c',
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                      >
+                        <ImageIcon size={11} />
+                        <span>{lang === 'fr' ? 'Aperçu' : 'Preview'}</span>
+                      </button>
+                    ) : (
+                      <span>Base ISO: <strong style={{ color: '#f1f5f9' }}>~{distro.baseIsoSizeMB} Mo</strong></span>
+                    )}
+                  </div>
                 </div>
 
                 {isSelected && (
@@ -595,7 +642,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <select
                   className="select"
                   style={{ padding: '6px 12px', fontSize: '0.82rem', minWidth: '260px' }}
@@ -616,6 +663,27 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
                     </option>
                   ))}
                 </select>
+
+                {onOpenOfficialReleases && (
+                  <button
+                    onClick={() => onOpenOfficialReleases(recipe.distro as DistroId)}
+                    className="btn btn-secondary"
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '6px 12px',
+                      color: '#34d399',
+                      borderColor: 'rgba(16, 185, 129, 0.35)',
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                    title={lang === 'fr' ? 'Télécharger les ISOs officielles sans modif' : 'Download official vanilla ISOs'}
+                  >
+                    <Download size={13} />
+                    <span>{lang === 'fr' ? 'Télécharger ISO Officielle' : 'Download Official ISO'}</span>
+                  </button>
+                )}
               </div>
             </div>
           );

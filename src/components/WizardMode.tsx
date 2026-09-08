@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { OSRecipe } from '../types/os';
+import { OSRecipe, DistroId } from '../types/os';
 import {
   WIZARD_INTENTS,
   WIZARD_DESKTOP_CHOICES,
@@ -36,6 +36,7 @@ import {
   EyeOff,
   Image as ImageIcon,
   Rocket,
+  Download,
 } from 'lucide-react';
 
 interface WizardModeProps {
@@ -45,6 +46,7 @@ interface WizardModeProps {
   onSwitchToExpert: () => void;
   onOpenScreenshots?: (targetId?: string) => void;
   onOpenAudit?: () => void;
+  onOpenOfficialReleases?: (distroId?: DistroId) => void;
   lang: 'fr' | 'en';
 }
 
@@ -80,6 +82,7 @@ export const WizardMode: React.FC<WizardModeProps> = ({
   onSwitchToExpert,
   onOpenScreenshots,
   onOpenAudit,
+  onOpenOfficialReleases,
   lang,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -768,7 +771,28 @@ export const WizardMode: React.FC<WizardModeProps> = ({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {onOpenOfficialReleases && (
+                  <button
+                    onClick={() => onOpenOfficialReleases(recipe.distro as DistroId)}
+                    className="btn btn-secondary"
+                    style={{
+                      fontSize: '0.82rem',
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: '#34d399',
+                      borderColor: 'rgba(16, 185, 129, 0.35)',
+                      background: 'rgba(16, 185, 129, 0.08)',
+                    }}
+                    title={lang === 'fr' ? 'Télécharger l\'ISO officielle sans modif' : 'Download official vanilla ISO'}
+                  >
+                    <Download size={15} />
+                    <span>{lang === 'fr' ? 'ISO Officielle Sans Modif' : 'Vanilla ISO'}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={onStartBuild}
                   className="btn btn-primary"

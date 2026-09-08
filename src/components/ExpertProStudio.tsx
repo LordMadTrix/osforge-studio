@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { 
   Server, Monitor, Palette, Package, Cpu, Shield, FileCode, Search, 
   ChevronRight, Sliders, Terminal, Zap, Eye, Flame, Check, ArrowRight, ArrowLeft, 
-  PanelRightClose, PanelRightOpen, Sparkles, Layers
+  PanelRightClose, PanelRightOpen, Sparkles, Layers, Download
 } from 'lucide-react';
-import { OSRecipe } from '../types/os';
+import { OSRecipe, DistroId } from '../types/os';
 import { DistroSelector } from './DistroSelector';
 import { DesktopSelector } from './DesktopSelector';
 import { PackageCatalog } from './PackageCatalog';
@@ -37,6 +37,7 @@ interface ExpertProStudioProps {
   onOpenAudit?: () => void;
   onOpenPresets?: () => void;
   onOpenAI?: () => void;
+  onOpenOfficialReleases?: (distroId?: DistroId) => void;
   initialSection?: StudioSectionId;
 }
 
@@ -63,6 +64,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
   onOpenAudit,
   onOpenPresets,
   onOpenAI,
+  onOpenOfficialReleases,
   initialSection = 'base_distro',
 }) => {
   const [activeSection, setActiveSection] = useState<StudioSectionId>(initialSection);
@@ -579,6 +581,27 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
 
             {/* Actions Contextuelles */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {activeSection === 'base_distro' && onOpenOfficialReleases && (
+                <button
+                  onClick={() => onOpenOfficialReleases(recipe.distro as DistroId)}
+                  className="btn btn-secondary"
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    color: '#34d399',
+                    borderColor: 'rgba(16, 185, 129, 0.35)',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                  }}
+                  title={lang === 'fr' ? 'Télécharger les ISOs officielles sans modif' : 'Download official vanilla ISOs'}
+                >
+                  <Download size={14} />
+                  <span>{lang === 'fr' ? 'ISO Officielle (Sans modif)' : 'Vanilla ISO'}</span>
+                </button>
+              )}
+
               {onOpenScreenshots && (
                 <button
                   onClick={() => onOpenScreenshots(activeSection === 'base_distro' ? 'distro' : 'desktop')}
@@ -601,6 +624,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 lang={lang}
                 onOpenTips={onOpenTips}
                 onOpenScreenshots={onOpenScreenshots}
+                onOpenOfficialReleases={onOpenOfficialReleases}
               />
             )}
 
