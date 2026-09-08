@@ -24,6 +24,11 @@ import {
   DetectedHardware,
   AuditRecommendation
 } from '../services/hardwareAuditor';
+import {
+  resolveHardwareDrivers,
+  TargetHardwareProfile,
+  DEFAULT_HARDWARE_PROFILE
+} from '../services/hardwareDriverResolver';
 
 interface HardwareAuditModalProps {
   isOpen: boolean;
@@ -43,10 +48,12 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
   const [hardware, setHardware] = useState<DetectedHardware | null>(null);
   const [recommendation, setRecommendation] = useState<AuditRecommendation | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'diagnosis' | 'cli'>('diagnosis');
+  const [activeTab, setActiveTab] = useState<'diagnosis' | 'drivers' | 'cli'>('diagnosis');
   const [cliPlatform, setCliPlatform] = useState<'bash' | 'bat'>('bash');
   const [copiedCli, setCopiedCli] = useState<boolean>(false);
   const [applied, setApplied] = useState<boolean>(false);
+  const [driverProfile, setDriverProfile] = useState<TargetHardwareProfile>(DEFAULT_HARDWARE_PROFILE);
+  const [driversInjectedNotes, setDriversInjectedNotes] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -84,6 +91,16 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
     setTimeout(() => {
       onClose();
     }, 1200);
+  };
+
+  const handleApplyDrivers = () => {
+    const res = resolveHardwareDrivers(currentRecipe, driverProfile);
+    onApplyRecipe(res.updatedRecipe);
+    setDriversInjectedNotes(lang === 'fr' ? res.explanationsFr : res.explanationsEn);
+    setApplied(true);
+    setTimeout(() => {
+      setApplied(false);
+    }, 2500);
   };
 
   const cliScript = generateHardwareAuditScript(cliPlatform);
@@ -199,6 +216,14 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
           >
             <Activity size={14} />
             <span>{lang === 'fr' ? 'Diagnostic & Recommandation' : 'Diagnosis & Recommendation'}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('drivers')}
+            className={`btn ${activeTab === 'drivers' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+          >
+            <Sparkles size={14} />
+            <span>{lang === 'fr' ? 'Pilotes & Matériel Cible' : 'Target Hardware & Drivers'}</span>
           </button>
           <button
             onClick={() => setActiveTab('cli')}
@@ -345,6 +370,147 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
                   ))}
                 </div>
               </div>
+            </div>
+          ) : activeTab === 'drivers' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: '10px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                fontSize: '0.8rem',
+                color: '#e2e8f0',
+              }}>
+                <span style={{ fontWeight: 700, color: '#38bdf8' }}>
+                  {lang === 'fr' ? 'Configuration automatique des pilotes' : 'Automated Driver Configuration'} :
+                </span>{' '}
+                {lang === 'fr'
+                  ? `Sélectionnez les composants de votre machine cible. OSForge Studio injecte automatiquement les paquets réels compatibles avec votre distribution (${currentRecipe.distro.toUpperCase()}) pour éviter tout écran noir.`
+                  : `Select your target device components. OSForge Studio injects verified packages tailored for ${currentRecipe.distro.toUpperCase()} to prevent black screens.`}
+              </div>
+
+              {/* Formulaire Matériel Cible */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                {/* CPU */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f1f5f9', display: 'block', marginBottom: '6px' }}>
+                    Processeur (Microcode CPU)
+                  </label>
+                  <select
+                    className="select"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '6px 10px' }}
+                    value={driverProfile.cpu}
+                    onChange={e => setDriverProfile({ ...driverProfile, cpu: e.target.value as any })}
+                  >
+                    <option value="generic">Générique / Standard</option>
+                    <option value="intel">Intel Core / Xeon / Celeron</option>
+                    <option value="amd">AMD Ryzen / Threadripper / EPYC</option>
+                  </select>
+                </div>
+
+                {/* GPU */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f1f5f9', display: 'block', marginBottom: '6px' }}>
+                    Carte Graphique (GPU)
+                  </label>
+                  <select
+                    className="select"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '6px 10px' }}
+                    value={driverProfile.gpu}
+                    onChange={e => setDriverProfile({ ...driverProfile, gpu: e.target.value as any })}
+                  >
+                    <option value="vm_virtual">Machine Virtuelle / Standard</option>
+                    <option value="nvidia_proprietary">Nvidia Propriétaire (CUDA / DKMS)</option>
+                    <option value="amd_radeon">AMD Radeon RX / Vega / RDNA (Vulkan RADV)</option>
+                    <option value="intel_arc">Intel Arc / Iris Xe (VA-API QuickSync)</option>
+                  </select>
+                </div>
+
+                {/* Wi-Fi */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f1f5f9', display: 'block', marginBottom: '6px' }}>
+                    Puce Wi-Fi & Bluetooth
+                  </label>
+                  <select
+                    className="select"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '6px 10px' }}
+                    value={driverProfile.wifi}
+                    onChange={e => setDriverProfile({ ...driverProfile, wifi: e.target.value as any })}
+                  >
+                    <option value="generic_all">Firmwares Libres Génériques</option>
+                    <option value="intel_wifi">Intel Wireless (Wi-Fi 6E/7 iwlwifi)</option>
+                    <option value="realtek_wifi">Realtek RTL8xxx (Wi-Fi / Bluetooth)</option>
+                    <option value="broadcom_wifi">Broadcom BCM43xx (STA DKMS)</option>
+                  </select>
+                </div>
+
+                {/* Type d'Appareil */}
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--border-subtle)', borderRadius: '10px', padding: '12px' }}>
+                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#f1f5f9', display: 'block', marginBottom: '6px' }}>
+                    Type d'Appareil (Alimentation)
+                  </label>
+                  <select
+                    className="select"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '6px 10px' }}
+                    value={driverProfile.formFactor}
+                    onChange={e => setDriverProfile({ ...driverProfile, formFactor: e.target.value as any })}
+                  >
+                    <option value="desktop">PC Fixe / Station de Travail</option>
+                    <option value="laptop">PC Portable (TLP + Powertop)</option>
+                    <option value="handheld_deck">Console Portable (Steam Deck / Ally)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Toggles matériel */}
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={driverProfile.installTpm2}
+                    onChange={e => setDriverProfile({ ...driverProfile, installTpm2: e.target.checked })}
+                  />
+                  <span>Intégrer les outils de sécurité matérielle TPM 2.0 (tpm2-tools)</span>
+                </label>
+              </div>
+
+              {/* Bouton d'application */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  onClick={handleApplyDrivers}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '8px 18px',
+                    fontSize: '0.84rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: applied ? '#10b981' : undefined,
+                  }}
+                >
+                  {applied ? <Check size={16} /> : <Sparkles size={16} />}
+                  <span>{applied ? (lang === 'fr' ? 'Pilotes injectés !' : 'Drivers injected!') : (lang === 'fr' ? 'Injecter les pilotes recommandés' : 'Inject recommended drivers')}</span>
+                </button>
+              </div>
+
+              {/* Notes d'injection */}
+              {driversInjectedNotes.length > 0 && (
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  fontSize: '0.74rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                }}>
+                  <span style={{ fontWeight: 700, color: '#34d399' }}>Modifications appliquées à la recette :</span>
+                  {driversInjectedNotes.map((note, idx) => (
+                    <div key={idx} style={{ color: '#cbd5e1' }}>• {note}</div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             /* CLI Audit Script View */

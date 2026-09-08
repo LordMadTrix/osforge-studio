@@ -194,3 +194,50 @@ describe('DISTRO_PRESETS — Nouveaux Presets Spécialisés (Home Server NAS, AI
     expect(script).toContain('wireguard');
   });
 });
+
+describe('DISTRO_PRESETS — Nouveaux Presets Spécialisés V2 (Handheld Deck, Cloud Edge K3s, Cyber Forensic DFIR)', () => {
+  it('gaming_handheld_deck : présent dans le catalogue, configure Gamescope, Vulkan RADV et GameMode', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'gaming_handheld_deck');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('arch');
+    expect(preset!.recipe.outputFormat).toBe('qcow2');
+    expect(preset!.recipe.kernel).toBe('zen');
+    expect(preset!.recipe.enableGamingOptimizations).toBe(true);
+    expect(preset!.recipe.customPackages).toContain('gamescope');
+    expect(preset!.recipe.customPackages).toContain('vulkan-radeon');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('gamescope');
+    expect(script).toContain('vulkan-radeon');
+  });
+
+  it('cloud_edge_k3s : présent dans le catalogue, configure Docker, ports K3s et noyau cloud_micro', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'cloud_edge_k3s');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.outputFormat).toBe('qcow2');
+    expect(preset!.recipe.kernel).toBe('cloud_micro');
+    expect(preset!.recipe.security?.allowedPorts).toContain(6443);
+    expect(preset!.recipe.security?.allowedPorts).toContain(10250);
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('docker');
+    expect(script).toContain('6443');
+  });
+
+  it('cyber_forensic_investigator : présent dans le catalogue, configure SleuthKit, TestDisk, Gddrescue en ISO hybrid', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'cyber_forensic_investigator');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.outputFormat).toBe('iso_hybrid');
+    expect(preset!.recipe.customPackages).toContain('sleuthkit');
+    expect(preset!.recipe.customPackages).toContain('testdisk');
+    expect(preset!.recipe.customPackages).toContain('gddrescue');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('sleuthkit');
+    expect(script).toContain('testdisk');
+    expect(script).toContain('gddrescue');
+  });
+});
+

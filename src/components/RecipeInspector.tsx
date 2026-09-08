@@ -16,6 +16,7 @@ import {
   generateUniversalLauncherSh,
   generateIpxeScript,
   generatePxeServerScript,
+  generatePxeServerPowershell,
   generateVentoyJson,
   generateUsbFlashScript,
   generateOfflineCacheBundleScript,
@@ -155,6 +156,13 @@ const FILE_DEFINITIONS: Record<string, FileDef> = {
     descFr: 'Script de déploiement automatique d’un serveur PXE (dnsmasq, nginx, tftp) sur le réseau local.',
     descEn: 'PXE server deployment script.',
     generate: generatePxeServerScript,
+  },
+  'setup-pxe.ps1': {
+    title: 'Setup-Netboot.ps1 (Serveur Netboot iPXE Windows)',
+    lang: 'powershell',
+    descFr: 'Script PowerShell pour préparer et servir le boot iPXE en local sous Windows.',
+    descEn: 'PowerShell script to prepare and serve iPXE netboot under Windows.',
+    generate: generatePxeServerPowershell,
   },
   'ventoy.json': {
     title: 'ventoy.json (Clé Multi-Boot Ventoy)',

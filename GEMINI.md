@@ -146,7 +146,27 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **814 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 102 fichiers.
+- Suite de tests : **824 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- **24. 🌐, 🛠️, 💾 & 🎮 Écosystème Ultime V2 : Serveur Netboot PXE Clé-en-main, Résolution Automatique de Pilotes Matériels, Gravure USB Sécurisée avec Persistance Live, Simulateur de Build & Presets Spécialisés** :
+  - **Serveur PXE / iPXE Netboot Clé-en-main (`Setup-Netboot.ps1` & `setup-pxe-server.sh`)** :
+    - Générateur `generatePxeServerPowershell(recipe)` créant un script PowerShell natif sans outil tiers sous Windows pour préparer et servir le boot iPXE en local (TFTP/HTTP, détection d'IP locale, génération de `boot.ipxe`).
+    - Câblé dans `RecipeInspector.tsx` (`setup-pxe.ps1`) et inclus dans le kit de build `.zip` (`buildExport.ts`).
+  - **Assistant de Résolution Automatique des Pilotes Matériels (`hardwareDriverResolver.ts`)** :
+    - Détection intelligente du matériel cible : CPU Intel (`intel-microcode`) / AMD (`amd-microcode`), GPU Nvidia (DKMS proprietary + `nvidia-drm.modeset=1`), AMD (Mesa RADV Vulkan + firmware), Intel (Mesa Iris/ANV + VA-API), Cartes Wi-Fi (Realtek `firmware-realtek`, Broadcom `broadcom-sta-dkms`, Intel `firmware-iwlwifi`), Gestion énergétique PC portable (`tlp`), Sécurité matérielle TPM 2.0 (`tpm2-tools`).
+    - Support cross-distro (Debian, Arch, Fedora/Rocky).
+    - Intégration d'un onglet interactif "Pilotes & Matériel Cible" dans `HardwareAuditModal.tsx` avec injection en 1-clic dans la recette active et prévisualisation des paquets et cmdline ajoutés.
+  - **Interface Graphique de Gravure USB Sécurisée avec Persistance Live (`UsbFlasherModal.tsx`)** :
+    - Modal Dark Glassmorphism avec saisie sécurisée du périphérique cible (`/dev/sdX` ou `PhysicalDriveN`).
+    - Garde-fous stricts contre l'écrasement des disques système (`/dev/sda`, `/dev/nvme0n1`, `PhysicalDrive0`).
+    - Curseur de taille de persistance dynamique (1 à 64 Go) avec formatage ext4 et label `persistence` (`union=overlay`).
+    - Génération et aperçu en direct des scripts de gravure Bash (`dd status=progress` + `parted`) et PowerShell (`Clear-Disk` + `dd`), avec téléchargement 1-clic.
+  - **Simulateur de Déroulement de Build Dry-Run Interactif (`BuildSimulatorModal.tsx`)** :
+    - Terminal ANSI avec défilement fluide exécutant chronologiquement les 8 étapes clés de la compilation (Host Check, RootFS Bootstrap, Kernel & Drivers, Custom Branding, User & Security, Cleanup, SquashFS Compression, Hybrid ISO Generation).
+    - Contrôles interactifs : Play, Pause, Réinitialiser, Accélérateur de vitesse (x1, x2, x5), et explications pédagogiques détaillées pour chaque phase.
+  - **3 Nouveaux Presets Métiers Spécialisés Réels (`DISTRO_PRESETS`)** :
+    - `gaming_handheld_deck` : Handheld Steam Console & Deck Experience (Arch Linux + Gamescope Session + BORE/Zen Kernel + Vulkan RADV + GameMode + MangoHud OSD).
+    - `cloud_edge_k3s` : Cloud Edge & K3s Micro-Cluster (Debian 12 + K3s Kubernetes ready + Cloud Kernel allégé + Pare-feu durci UFW ports 6443/10250 + WireGuard).
+    - `cyber_forensic_investigator` : Cyber Forensic & Incident Response DFIR (Debian 12 + ISO Hybrid Live + XFCE + The Sleuth Kit + TestDisk + Gddrescue + Foremost + Binwalk).
 - **23. 📥 & 🌐 Téléchargement des Releases Officielles Sans Modification (Vanilla ISOs & Checksums)** :
   - **Catalogue des Releases Officielles Amont (`src/data/officialReleases.ts`)** :
     - Couverture exhaustive des 21 distributions Linux du catalogue sans exception (Debian, Ubuntu, Arch, Fedora, Alpine, openSUSE, Rocky, Kali, Mint, CachyOS, NixOS, Void, Raspberry Pi OS, Pop!_OS, AlmaLinux, EndeavourOS, Parrot, DietPi, RetroPie, Armbian, RaspAP).

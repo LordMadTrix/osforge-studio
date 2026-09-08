@@ -14,6 +14,7 @@ import {
   generateAutoBuildSh,
   generateIpxeScript,
   generatePxeServerScript,
+  generatePxeServerPowershell,
   generateVentoyJson,
   generateQemuTestBat,
   generateQemuTestSh
@@ -40,6 +41,7 @@ export async function createDownloadableZip(recipe: OSRecipe): Promise<Blob> {
   const testVmSh = generateQemuTestSh(recipe);
   const ipxeScript = generateIpxeScript(recipe);
   const pxeServerScript = generatePxeServerScript(recipe);
+  const pxeServerPs = generatePxeServerPowershell(recipe);
   const ventoyJson = generateVentoyJson(recipe);
 
   // Readme instructions
@@ -94,6 +96,7 @@ Généré par **OSForge Studio** (compatible OpenFactory).
   zip.file('Dockerfile', dockerfile);
   zip.file('boot.ipxe', ipxeScript);
   zip.file('setup-pxe-server.sh', pxeServerScript);
+  zip.file('Setup-Netboot.ps1', pxeServerPs);
   zip.file('ventoy.json', ventoyJson);
   zip.file('cloud-init.yaml', cloudInit);
   zip.file('recipe.json', recipeJson);

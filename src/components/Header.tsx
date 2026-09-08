@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Layers, Wand2, Sliders, Search, Share2, Check, Download, Heart, 
   ChevronDown, Sparkles, Activity, BookOpen, Image as ImageIcon, 
-  Lightbulb, Zap, Globe, Save, Monitor 
+  Lightbulb, Zap, Globe, Save, Monitor, Disc, Terminal 
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
@@ -21,6 +21,8 @@ interface HeaderProps {
   onOpenProfiles?: () => void;
   onOpenDesktopDownload?: () => void;
   onOpenOfficialReleases?: () => void;
+  onOpenUsbFlasher?: () => void;
+  onOpenBuildSimulator?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -43,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenProfiles,
   onOpenDesktopDownload,
   onOpenOfficialReleases,
+  onOpenUsbFlasher,
+  onOpenBuildSimulator,
   uiMode,
   setUiMode,
   lang,
@@ -518,6 +522,54 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <Monitor size={14} color="#0284c7" />
                     <span>{lang === 'fr' ? 'Application Desktop (PC)' : 'Desktop App (PC)'}</span>
+                  </button>
+                )}
+
+                {onOpenUsbFlasher && (
+                  <button
+                    onClick={() => { onOpenUsbFlasher(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Disc size={14} color="#f59e0b" />
+                    <span>{lang === 'fr' ? 'Gravure USB & Persistance Live' : 'USB Flasher & Live Persistence'}</span>
+                  </button>
+                )}
+
+                {onOpenBuildSimulator && (
+                  <button
+                    onClick={() => { onOpenBuildSimulator(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Terminal size={14} color="#06b6d4" />
+                    <span>{lang === 'fr' ? 'Simulateur de Build (Dry-Run)' : 'Build Simulator (Dry-Run)'}</span>
                   </button>
                 )}
 

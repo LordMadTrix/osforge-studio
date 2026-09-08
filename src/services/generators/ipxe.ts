@@ -150,3 +150,50 @@ echo -e "Les PC clients peuvent désormais booter sur le réseau (F12 au démarr
 echo -e "\\033[1;32m==============================================================================\\033[0m"
 `;
 }
+
+export function generatePxeServerPowershell(recipe: OSRecipe): string {
+  const osName = sanitizeGrubTitle(recipe.branding.osName || 'Custom Linux');
+  const ipxeContent = generateIpxeScript(recipe);
+
+  return `# ==============================================================================
+# OSForge Studio - Serveur Netboot / iPXE Windows (PowerShell)
+# Système : ${osName} (${recipe.distro})
+# ==============================================================================
+
+$ErrorActionPreference = "Stop"
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "  OSForge Studio — Déploiement Serveur Netboot iPXE (Windows)        " -ForegroundColor Yellow
+Write-Host "======================================================================" -ForegroundColor Cyan
+
+$NetbootDir = Join-Path $PSScriptRoot "netboot"
+$HttpDir = Join-Path $NetbootDir "osforge"
+New-Item -ItemType Directory -Force -Path $HttpDir | Out-Null
+
+# 1. Écriture du script iPXE boot.ipxe
+$IpxeFile = Join-Path $HttpDir "boot.ipxe"
+@'
+${ipxeContent}
+'@ | Set-Content -Path $IpxeFile -Encoding UTF8
+Write-Host "[OK] Script iPXE généré : $IpxeFile" -ForegroundColor Green
+
+# 2. Téléchargement des binaires iPXE officiels si absents
+$Undionly = Join-Path $NetbootDir "undionly.kpxe"
+$IpxeEfi = Join-Path $NetbootDir "ipxe.efi"
+
+if (-not (Test-Path $Undionly)) {
+    Write-Host "[INFO] Téléchargement de undionly.kpxe (boot.ipxe.org)..." -ForegroundColor Gray
+    Invoke-WebRequest -Uri "http://boot.ipxe.org/undionly.kpxe" -OutFile $Undionly -UseBasicParsing
+}
+if (-not (Test-Path $IpxeEfi)) {
+    Write-Host "[INFO] Téléchargement de ipxe.efi (boot.ipxe.org)..." -ForegroundColor Gray
+    Invoke-WebRequest -Uri "http://boot.ipxe.org/ipxe.efi" -OutFile $IpxeEfi -UseBasicParsing
+}
+
+Write-Host "======================================================================" -ForegroundColor Green
+Write-Host " Serveur iPXE Windows Prêt !" -ForegroundColor Green
+Write-Host " Fichiers servis dans : $HttpDir" -ForegroundColor Cyan
+Write-Host " Copiez-y vmlinuz, initrd et filesystem.squashfs." -ForegroundColor Yellow
+Write-Host "======================================================================" -ForegroundColor Green
+`;
+}
+

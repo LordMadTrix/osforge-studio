@@ -24,6 +24,8 @@ const DownloadDesktopModal = lazy(() => import('./components/DownloadDesktopModa
 const WizardMode = lazy(() => import('./components/WizardMode').then(m => ({ default: m.WizardMode })));
 const ExpertProStudio = lazy(() => import('./components/ExpertProStudio').then(m => ({ default: m.ExpertProStudio })));
 const OfficialReleasesModal = lazy(() => import('./components/OfficialReleasesModal').then(m => ({ default: m.OfficialReleasesModal })));
+const UsbFlasherModal = lazy(() => import('./components/UsbFlasherModal').then(m => ({ default: m.UsbFlasherModal })));
+const BuildSimulatorModal = lazy(() => import('./components/BuildSimulatorModal').then(m => ({ default: m.BuildSimulatorModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -103,6 +105,8 @@ export const App: React.FC = () => {
   const [isDesktopDownloadOpen, setIsDesktopDownloadOpen] = useState<boolean>(false);
   const [isOfficialReleasesOpen, setIsOfficialReleasesOpen] = useState<boolean>(false);
   const [officialReleasesDistro, setOfficialReleasesDistro] = useState<DistroId | undefined>(undefined);
+  const [isUsbFlasherOpen, setIsUsbFlasherOpen] = useState<boolean>(false);
+  const [isBuildSimulatorOpen, setIsBuildSimulatorOpen] = useState<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
@@ -190,6 +194,8 @@ export const App: React.FC = () => {
         onOpenProfiles={() => setIsProfilesOpen(true)}
         onOpenDesktopDownload={() => setIsDesktopDownloadOpen(true)}
         onOpenOfficialReleases={handleOpenOfficialReleases}
+        onOpenUsbFlasher={() => setIsUsbFlasherOpen(true)}
+        onOpenBuildSimulator={() => setIsBuildSimulatorOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -491,6 +497,20 @@ export const App: React.FC = () => {
           onClose={() => setIsOfficialReleasesOpen(false)}
           lang={lang}
           initialDistroId={officialReleasesDistro}
+        />
+
+        <UsbFlasherModal
+          isOpen={isUsbFlasherOpen}
+          onClose={() => setIsUsbFlasherOpen(false)}
+          recipe={recipe}
+          lang={lang}
+        />
+
+        <BuildSimulatorModal
+          isOpen={isBuildSimulatorOpen}
+          onClose={() => setIsBuildSimulatorOpen(false)}
+          recipe={recipe}
+          lang={lang}
         />
       </Suspense>
     </div>
