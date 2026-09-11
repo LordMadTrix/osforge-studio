@@ -146,7 +146,18 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **827 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- Suite de tests : **835 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **28. 🥽 & 🖨️ Packs Casques VR (OpenXR) & Fabrication Numérique (Impression 3D & Laser CNC)** :
+  - **Écosystème Casques VR & Réalité Virtuelle** :
+    - 3 paquets logiciels vérifiés multi-distros : `openxr_runtime` (Monado service/gui conforme Khronos), `vr_headset_drivers` (règles udev matériel VR), `vr_wireless_streaming` (Avahi mDNS + PipeWire streaming pour Meta Quest / Pico 4 avec WiVRn/ALVR).
+    - Bouton 1-clic direct `🥽 Casques VR & XR` dans la barre des packs de `PackageCatalog.tsx`.
+    - Injection automatique des règles udev universelles `/etc/udev/rules.d/70-xrhardware.rules` (Valve Index, HTC Vive, Meta Quest, Bigscreen Beyond, WMR, PSVR2), attribution des groupes `plugdev,video,audio,input,games`, activation du démon `avahi-daemon` et utilitaire de diagnostic `/usr/local/bin/osforge-vr-doctor`.
+  - **Écosystème Fabrication Numérique (Impression 3D & Laser CNC)** :
+    - 4 paquets logiciels vérifiés multi-distros : `prusa_slicer` (PrusaSlicer FDM/SLA + Printrun Pronterface), `freecad_openscad` (CAO 3D paramétrique), `laser_cnc_vector` (Inkscape + LibreCAD avec extensions G-code/DXF), `hardware_serial_dialout` (SetSerial, Minicom).
+    - Bouton 1-clic direct `🖨️ Print 3D & Laser CNC` dans la barre des packs de `PackageCatalog.tsx`.
+    - Neutralisation automatique du conflit critique `brltty` (`systemctl mask brltty.service brltty-udev.service`) qui coupait les ports série USB des imprimantes et lasers, attribution des groupes `dialout` et `uucp`, déploiement des règles udev `/etc/udev/rules.d/99-osforge-3dprint-laser.rules` (CH340, CP210x, FTDI, STM32, Arduino, RP2040) et utilitaire `/usr/local/bin/osforge-maker-doctor`.
+  - **Zéro Cosmétique & Zéro Régression** :
+    - Câblé dans `debian.ts` et `nonDebian.ts` via `makerHardware.ts`. Suite de 8 tests unitaires dédiés dans `makerHardware.test.ts`.
 - **27. 📦 & 🎨 Refonte Ergonomique & Studio Modulaire de la Logithèque (`PackageCatalog.tsx`)** :
   - **Segmentation Modulaire en 3 Vues Claires** :
     - *Vue 1 : Catalogue Logiciel* : Barre de recherche dynamique avec remise à zéro instantanée, filtres d'environnement (Tous, GUI 🖥️, CLI 💻, Services ⚙️), navigation par catégories avec compteurs réactifs, packs thématiques 1-clic compacts (Dev, Compilateurs, IA, Gaming, CyberSec), tags et cartes Dark Glassmorphism 2.0 avec nom distro natif et bouton d'action explicite.

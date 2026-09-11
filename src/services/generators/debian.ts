@@ -53,6 +53,7 @@ import {
 import { generateBrandingChrootCommands } from './branding';
 import { offlineRepoConfigCmd } from './offlineCache';
 import { generateGamingChrootCommands } from './gaming';
+import { generateMakerHardwareChrootCommands } from './makerHardware';
 import { generateAlternativeBootloaderCommands } from './bootloader';
 import { generateCryptenrollCommand } from './luksHardware';
 
@@ -571,6 +572,7 @@ ${vpnConfigCmd(recipe, 'debian')}
 ${communityReposCmd(recipe, 'debian')}
 ${gamingSysctlCmd(recipe)}
 ${generateGamingChrootCommands(recipe)}
+${generateMakerHardwareChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, 'debian')}
 ${sshHardeningCmd(recipe, 'debian')}

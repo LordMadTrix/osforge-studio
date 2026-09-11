@@ -610,6 +610,20 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
                 >
                   🛡️ CyberSec
                 </button>
+                <button
+                  onClick={() => selectPack(['openxr_runtime', 'vr_headset_drivers', 'vr_wireless_streaming', 'steam'])}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                >
+                  🥽 Casques VR & XR
+                </button>
+                <button
+                  onClick={() => selectPack(['prusa_slicer', 'freecad_openscad', 'laser_cnc_vector', 'hardware_serial_dialout'])}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '4px', borderColor: 'rgba(245, 158, 11, 0.4)' }}
+                >
+                  🖨️ Print 3D & Laser CNC
+                </button>
               </div>
 
               {/* Tags discrets */}

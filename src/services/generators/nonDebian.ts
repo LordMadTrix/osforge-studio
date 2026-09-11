@@ -51,6 +51,7 @@ import {
 import { offlineRepoConfigCmd } from './offlineCache';
 import { generateBrandingChrootCommands } from './branding';
 import { generateGamingChrootCommands } from './gaming';
+import { generateMakerHardwareChrootCommands } from './makerHardware';
 import { generateAlternativeBootloaderCommands } from './bootloader';
 import { generateCryptenrollCommand, resolveCrypttabOptions } from './luksHardware';
 
@@ -615,6 +616,7 @@ ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
 ${generateGamingChrootCommands(recipe)}
+${generateMakerHardwareChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
@@ -940,6 +942,7 @@ ${vpnConfigCmd(recipe, family)}
 ${communityReposCmd(recipe, family)}
 ${gamingSysctlCmd(recipe)}
 ${generateGamingChrootCommands(recipe)}
+${generateMakerHardwareChrootCommands(recipe)}
 ${steamConsoleModeCmd(recipe)}
 ${powerSavingCmd(recipe, family)}
 ${sshHardeningCmd(recipe, family)}
