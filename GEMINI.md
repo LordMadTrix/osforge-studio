@@ -147,6 +147,15 @@ après.
 ## État au moment de la rédaction de ce fichier
 
 - Suite de tests : **827 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- **27. 📦 & 🎨 Refonte Ergonomique & Studio Modulaire de la Logithèque (`PackageCatalog.tsx`)** :
+  - **Segmentation Modulaire en 3 Vues Claires** :
+    - *Vue 1 : Catalogue Logiciel* : Barre de recherche dynamique avec remise à zéro instantanée, filtres d'environnement (Tous, GUI 🖥️, CLI 💻, Services ⚙️), navigation par catégories avec compteurs réactifs, packs thématiques 1-clic compacts (Dev, Compilateurs, IA, Gaming, CyberSec), tags et cartes Dark Glassmorphism 2.0 avec nom distro natif et bouton d'action explicite.
+    - *Vue 2 : Stacks & Profils OOB* : Tableau de bord dédié en grille 2x2 des 4 architectures prêtes à l'emploi (IA Locale Ollama, Homelab Docker Compose, Dépôts Tiers deb822 Keyrings, Passerelle Réseau AdGuard/WireGuard/Cockpit).
+    - *Vue 3 : Paquets Personnalisés & Import/Export* : Interface de saisie libre adaptée au gestionnaire de paquets de la distro active (`distro.packageManager.toUpperCase()`), suggestions rapides 1-clic (`+jq`, `+eza`, `+bat`, etc.), badges de paquets custom avec suppression facile, et panneau dépliable d'import/export de listes texte.
+  - **Tiroir de Sélection Déroulant & Non-Intrusif** :
+    - Remplacement du long bloc statique empilé par un bouton d'en-tête dynamique affichant le nombre de paquets et l'empreinte disque estimée (`Sélection (X) (~Y Mo)`), ouvrant un tiroir rétractable propre avec badges cliquables pour retrait rapide.
+  - **Zéro Régression & Zéro Cosmétique** :
+    - Préservation intégrale de toutes les options de recette, des sélections logicielles et de l'intégration dans le moteur de build bash/systemd.
 - **26. 🛡️ & ✒️ Identité de Marque & Signature Officielle LordMadTrix** :
   - **Intégration de la Règle Workspace (`.agents/rules/signature.md`)** :
     - Importation et application de la règle officielle de marque issue de l'écosystème LordMadTrix.
