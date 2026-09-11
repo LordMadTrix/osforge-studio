@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Cpu,
@@ -22,7 +22,6 @@ import {
   analyzeAndRecommend,
   generateHardwareAuditScript,
   DetectedHardware,
-  AuditRecommendation
 } from '../services/hardwareAuditor';
 import {
   resolveHardwareDrivers,
@@ -46,7 +45,6 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
   currentRecipe,
 }) => {
   const [hardware, setHardware] = useState<DetectedHardware | null>(null);
-  const [recommendation, setRecommendation] = useState<AuditRecommendation | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'diagnosis' | 'drivers' | 'cli'>('diagnosis');
   const [cliPlatform, setCliPlatform] = useState<'bash' | 'bat'>('bash');
@@ -55,19 +53,22 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
   const [driverProfile, setDriverProfile] = useState<TargetHardwareProfile>(DEFAULT_HARDWARE_PROFILE);
   const [driversInjectedNotes, setDriversInjectedNotes] = useState<string[]>([]);
 
+  // Dérivation pure de la recommandation via useMemo (zéro cascade de re-renders)
+  const recommendation = useMemo(() => {
+    if (!hardware) return null;
+    return analyzeAndRecommend(hardware, currentRecipe);
+  }, [hardware, currentRecipe]);
+
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || hardware) return;
 
     let isMounted = true;
     const runAudit = async () => {
       setLoading(true);
-      setApplied(false);
       try {
         const detected = await detectHardwareProfile();
         if (!isMounted) return;
         setHardware(detected);
-        const reco = analyzeAndRecommend(detected, currentRecipe);
-        setRecommendation(reco);
       } catch (err) {
         console.error('Erreur audit matériel:', err);
       } finally {
@@ -80,7 +81,12 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, currentRecipe]);
+  }, [isOpen, hardware]);
+
+  const handleClose = () => {
+    setApplied(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -89,7 +95,7 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
     onApplyRecipe(recommendation.suggestedRecipeChanges);
     setApplied(true);
     setTimeout(() => {
-      onClose();
+      handleClose();
     }, 1200);
   };
 
@@ -183,7 +189,7 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               background: 'rgba(255, 255, 255, 0.06)',
               border: '1px solid var(--border-subtle)',

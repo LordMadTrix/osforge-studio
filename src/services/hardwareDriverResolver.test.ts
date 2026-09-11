@@ -123,4 +123,27 @@ describe('Hardware Driver Resolver (Zéro Cosmétique)', () => {
     });
     expect(res.addedPackages).toContain('tpm2-tools');
   });
+
+  it('supports openSUSE and Alpine driver resolution', () => {
+    const suseRes = resolveHardwareDrivers({ ...BASE_RECIPE, distro: 'opensuse' }, {
+      ...DEFAULT_HARDWARE_PROFILE,
+      cpu: 'intel',
+      gpu: 'amd_radeon',
+      installTpm2: true,
+    });
+    expect(suseRes.addedPackages).toContain('ucode-intel');
+    expect(suseRes.addedPackages).toContain('kernel-firmware-amdgpu');
+    expect(suseRes.addedPackages).toContain('libvulkan_radeon');
+    expect(suseRes.addedPackages).toContain('tpm2-tools');
+
+    const alpineRes = resolveHardwareDrivers({ ...BASE_RECIPE, distro: 'alpine' }, {
+      ...DEFAULT_HARDWARE_PROFILE,
+      cpu: 'amd',
+      gpu: 'amd_radeon',
+      installTpm2: true,
+    });
+    expect(alpineRes.addedPackages).toContain('amd-ucode');
+    expect(alpineRes.addedPackages).toContain('mesa-vulkan-ati');
+    expect(alpineRes.addedPackages).toContain('tpm2-tools');
+  });
 });

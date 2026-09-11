@@ -41,7 +41,9 @@ export function resolveHardwareDrivers(
   const isDebianLike = ['debian', 'ubuntu', 'kali', 'raspbian', 'linuxmint', 'popos', 'parrot', 'dietpi', 'retropie', 'armbian', 'raspap'].includes(recipe.distro);
   const isArchLike = ['arch', 'cachyos', 'endeavouros'].includes(recipe.distro);
   const isFedoraLike = ['fedora', 'rocky', 'almalinux'].includes(recipe.distro);
-
+  const isSuseLike = recipe.distro === 'opensuse';
+  const isAlpineLike = recipe.distro === 'alpine';
+  const isVoidLike = recipe.distro === 'void';
 
   const newCustomPackages = new Set<string>(recipe.customPackages || []);
   const addedPkgs: string[] = [];
@@ -61,12 +63,14 @@ export function resolveHardwareDrivers(
   // 1. Microcode CPU
   if (profile.cpu === 'intel') {
     if (isDebianLike) addPkg('intel-microcode', 'Microcode processeur Intel avec correctifs de sécurité hardware', 'Intel CPU microcode with hardware security fixes');
-    else if (isArchLike) addPkg('intel-ucode', 'Microcode processeur Intel pour initramfs Arch', 'Intel CPU microcode for Arch initramfs');
+    else if (isArchLike || isAlpineLike || isVoidLike) addPkg('intel-ucode', 'Microcode processeur Intel pour initramfs', 'Intel CPU microcode for initramfs');
     else if (isFedoraLike) addPkg('microcode_ctl', 'Gestionnaire de microcode CPU Intel/AMD RedHat', 'RedHat Intel/AMD CPU microcode manager');
+    else if (isSuseLike) addPkg('ucode-intel', 'Microcode processeur Intel pour openSUSE', 'Intel CPU microcode for openSUSE');
   } else if (profile.cpu === 'amd') {
     if (isDebianLike) addPkg('amd64-microcode', 'Microcode processeur AMD Ryzen/EPYC avec correctifs hardware', 'AMD Ryzen/EPYC CPU microcode with hardware fixes');
-    else if (isArchLike) addPkg('amd-ucode', 'Microcode processeur AMD pour initramfs Arch', 'AMD CPU microcode for Arch initramfs');
+    else if (isArchLike || isAlpineLike || isVoidLike) addPkg('amd-ucode', 'Microcode processeur AMD pour initramfs', 'AMD CPU microcode for initramfs');
     else if (isFedoraLike) addPkg('microcode_ctl', 'Gestionnaire de microcode CPU Intel/AMD RedHat', 'RedHat Intel/AMD CPU microcode manager');
+    else if (isSuseLike) addPkg('ucode-amd', 'Microcode processeur AMD pour openSUSE', 'AMD CPU microcode for openSUSE');
   }
 
   // 2. Pilotes Graphiques GPU
@@ -93,6 +97,12 @@ export function resolveHardwareDrivers(
     } else if (isFedoraLike) {
       addPkg('mesa-vulkan-drivers', 'Pilotes Vulkan Mesa pour Fedora', 'Mesa Vulkan drivers for Fedora');
       addPkg('mesa-dri-drivers', 'Pilotes Mesa DRI Radeon pour Fedora', 'Mesa DRI Radeon drivers for Fedora');
+    } else if (isAlpineLike) {
+      addPkg('mesa-vulkan-ati', 'Pilote Vulkan RADV AMD pour Alpine', 'AMD RADV Vulkan driver for Alpine');
+      addPkg('mesa-dri-gallium', 'Pilotes graphiques Mesa Gallium DRI pour Alpine', 'Mesa Gallium DRI graphics drivers for Alpine');
+    } else if (isSuseLike) {
+      addPkg('kernel-firmware-amdgpu', 'Firmwares AMDGPU pour openSUSE', 'AMDGPU firmwares for openSUSE');
+      addPkg('libvulkan_radeon', 'Pilote Vulkan RADV pour openSUSE', 'Vulkan RADV driver for openSUSE');
     }
   } else if (profile.gpu === 'intel_arc') {
     if (isDebianLike) {
@@ -104,6 +114,12 @@ export function resolveHardwareDrivers(
     } else if (isFedoraLike) {
       addPkg('intel-media-driver', 'Accélération VA-API Intel pour Fedora', 'Intel VA-API acceleration for Fedora');
       addPkg('mesa-vulkan-drivers', 'Pilote Vulkan Intel pour Fedora', 'Intel Vulkan driver for Fedora');
+    } else if (isAlpineLike) {
+      addPkg('intel-media-driver', 'Accélération VA-API Intel pour Alpine', 'Intel VA-API acceleration for Alpine');
+      addPkg('mesa-vulkan-intel', 'Pilote Vulkan Intel ANV pour Alpine', 'Intel ANV Vulkan driver for Alpine');
+    } else if (isSuseLike) {
+      addPkg('intel-media-driver', 'Accélération VA-API Intel pour openSUSE', 'Intel VA-API acceleration for openSUSE');
+      addPkg('libvulkan_intel', 'Pilote Vulkan Intel pour openSUSE', 'Intel Vulkan driver for openSUSE');
     }
   }
 
@@ -113,9 +129,11 @@ export function resolveHardwareDrivers(
     else if (isArchLike) addPkg('broadcom-wl-dkms', 'Pilote Broadcom WL DKMS pour Arch', 'Broadcom WL DKMS driver for Arch');
   } else if (profile.wifi === 'realtek_wifi') {
     if (isDebianLike) addPkg('firmware-realtek', 'Firmwares cartes Wi-Fi et Bluetooth Realtek RTL8xxx', 'Realtek RTL8xxx Wi-Fi and Bluetooth firmwares');
-    else if (isArchLike || isFedoraLike) addPkg('linux-firmware', 'Ensemble des firmwares matériels sans-fil', 'Full wireless hardware firmware bundle');
+    else if (isArchLike || isFedoraLike || isVoidLike) addPkg('linux-firmware', 'Ensemble des firmwares matériels sans-fil', 'Full wireless hardware firmware bundle');
+    else if (isSuseLike) addPkg('kernel-firmware-realtek', 'Firmwares Realtek pour openSUSE', 'Realtek firmwares for openSUSE');
   } else if (profile.wifi === 'intel_wifi') {
     if (isDebianLike) addPkg('firmware-iwlwifi', 'Firmwares puces Wi-Fi Intel Wireless / Wi-Fi 6E/7', 'Intel Wireless / Wi-Fi 6E/7 firmwares');
+    else if (isSuseLike) addPkg('kernel-firmware-iwlwifi', 'Firmwares Wi-Fi Intel pour openSUSE', 'Intel Wi-Fi firmwares for openSUSE');
   } else if (profile.wifi === 'generic_all') {
     if (isDebianLike) {
       addPkg('firmware-linux-free', 'Firmwares matériels libres de base', 'Base free hardware firmwares');
@@ -124,7 +142,7 @@ export function resolveHardwareDrivers(
 
   // 4. Form Factor & Gestion d'Énergie
   if (profile.formFactor === 'laptop') {
-    if (isDebianLike || isArchLike || isFedoraLike) {
+    if (isDebianLike || isArchLike || isFedoraLike || isSuseLike || isVoidLike) {
       addPkg('tlp', 'Optimiseur de batterie et gestion dynamique d’énergie PC portable', 'Battery optimizer and power saver for laptops');
       addPkg('powertop', 'Diagnostic de consommation électrique matériel', 'Hardware power consumption diagnostics');
     }
@@ -140,7 +158,7 @@ export function resolveHardwareDrivers(
     if (isDebianLike) {
       addPkg('tpm2-tools', 'Outils de diagnostic et scellement de clés TPM 2.0', 'TPM 2.0 diagnostic and key sealing tools');
       addPkg('libtss2-esys-3.0.2-0', 'Bibliothèque cryptographique TPM 2.0 TSS2', 'TPM 2.0 TSS2 cryptographic library');
-    } else if (isArchLike || isFedoraLike) {
+    } else if (isArchLike || isFedoraLike || isSuseLike || isAlpineLike || isVoidLike) {
       addPkg('tpm2-tools', 'Outils de gestion de puce TPM 2.0', 'TPM 2.0 chip management tools');
     }
   }

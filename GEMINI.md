@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **824 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- Suite de tests : **827 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- **25. 🔧 & 🛡️ Audit, Débogage & Robustesse Écosystème : Portabilité iPXE PowerShell CRLF, Résolution Pilotes Multi-Distros & Réactivité Hardware Audit** :
+  - **Syntaxe Here-String & Portabilité PowerShell Windows (`generatePxeServerPowershell`)** :
+    - Diagnostic et correction d'une erreur de syntaxe PowerShell critique (`& non autorisé`, `jeton && non valide`) sous Windows PowerShell 5.1/7 : le délimiteur de fin `'@` doit impérativement être isolé sur sa propre ligne (sans pipe direct `'@ | Set-Content`) et les sauts de ligne formatés en CRLF (`\r\n`).
+    - Écriture propre avec `$IpxeContent = @'...'@` et `Set-Content -Path $IpxeFile -Value $IpxeContent -Encoding UTF8`.
+  - **Fluidité et Cycle de Vie React 19 (`HardwareAuditModal.tsx`)** :
+    - Élimination des re-renders en cascade et du re-sondage WebGL intempestif lors de l'injection des pilotes : calcul de `recommendation` dérivé par `useMemo`, sonde matérielle asynchrone exécutée une seule fois à l'ouverture, et préservation du retour visuel vert de confirmation. 0 warning oxlint.
+  - **Extension Cross-Distro des Pilotes Matériels (`hardwareDriverResolver.ts`)** :
+    - Prise en charge enrichie pour openSUSE (`ucode-intel`, `ucode-amd`, `kernel-firmware-amdgpu`, `libvulkan_radeon`, `kernel-firmware-realtek`, `tlp`), Alpine Linux (`intel-ucode`, `amd-ucode`, `mesa-vulkan-ati`, `mesa-vulkan-intel`, `tpm2-tools`) et Void Linux (`intel-ucode`, `amd-ucode`, `tlp`).
+  - **Contrôle d'Intégrité du Catalogue Logiciel (`PackageCatalog.tsx`)** :
+    - Vérification et préservation de l'intégralité des 4 blocs de stacks spécialisées : Stack IA Locale Ollama, Homelab Docker Compose, Dépôts Officiels Tiers APT/PPA et Profil Passerelle Réseau.
 - **24. 🌐, 🛠️, 💾 & 🎮 Écosystème Ultime V2 : Serveur Netboot PXE Clé-en-main, Résolution Automatique de Pilotes Matériels, Gravure USB Sécurisée avec Persistance Live, Simulateur de Build & Presets Spécialisés** :
   - **Serveur PXE / iPXE Netboot Clé-en-main (`Setup-Netboot.ps1` & `setup-pxe-server.sh`)** :
     - Générateur `generatePxeServerPowershell(recipe)` créant un script PowerShell natif sans outil tiers sous Windows pour préparer et servir le boot iPXE en local (TFTP/HTTP, détection d'IP locale, génération de `boot.ipxe`).

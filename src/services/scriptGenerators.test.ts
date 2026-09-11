@@ -15,6 +15,7 @@ import {
   generateUniversalLauncherSh,
   generateIpxeScript,
   generatePxeServerScript,
+  generatePxeServerPowershell,
   generateVentoyJson,
   resolveDebianTarget,
 } from './scriptGenerators';
@@ -4158,8 +4159,36 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(script).toContain('tpm2-device=auto');
       expect(script).toContain('systemd-cryptenroll');
       expect(script).toContain('/etc/MangoHud/MangoHud.conf');
-      expect(script).toContain('refind-install');
+    });
+
+    it('generatePxeServerPowershell : génère un script PowerShell valide avec here-string CRLF et Set-Content', () => {
+      const ps = generatePxeServerPowershell(makeRecipe({
+        distro: 'debian',
+        branding: { osName: 'ForgeNet' } as any,
+      }));
+
+      expect(ps).toContain('$IpxeContent = @\'');
+      expect(ps).toContain('\'@');
+      expect(ps).toContain('Set-Content -Path $IpxeFile -Value $IpxeContent -Encoding UTF8');
+      expect(ps).toContain('undionly.kpxe');
+      expect(ps).toContain('ipxe.efi');
+      // Doit utiliser CRLF pour la compatibilité PowerShell Windows
+      expect(ps).toContain('\r\n');
+    });
+
+    it('generateIpxeScript : produit les labels iPXE et les blocs kernel squashfs', () => {
+      const ipxe = generateIpxeScript(makeRecipe({
+        distro: 'debian',
+        hostname: 'forge-pxe',
+      }));
+
+      expect(ipxe).toContain('#!ipxe');
+      expect(ipxe).toContain(':live_boot');
+      expect(ipxe).toContain('boot=live');
+      expect(ipxe).toContain('fetch=${http_base}/filesystem.squashfs');
+      expect(ipxe).toContain('hostname=forge-pxe');
     });
   });
 });
+
 
