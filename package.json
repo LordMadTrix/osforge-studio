@@ -2,6 +2,7 @@
   "name": "osbuilder",
   "private": true,
   "version": "0.0.0",
+  "author": "LordMadTrix",
   "type": "module",
   "scripts": {
     "dev": "vite",

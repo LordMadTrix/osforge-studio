@@ -5,7 +5,7 @@
 [![MadOS Ecosystem](https://img.shields.io/badge/%F0%9F%8E%AE_Écosystème-MadOS-f43f5e?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/LordMadTrix)
 [![Patreon](https://img.shields.io/badge/Patreon-LordMad-F96854?style=for-the-badge&logo=patreon&logoColor=white)](https://www.patreon.com/c/LordMad)
 [![GitHub Pages](https://img.shields.io/badge/Web_App-En_Ligne-06b6d4?style=for-the-badge&logo=githubpages&logoColor=white)](https://lordmadtrix.github.io/osforge-studio/)
-[![Tests Vitest](https://img.shields.io/badge/Tests-773%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
+[![Tests Vitest](https://img.shields.io/badge/Tests-827%20Pass%C3%A9s%20(100%25)-10b981?style=for-the-badge&logo=vitest&logoColor=white)](https://github.com/LordMadTrix/osforge-studio/actions)
 [![Oxlint](https://img.shields.io/badge/Oxlint-0%20Warning%20/%200%20Erreur-84cc16?style=for-the-badge&logo=oxc&logoColor=white)](https://github.com/LordMadTrix/osforge-studio)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -305,6 +305,20 @@ OSForge Studio est un projet open-source indépendant développé avec passion. 
 
 ---
 
+## 🖋️ Signature & Auteur Officiel
+
 <div align="center">
-  <sub>Conçu par LordMadTrix • 100% Zéro Cosmétique • Sous licence MIT</sub>
+
+<a href="https://github.com/LordMadTrix">
+  <img src="https://raw.githubusercontent.com/LordMadTrix/osforge-studio/main/docs/lordmadtrix_logo.png" alt="LordMadTrix Official Brand" width="180" />
+</a>
+
+### ⚡ Conçu & Forgé par **[LordMadTrix](https://github.com/LordMadTrix)** ⚡
+*Architecte Systèmes • Immersion VR & Gaming • Optimisation OS & IA*
+
+[![GitHub Profile](https://img.shields.io/badge/GitHub-LordMadTrix-181717?style=for-the-badge&logo=github)](https://github.com/LordMadTrix)
+
+*« Forger l'excellence technologique au cœur du code et de l'immersion. »*
+
 </div>
+

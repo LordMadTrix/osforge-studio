@@ -147,6 +147,14 @@ après.
 ## État au moment de la rédaction de ce fichier
 
 - Suite de tests : **827 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 106 fichiers.
+- **26. 🛡️ & ✒️ Identité de Marque & Signature Officielle LordMadTrix** :
+  - **Intégration de la Règle Workspace (`.agents/rules/signature.md`)** :
+    - Importation et application de la règle officielle de marque issue de l'écosystème LordMadTrix.
+  - **Asset Vectoriel / Logo Haute Résolution (`docs/lordmadtrix_logo.png`)** :
+    - Déploiement du logo officiel de marque `lordmadtrix_logo.png` dans `docs/` pour ancrage permanent du dépôt.
+  - **Pied de Page & Métadonnées (`README.md` & `package.json`)** :
+    - Intégration du bloc officiel de signature (`Conçu & Forgé par LordMadTrix`, devise officielle, badges et lien profil).
+    - Déclaration explicite de l'auteur `"author": "LordMadTrix"` dans `package.json`.
 - **25. 🔧 & 🛡️ Audit, Débogage & Robustesse Écosystème : Portabilité iPXE PowerShell CRLF, Résolution Pilotes Multi-Distros & Réactivité Hardware Audit** :
   - **Syntaxe Here-String & Portabilité PowerShell Windows (`generatePxeServerPowershell`)** :
     - Diagnostic et correction d'une erreur de syntaxe PowerShell critique (`& non autorisé`, `jeton && non valide`) sous Windows PowerShell 5.1/7 : le délimiteur de fin `'@` doit impérativement être isolé sur sa propre ligne (sans pipe direct `'@ | Set-Content`) et les sauts de ligne formatés en CRLF (`\r\n`).
