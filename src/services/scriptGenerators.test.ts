@@ -4393,7 +4393,52 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(wolfScript).toContain('librewolf.sources');
     });
   });
+
+  describe('37. 🖥️ Session Stable X11 Cinnamon sous GDM3/LightDM & Préservation Intégrale des Panneaux et Widgets', () => {
+    it('dmAutologinCmd : configure GDM3 avec WaylandEnable=false et le profil AccountsService pour Cinnamon', () => {
+      const cinnamonRecipe = makeRecipe({
+        distro: 'debian',
+        desktop: 'cinnamon',
+        displayManager: 'gdm3',
+        user: { username: 'madtrix', fullName: 'MadTrix', shell: '/bin/bash', sudo: true, autologin: true } as any,
+      });
+
+      const script = generateBuildScript(cinnamonRecipe);
+      expect(script).toContain('WaylandEnable=false');
+      expect(script).toContain('/var/lib/AccountsService/users/madtrix');
+      expect(script).toContain('Session=cinnamon');
+      expect(script).toContain('XSession=cinnamon');
+      expect(script).toContain("AutomaticLogin=''madtrix'");
+    });
+
+    it('dmAutologinCmd : configure LightDM avec user-session=cinnamon', () => {
+      const lightdmRecipe = makeRecipe({
+        distro: 'debian',
+        desktop: 'cinnamon',
+        displayManager: 'lightdm',
+        user: { username: 'madtrix', fullName: 'MadTrix', shell: '/bin/bash', sudo: true, autologin: true } as any,
+      });
+
+      const script = generateBuildScript(lightdmRecipe);
+      expect(script).toContain('/etc/lightdm/lightdm.conf.d/50-autologin.conf');
+      expect(script).toContain('user-session=cinnamon');
+      expect(script).toContain('autologin-user=madtrix');
+    });
+
+    it('resolvePackageList : installe automatiquement gdm3 quand displayManager=gdm3 même avec Cinnamon', () => {
+      const gdmRecipe = makeRecipe({
+        distro: 'debian',
+        desktop: 'cinnamon',
+        displayManager: 'gdm3',
+      });
+
+      const pkgs = resolvePackageList(gdmRecipe);
+      expect(pkgs).toContain('gdm3');
+      expect(pkgs).toContain('cinnamon');
+    });
+  });
 });
+
 
 
 

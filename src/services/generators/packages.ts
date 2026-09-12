@@ -747,6 +747,21 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Gestionnaire de connexion (Display Manager) sélectionné dans la recette
+  if (recipe.displayManager && recipe.displayManager !== 'none') {
+    if (recipe.displayManager === 'gdm3') {
+      if (isDebianLike) pkgs.push('gdm3');
+      else if (isFedoraLike || isArchLike) pkgs.push('gdm');
+    } else if (recipe.displayManager === 'lightdm') {
+      if (isDebianLike || isArchLike || distroId === 'void') pkgs.push('lightdm', 'lightdm-gtk-greeter');
+      else if (isFedoraLike || distroId === 'opensuse' || distroId === 'alpine') pkgs.push('lightdm');
+    } else if (recipe.displayManager === 'sddm') {
+      pkgs.push('sddm');
+    } else if (recipe.displayManager === 'ly') {
+      if (isArchLike || isFedoraLike || distroId === 'opensuse') pkgs.push('ly');
+    }
+  }
+
   // Utilitaires de compression et d'archivage universels (requis par Ollama et scripts modernes)
   pkgs.push('zstd');
 

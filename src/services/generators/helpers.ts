@@ -414,22 +414,88 @@ export function metasploitSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebia
   || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de Metasploit Framework échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
 }
 
+/**
+ * Résout le nom de session standard (.desktop) et si l'environnement est nativement Wayland
+ */
+export function getDesktopSessionName(desktop: string): { session: string; isWaylandNative: boolean } {
+  switch (desktop) {
+    case 'cinnamon':
+      return { session: 'cinnamon', isWaylandNative: false };
+    case 'xfce':
+      return { session: 'xfce', isWaylandNative: false };
+    case 'mate':
+      return { session: 'mate', isWaylandNative: false };
+    case 'lxqt':
+      return { session: 'lxqt', isWaylandNative: false };
+    case 'lxde':
+      return { session: 'lxde', isWaylandNative: false };
+    case 'budgie':
+      return { session: 'budgie-desktop', isWaylandNative: false };
+    case 'openbox':
+      return { session: 'openbox', isWaylandNative: false };
+    case 'i3wm':
+      return { session: 'i3', isWaylandNative: false };
+    case 'bspwm':
+      return { session: 'bspwm', isWaylandNative: false };
+    case 'qtile':
+      return { session: 'qtile', isWaylandNative: false };
+    case 'pantheon':
+      return { session: 'pantheon', isWaylandNative: false };
+    case 'deepin':
+      return { session: 'deepin', isWaylandNative: false };
+    case 'gnome':
+      return { session: 'gnome', isWaylandNative: true };
+    case 'kde':
+      return { session: 'plasma', isWaylandNative: true };
+    case 'sway':
+      return { session: 'sway', isWaylandNative: true };
+    case 'wayfire':
+      return { session: 'wayfire', isWaylandNative: true };
+    case 'niri':
+      return { session: 'niri', isWaylandNative: true };
+    case 'cosmic':
+      return { session: 'cosmic', isWaylandNative: true };
+    default:
+      return { session: desktop, isWaylandNative: false };
+  }
+}
+
 export function dmAutologinCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
   if (!recipe.user.autologin || recipe.displayManager === 'none') return '';
   const username = recipe.user.username;
+  const { session, isWaylandNative } = getDesktopSessionName(recipe.desktop);
+
   if (recipe.displayManager === 'gdm3') {
     const confPath = family === 'debian' ? '/etc/gdm3/custom.conf' : '/etc/gdm/custom.conf';
-    return `mkdir -p $(dirname ${confPath})
+    const waylandTweak = !isWaylandNative
+      ? `if [ -f ${confPath} ]; then
+    sed -i 's/^#\\?WaylandEnable=.*/WaylandEnable=false/' ${confPath} 2>/dev/null || true
+    grep -q '^WaylandEnable=' ${confPath} || sed -i '/^\\[daemon\\]/a WaylandEnable=false' ${confPath} 2>/dev/null || true
+fi`
+      : '';
+
+    return `mkdir -p $(dirname ${confPath}) /var/lib/AccountsService/users
 if [ -f ${confPath} ] && grep -q '^\\[daemon\\]' ${confPath}; then
     sed -i '/^\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin='${shQuote(username)} ${confPath}
 else
     printf '[daemon]\\nAutomaticLoginEnable=true\\nAutomaticLogin='${shQuote(username)}'\\n' >> ${confPath}
-fi`;
+fi
+${waylandTweak}
+cat > /var/lib/AccountsService/users/${username} << 'ACC_EOF'
+[User]
+Session=${session}
+XSession=${session}
+SystemAccount=false
+ACC_EOF
+chmod 644 /var/lib/AccountsService/users/${username} 2>/dev/null || true`;
   }
   if (recipe.displayManager === 'sddm') {
-    const sessionName = recipe.desktop === 'kde' ? 'plasma' : recipe.desktop;
+    let sddmSession = session;
+    if (recipe.desktop === 'kde') {
+      sddmSession = 'plasma';
+    }
     return `mkdir -p /etc/sddm.conf.d
-SDDM_SESSION="${sessionName}"
+SDDM_SESSION="${sddmSession}"
 if [ "${recipe.desktop}" = "kde" ]; then
     if [ -f /usr/share/wayland-sessions/plasmawayland.desktop ]; then
         SDDM_SESSION="plasmawayland"
@@ -442,11 +508,11 @@ cat > /etc/sddm.conf.d/autologin.conf << SDDM_EOF
 User=${username}
 Session=\${SDDM_SESSION}
 SDDM_EOF
-cat > /etc/sddm.conf.d/10-wayland.conf << 'SDDM_WAYLAND_EOF'
+${recipe.desktop === 'kde' ? `cat > /etc/sddm.conf.d/10-wayland.conf << 'SDDM_WAYLAND_EOF'
 [General]
 DisplayServer=wayland
 GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell
-SDDM_WAYLAND_EOF`;
+SDDM_WAYLAND_EOF` : ''}`;
   }
   if (recipe.displayManager === 'lightdm') {
     return `mkdir -p /etc/lightdm/lightdm.conf.d
@@ -454,7 +520,11 @@ cat > /etc/lightdm/lightdm.conf.d/50-autologin.conf << 'LIGHTDM_EOF'
 [Seat:*]
 autologin-user=${username}
 autologin-user-timeout=0
-LIGHTDM_EOF`;
+user-session=${session}
+LIGHTDM_EOF
+if [ -f /etc/lightdm/lightdm.conf ]; then
+    sed -i 's/^#\\?user-session=.*/user-session=${session}/' /etc/lightdm/lightdm.conf 2>/dev/null || true
+fi`;
   }
   return `echo -e "\${YELLOW:-}[INFO] Auto-login non câblé pour le gestionnaire de connexion \\"${recipe.displayManager}\\" (seuls GDM/SDDM/LightDM sont pris en charge).\${NC:-}" 2>/dev/null || true`;
 }

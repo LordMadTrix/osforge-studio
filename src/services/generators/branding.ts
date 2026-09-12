@@ -46,11 +46,31 @@ export function hexToGnomeAccent(hex: string): string {
 }
 
 /**
- * Génère le contenu SVG d'un fond d'écran 1920x1080 haute résolution selon le preset
+ * Échappe les caractères réservés XML / SVG (&, <, >, ", ') pour garantir un XML 100% valide
  */
-export function generateWallpaperSvg(recipe: OSRecipe): string {
-  const osName = recipe.branding.osName || 'Linux';
-  const edition = recipe.branding.editionName || 'Edition';
+export function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+export function cleanXmlEntities(xml: string): string {
+  return xml
+    .replace(/&AMP;/g, '&amp;')
+    .replace(/&LT;/g, '&lt;')
+    .replace(/&GT;/g, '&gt;')
+    .replace(/&QUOT;/g, '&quot;')
+    .replace(/&APOS;/g, '&apos;');
+}
+
+function generateWallpaperSvgInternal(recipe: OSRecipe): string {
+  const rawOsName = recipe.branding.osName || 'Linux';
+  const rawEdition = recipe.branding.editionName || 'Edition';
+  const osName = escapeXml(rawOsName);
+  const edition = escapeXml(rawEdition);
   const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
   const preset = recipe.branding.wallpaperPreset || 'minimal';
 
@@ -376,12 +396,19 @@ export function generateWallpaperSvg(recipe: OSRecipe): string {
 }
 
 /**
+ * Génère le contenu SVG d'un fond d'écran 1920x1080 haute résolution selon le preset
+ */
+export function generateWallpaperSvg(recipe: OSRecipe): string {
+  return cleanXmlEntities(generateWallpaperSvgInternal(recipe));
+}
+
+/**
  * Génère le logo vectoriel officiel au format SVG placé dans /usr/share/pixmaps/
  */
 export function generateLogoSvg(recipe: OSRecipe): string {
   const osName = recipe.branding.osName || 'Linux';
   const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
-  const initial = (osName.charAt(0) || 'L').toUpperCase();
+  const initial = escapeXml((osName.charAt(0) || 'L').toUpperCase());
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
@@ -453,6 +480,7 @@ fi
  */
 export function generateWallpaperSetupCmd(recipe: OSRecipe): string {
   const slug = sanitizeOsSlug(recipe.branding.osName);
+  const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
   const wallpaperSvg = generateWallpaperSvg(recipe);
   const customUrl = recipe.branding.customWallpaperUrl?.trim();
 
@@ -508,6 +536,25 @@ for WP_DIR in /usr/share/wallpapers/Next /usr/share/wallpapers/Altai /usr/share/
         cp -f "$WALLPAPER_TARGET" "$WP_DIR/contents/images/2560x1600.png" 2>/dev/null || true
     fi
 done
+
+# Intégration fonds d'écran officiels Cinnamon, GNOME et Debian desktop-base
+mkdir -p /usr/share/cinnamon-background-properties /usr/share/gnome-background-properties /usr/share/images/desktop-base
+cat << BG_PROPS_EOF > "/usr/share/cinnamon-background-properties/${slug}.xml"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "cinnamon-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>${escapeXml(recipe.branding.osName)}</name>
+    <filename>$WALLPAPER_TARGET</filename>
+    <options>zoom</options>
+    <pcolor>${accent}</pcolor>
+    <scolor>#000000</scolor>
+  </wallpaper>
+</wallpapers>
+BG_PROPS_EOF
+cp -f "/usr/share/cinnamon-background-properties/${slug}.xml" "/usr/share/gnome-background-properties/${slug}.xml" 2>/dev/null || true
+cp -f "$WALLPAPER_TARGET" /usr/share/images/desktop-base/default 2>/dev/null || true
+cp -f "$WALLPAPER_TARGET" /usr/share/images/desktop-base/desktop-background 2>/dev/null || true
 
 # Métadonnées pour sélecteur KDE Plasma
 cat << 'METADATA_EOF' > "/usr/share/wallpapers/${slug}/metadata.json"

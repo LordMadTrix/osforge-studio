@@ -20,6 +20,7 @@ import {
   generateAutostartThemeCmd,
   generateDefaultApplicationsCmd,
   generateBrandingChrootCommands,
+  escapeXml,
 } from './branding';
 import { resolvePackageList } from './packages';
 
@@ -527,4 +528,42 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(generateDefaultApplicationsCmd(rLibreWolf)).toContain('text/html=librewolf.desktop');
     });
   });
+
+  describe('Robustesse XML & Intégration Fond d\'Écran Cinnamon / GNOME / Desktop-Base', () => {
+    it('escapeXml : convertit correctement &, <, >, " et \'', () => {
+      expect(escapeXml('Gaming & Performance <Pro> "Edition" \'Deluxe\'')).toBe('Gaming &amp; Performance &lt;Pro&gt; &quot;Edition&quot; &apos;Deluxe&apos;');
+    });
+
+    it('generateWallpaperSvg : échappe systématiquement les caractères spéciaux pour éviter le crash XML de rsvg-convert', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS ROG <Edition>',
+          editionName: 'Gaming & Performance Edition',
+          wallpaperPreset: 'gaming_rog',
+        },
+      });
+      const svg = generateWallpaperSvg(recipe);
+      expect(svg).toContain('GAMING &amp; PERFORMANCE EDITION // GAMING EDITION');
+      expect(svg).toContain('MADOS ROG &lt;EDITION&gt;');
+      expect(svg).not.toContain('GAMING & PERFORMANCE');
+    });
+
+    it('generateWallpaperSetupCmd : génère les propriétés XML Cinnamon, GNOME et le dossier desktop-base', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS ROG Edition',
+          editionName: 'Gaming & Performance Edition',
+        },
+      });
+      const cmd = generateWallpaperSetupCmd(recipe);
+      expect(cmd).toContain('/usr/share/cinnamon-background-properties/mados-rog-edition.xml');
+      expect(cmd).toContain('/usr/share/gnome-background-properties/mados-rog-edition.xml');
+      expect(cmd).toContain('/usr/share/images/desktop-base/default');
+      expect(cmd).toContain('/usr/share/images/desktop-base/desktop-background');
+      expect(cmd).toContain('rsvg-convert -w 1920 -h 1080 "/usr/share/backgrounds/mados-rog-edition-wallpaper.svg" -o "/usr/share/backgrounds/mados-rog-edition-wallpaper.png"');
+    });
+  });
 });
+
