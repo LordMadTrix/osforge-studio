@@ -147,6 +147,9 @@ après.
 ## État au moment de la rédaction de ce fichier
 
 - Suite de tests : **836 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **30. 🖥️ & 🚀 Robustesse du Banc d'Essai VM QEMU Windows (`tester-en-vm.bat` & `testVm.ts`)** :
+  - **Résolution** : Détection intelligente avec fallback sur `C:\Program Files\qemu\qemu-system-x86_64.exe` si QEMU n'est pas encore présent dans le `%PATH%` Windows après installation Winget/officielle.
+  - Test unitaire validé dans `testVm.test.ts`.
 - **29. 🐛 & 🛡️ Correction de Syntaxe Bash Chroot — Fermeture `fi` du Dépôt Noyau XanMod/LTS/RT (`debian.ts`)** :
   - **Diagnostic & Root Cause** :
     - Déclencheur : crash lors de la compilation WSL/Bash (`/bin/bash: line 1451: syntax error: unexpected end of file`) sur les recettes utilisant un noyau alternatif XanMod, LTS ou Realtime sur base Debian/Ubuntu.

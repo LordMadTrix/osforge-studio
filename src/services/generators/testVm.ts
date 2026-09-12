@@ -86,21 +86,26 @@ if not exist "%DIST_DIR%\\${artifactFile}" (
 )
 
 :: Vérification de la présence de QEMU
+set "QEMU_BIN=qemu-system-x86_64"
 where qemu-system-x86_64 >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo [1;33m[INFO] QEMU n'est pas détecté dans le PATH Windows.[0m
-    echo Installation recommandée en 1 clic via winget :
-    echo   winget install SoftwareFreedomConservancy.QEMU
-    echo.
-    set /p "INSTALL_QEMU=Voulez-vous lancer l'installation maintenant ? (O/N) : "
-    if /i "%INSTALL_QEMU%"=="O" (
-        winget install SoftwareFreedomConservancy.QEMU
-        echo Veuillez relancer ce script après l'installation.
+    if exist "C:\\Program Files\\qemu\\qemu-system-x86_64.exe" (
+        set "QEMU_BIN=C:\\Program Files\\qemu\\qemu-system-x86_64.exe"
+    ) else (
+        echo [1;33m[INFO] QEMU n'est pas détecté dans le PATH Windows.[0m
+        echo Installation recommandée en 1 clic via winget :
+        echo   winget install SoftwareFreedomConservancy.QEMU
+        echo.
+        set /p "INSTALL_QEMU=Voulez-vous lancer l'installation maintenant ? (O/N) : "
+        if /i "%INSTALL_QEMU%"=="O" (
+            winget install SoftwareFreedomConservancy.QEMU
+            echo Veuillez relancer ce script après l'installation.
+            pause
+            exit /b 0
+        )
         pause
-        exit /b 0
+        exit /b 1
     )
-    pause
-    exit /b 1
 )
 
 echo [1;32m[1/2] Configuration de l'accélération matérielle Windows (WHPX / KVM)...[0m
@@ -110,7 +115,7 @@ echo Appuyez sur Ctrl+Alt+G pour libérer la souris de la fenêtre QEMU.
 echo Fermez simplement la fenêtre pour éteindre la VM.
 echo.
 
-qemu-system-x86_64 ^
+"%QEMU_BIN%" ^
     -accel whpx -accel tcg ^
     -m ${ramMB} ^
     -smp 4 ^
