@@ -39,6 +39,10 @@ export function getRecommendedVmRamMB(recipe: OSRecipe): number {
   return 1024;
 }
 
+function batEscapeText(text: string): string {
+  return text.replace(/%/g, '%%').replace(/&/g, '^&').replace(/</g, '^<').replace(/>/g, '^>');
+}
+
 /**
  * Génère le script batch Windows autonome tester-en-vm.bat
  * Détecte WHPX, configure le bus virtio, et démarre la VM QEMU locale
@@ -52,7 +56,7 @@ export function generateQemuTestBat(recipe: OSRecipe): string {
     ? `-cdrom "%DIST_DIR%\\${artifactFile}" -boot d`
     : `-drive file="%DIST_DIR%\\${artifactFile}",format=${recipe.outputFormat === 'qcow2' ? 'qcow2' : recipe.outputFormat === 'vmdk' ? 'vmdk' : 'raw'},if=virtio`;
 
-  return `@echo off
+  const script = `@echo off
 chcp 65001 >nul
 title OSForge Studio — Banc d'Essai VM QEMU (by LordMadTrix)
 color 0b
@@ -60,14 +64,10 @@ color 0b
 reg add HKCU\\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
 
 echo ===============================================================================
-echo      [1;36m  ___  ____  _____                     ____  _             _ _        [0m
-echo      [1;36m / _ \\/ ___||  ___|__  _ __ __ _  ___ / ___|| |_ _   _  __| (_) ___   [0m
-echo      [1;36m| | | \\___ \\| |_ / _ \\| '__/ _\` |/ _ \\\\___ \\| __| | | |/ _\` | |/ _ \\  [0m
-echo      [1;36m| |_| |___) |  _| (_) | | | (_| |  __/ ___) | |_| |_| | (_| | | (_) | [0m
-echo      [1;36m \\___/|____/|_|  \\___/|_|  \\__, |\\___|____/ \\__|\\__,_|\\__,_|_|\\___/  [0m
-echo      [1;36m                           |___/     TESTEUR EN VM QEMU/WHPX RÉEL  [0m
+echo   OSFORGE STUDIO — BANC D'ESSAI VM QEMU (by LordMadTrix)
+echo   TESTEUR EN VM QEMU / WHPX RÉEL
 echo ===============================================================================
-echo   Système cible : ${recipe.branding.osName} (${recipe.branding.editionName})
+echo   Système cible : ${batEscapeText(recipe.branding.osName)} (${batEscapeText(recipe.branding.editionName || '')})
 echo   Fichier image : ${artifactFile}
 echo   RAM allouée   : ${ramMB} Mo
 echo ===============================================================================
@@ -128,6 +128,8 @@ echo.
 echo [1;36m[FIN] Session VM terminée.[0m
 pause
 `;
+
+  return script.replace(/\r?\n/g, '\r\n');
 }
 
 /**
