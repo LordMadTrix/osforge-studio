@@ -430,19 +430,19 @@ goto MENU
 call :CHECK_QEMU_EXISTS
 cls
 echo ===============================================================================
-echo   LANCEMENT DE LA VM AVEC DISQUE VIRTUEL TEMPORAIRE (20 GO)
+echo   LANCEMENT DE LA VM AVEC DISQUE VIRTUEL TEMPORAIRE (40 GO)
 echo ===============================================================================
 echo.
 set DISK_NAME=dist\\test-vm-disk.qcow2
 
-echo [1/3] Creation d'un disque virtuel temporaire dynamique de 20 Go (%DISK_NAME%)...
+echo [1/3] Creation d'un disque virtuel temporaire dynamique de 40 Go (%DISK_NAME%)...
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c 'DISK_FILE=$(wslpath -a "%DISK_NAME%"); qemu-img create -f qcow2 "$DISK_FILE" 20G'
+    wsl bash -c 'DISK_FILE=$(wslpath -a "%DISK_NAME%"); qemu-img create -f qcow2 "$DISK_FILE" 40G'
 ) else (
     if not "%QEMU_IMG_CMD%"=="" (
-        "%QEMU_IMG_CMD%" create -f qcow2 "%CD%\\%DISK_NAME%" 20G
+        "%QEMU_IMG_CMD%" create -f qcow2 "%CD%\\%DISK_NAME%" 40G
     ) else (
-        qemu-img create -f qcow2 "%CD%\\%DISK_NAME%" 20G
+        qemu-img create -f qcow2 "%CD%\\%DISK_NAME%" 40G
     )
 )
 
@@ -450,9 +450,9 @@ echo [2/3] Demarrage de la VM avec support d'ecriture...
 echo.
 
 if "%QEMU_MODE%"=="WSL" (
-    wsl bash -c 'ISO_FILE=$(wslpath -a "%ISO_PATH%"); DISK_FILE=$(wslpath -a "%DISK_NAME%"); KVM_ARG=""; [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"; qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -hda "$DISK_FILE" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d'
+    wsl bash -c 'ISO_FILE=$(wslpath -a "%ISO_PATH%"); DISK_FILE=$(wslpath -a "%DISK_NAME%"); KVM_ARG=""; [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"; qemu-system-x86_64 $KVM_ARG -cdrom "$ISO_FILE" -drive file="$DISK_FILE",format=qcow2,if=virtio -m 4096 -smp 4 -vga virtio -net nic -net user -boot d'
 ) else (
-    "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -hda "%CD%\\%DISK_NAME%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+    "%QEMU_CMD%" %ACCEL_ARGS% -cdrom "%CD%\\%ISO_PATH%" -drive file="%CD%\\%DISK_NAME%",format=qcow2,if=virtio -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 )
 
 echo.
@@ -637,7 +637,20 @@ echo   [SUCCES] Pipeline 100%% automatique termine !
 echo   ISO       : %ISO_PATH%
 echo   Test QEMU : demarrage en cours (fermez la fenetre QEMU quand vous avez fini)
 echo ===============================================================================
-"%QEMU_CMD%" !ACCEL_ARGS! -cdrom "%ISO_PATH%" -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+
+set DISK_PATH=dist\\test-vm-disk.qcow2
+if not exist "!DISK_PATH!" (
+    echo [INFO] Creation d'un disque virtuel temporaire de 40 Go pour le test d'installation...
+    if exist "C:\\Program Files\\qemu\\qemu-img.exe" (
+        "C:\\Program Files\\qemu\\qemu-img.exe" create -f qcow2 "!DISK_PATH!" 40G >nul 2>&1
+    ) else (
+        qemu-img create -f qcow2 "!DISK_PATH!" 40G >nul 2>&1
+    )
+)
+set DISK_ARG=
+if exist "!DISK_PATH!" set DISK_ARG=-drive file="!DISK_PATH!",format=qcow2,if=virtio
+
+"%QEMU_CMD%" !ACCEL_ARGS! -cdrom "%ISO_PATH%" !DISK_ARG! -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 
 pause
 exit /b 0
@@ -757,7 +770,13 @@ elif command -v qemu-system-x86_64 &>/dev/null; then
     echo "Lancement du test Live RAM (fermez la fenêtre QEMU quand vous avez fini)..."
     KVM_ARG=""
     [ -e /dev/kvm ] && [ -w /dev/kvm ] && KVM_ARG="-enable-kvm"
-    qemu-system-x86_64 -cdrom "\${ISO_FILE}" $KVM_ARG -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
+    DISK_FILE="dist/test-vm-disk.qcow2"
+    if [ ! -f "\${DISK_FILE}" ] && command -v qemu-img &>/dev/null; then
+        qemu-img create -f qcow2 "\${DISK_FILE}" 40G >/dev/null 2>&1 || true
+    fi
+    DISK_ARG=""
+    [ -f "\${DISK_FILE}" ] && DISK_ARG="-drive file=\${DISK_FILE},format=qcow2,if=virtio"
+    qemu-system-x86_64 -cdrom "\${ISO_FILE}" \${DISK_ARG} $KVM_ARG -m 4096 -smp 4 -vga virtio -net nic -net user -boot d
 else
     echo "QEMU non disponible : lancez run-live-windows.bat ou installez QEMU manuellement pour tester."
 fi

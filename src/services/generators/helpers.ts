@@ -1168,6 +1168,34 @@ style:
    SidebarTextHighlight: "${recipe.branding.accentColor || '#38bdf8'}"
 CALAMARES_EOF
 
+    # Duplication du branding pour debian/ubuntu si présent et mise à jour de settings.conf
+    if [ -f /etc/calamares/settings.conf ]; then
+        sed -i 's/^branding:.*/branding: osforge/' /etc/calamares/settings.conf 2>/dev/null || true
+    fi
+    mkdir -p /etc/calamares/branding/debian /etc/calamares/branding/ubuntu
+    cp /etc/calamares/branding/osforge/branding.desc /etc/calamares/branding/debian/branding.desc 2>/dev/null || true
+    cp /etc/calamares/branding/osforge/branding.desc /etc/calamares/branding/ubuntu/branding.desc 2>/dev/null || true
+
+    # Configuration du module Welcome pour assouplir les prérequis disque et RAM (éviter le blocage "pas assez de place")
+    mkdir -p /etc/calamares/modules
+    cat > /etc/calamares/modules/welcome.conf << 'WELCOME_EOF'
+---
+showSupportUrl:         false
+showKnownIssuesUrl:     false
+showReleaseNotesUrl:    false
+
+requirements:
+    requiredStorage:    6.0
+    requiredRam:        1.0
+    check:
+        - storage
+        - ram
+        - power
+        - root
+    required:
+        - root
+WELCOME_EOF
+
     # Création du lanceur sur le bureau de l'utilisateur Live
     mkdir -p "/home/${username}/Desktop" "/etc/skel/Desktop"
     cat > "/home/${username}/Desktop/install-system.desktop" << 'DESKTOP_EOF'

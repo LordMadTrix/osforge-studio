@@ -4437,6 +4437,50 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(pkgs).toContain('cinnamon');
     });
   });
+
+  describe('38. 💾 Prérequis Calamares Souples & Disque Virtuel QEMU 40 Go Automatique', () => {
+    it('calamaresInstallerCmd : assouplit welcome.conf à 6 Go et non bloquant, et met à jour settings.conf', () => {
+      const recipe = makeRecipe({
+        distro: 'debian',
+        desktop: 'cinnamon',
+        enableCalamaresInstaller: true,
+        branding: { osName: 'MadOS ROG', editionName: 'Gaming', version: '1.0', accentColor: '#e11d48', wallpaperPreset: 'gaming', bootSplashTheme: 'cyberpunk' },
+      });
+
+      const script = generateBuildScript(recipe);
+      expect(script).toContain('/etc/calamares/modules/welcome.conf');
+      expect(script).toContain('requiredStorage:    6.0');
+      expect(script).toContain('required:\n        - root');
+      expect(script).toContain("sed -i 's/^branding:.*/branding: osforge/' /etc/calamares/settings.conf");
+      expect(script).toContain('/etc/calamares/branding/debian/branding.desc');
+    });
+
+    it('generateAutoBuildBat : crée et attache automatiquement un disque dynamique qcow2 de 40 Go', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const bat = generateAutoBuildBat(recipe);
+
+      expect(bat).toContain('dist\\test-vm-disk.qcow2');
+      expect(bat).toContain('create -f qcow2 "!DISK_PATH!" 40G');
+      expect(bat).toContain('-drive file="!DISK_PATH!",format=qcow2,if=virtio');
+    });
+
+    it('generateAutoBuildSh : crée et attache automatiquement un disque dynamique qcow2 de 40 Go', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const sh = generateAutoBuildSh(recipe);
+
+      expect(sh).toContain('dist/test-vm-disk.qcow2');
+      expect(sh).toContain('qemu-img create -f qcow2 "${DISK_FILE}" 40G');
+      expect(sh).toContain('-drive file=${DISK_FILE},format=qcow2,if=virtio');
+    });
+
+    it('generateLiveWindowsBat : configure un disque dynamique de 40 Go', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const liveBat = generateLiveWindowsBat(recipe);
+
+      expect(liveBat).toContain('40 Go (%DISK_NAME%)');
+      expect(liveBat).toContain('qemu-img create -f qcow2 "$DISK_FILE" 40G');
+    });
+  });
 });
 
 

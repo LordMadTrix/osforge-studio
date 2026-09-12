@@ -146,7 +146,16 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **861 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **865 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **38. 💾 Prérequis Calamares Souples (6 Go Non-Bloquant) & Disque Virtuel QEMU 40 Go Automatique** :
+  - **Diagnostic & Root Cause (Découvert via le retour utilisateur "pas assez de place moins de X GB")** :
+    - *Blocage Calamares Debian* : Dans `calamares-settings-debian`, le fichier `/etc/calamares/modules/welcome.conf` imposait en dur `requiredStorage: 15` et plaçait `storage` dans la liste bloquante `required: [storage, ram, root]`. Lorsque l'utilisateur testait l'installation sur une machine virtuelle (ex: VirtualBox qui propose par défaut un disque de 8 ou 10 Go, ou QEMU sans disque dur attaché), Calamares affichait une erreur critique "Espace disque insuffisant (moins de 15 Go)" et grisait le bouton "Suivant".
+    - *Lancement QEMU sans disque dur dans les scripts* : `auto-build.bat`, `auto-build.sh` et les lanceurs exécutaient QEMU avec `-cdrom` sans aucun disque dur virtuel (`-drive` / `-hda`), rendant toute tentative d'installation impossible faute de support de stockage cible.
+  - **Résolution Appliquée (Zéro Cosmétique)** :
+    - *Configuration Calamares Souple (`helpers.ts`)* : Injection dynamique de `/etc/calamares/modules/welcome.conf` avec un seuil réaliste `requiredStorage: 6.0` (taille réelle d'un système décompressé) et retrait de `storage` de la liste stricte `required: [root]`. Calamares affiche ainsi un état vert ou informatif mais ne bloque jamais l'installation.
+    - *Branding Calamares persistant (`helpers.ts`)* : Forçage de `branding: osforge` dans `/etc/calamares/settings.conf` et duplication dans `/etc/calamares/branding/debian` et `ubuntu`.
+    - *Disque Virtuel Sparse 40 Go Automatique (`launchers.ts`)* : Création automatique d'un disque dynamique qcow2 de 40 Go (`dist/test-vm-disk.qcow2`, ne pesant que 196 Ko au départ) et attachement systématique avec `-drive file=...,format=qcow2,if=virtio` dans `auto-build.bat`, `auto-build.sh` et `run-live-windows.bat`.
+  - **Résultat** : 4 nouveaux tests unitaires Vitest ajoutés (865 tests au total, 100% au vert).
 - **37. 🎨 & 🖥️ Fond d'Écran Haute Fidélité (Protection XML / SVG) & Session X11 Cinnamon Native sous GDM3 / LightDM** :
   - **Diagnostic & Root Cause (Découvert via la capture d'écran utilisateur de la VM QEMU/VirtualBox)** :
     - *Fond d'écran noir (`mados-rog-edition-wallpaper.png` manquant)* : Le nom d'édition par défaut de la recette contenait un caractère esperluette non échappé (`Gaming & Performance Edition`). Lors de la génération du SVG dans `branding.ts`, l'insertion brute créait une balise `<text>...GAMING & PERFORMANCE...</text>`, ce qui constituait une entité XML syntaxiquement invalide (`& PERF...`). Lors du build chroot, `rsvg-convert` échouait avec `XML parse error: Error domain 1 code 68: xmlParseEntityRef: no name` et aucun fichier PNG n'était créé. Cinnamon et DConf ne supportant que les images matricielles (.png, .jpg), le bureau affichait un fond noir pur.
