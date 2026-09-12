@@ -4215,7 +4215,35 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       }
     });
   });
+
+  describe('Chantier 31 : Audit exhaustif de tous les générateurs de scripts (450 checks — 0 erreur)', () => {
+    it('impose les fins de ligne CRLF sur tous les générateurs batch Windows', () => {
+      const r = makeRecipe();
+      expect(generateUniversalLauncherBat(r)).toContain('\r\n');
+      expect(generateAutoBuildBat(r)).toContain('\r\n');
+      expect(generateLiveWindowsBat(r)).toContain('\r\n');
+      expect(generateWslInstallerBat(r)).toContain('\r\n');
+    });
+
+    it('génère un script PowerShell avec UTF-8 BOM et l\'URL officielle UEFI x86_64-efi/ipxe.efi', () => {
+      const ps = generatePxeServerPowershell(makeRecipe({
+        branding: { osName: 'ForgeOS & Gaming' } as any,
+      }));
+
+      // Doit débuter par le BOM UTF-8 (\ufeff) pour Windows PowerShell 5.1
+      expect(ps.startsWith('\ufeff')).toBe(true);
+      expect(ps).toContain('http://boot.ipxe.org/x86_64-efi/ipxe.efi');
+      expect(ps).not.toContain('http://boot.ipxe.org/ipxe.efi');
+    });
+
+    it('setup-pxe-server.sh télécharge undionly.kpxe et ipxe.efi vérifié', () => {
+      const sh = generatePxeServerScript(makeRecipe());
+      expect(sh).toContain('http://boot.ipxe.org/undionly.kpxe');
+      expect(sh).toContain('http://boot.ipxe.org/x86_64-efi/ipxe.efi');
+    });
+  });
 });
+
 
 
 

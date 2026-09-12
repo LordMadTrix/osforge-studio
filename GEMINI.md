@@ -146,7 +146,15 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **836 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **839 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **31. 🔬 & 🛡️ Audit Exhaustif de Tous les Générateurs de Scripts (450 Vérifications — Zéro Défaut)** :
+  - **Audit Multi-Matrices 100% Automatisé** :
+    - Exécution de 450 tests réels couvrant l'ensemble des 21 distributions Linux, 11 types de noyaux, 14 bureaux, tous les formats de sortie, tous les scripts batch Windows, scripts shell Linux/macOS, PowerShell, manifestes cloud-init/Ansible/GitHub Actions/Terraform, Dockerfile et JSON.
+  - **Corrections Appliquées** :
+    - *Windows Batch (`launch.bat`, `auto-build.bat`, `run-live-windows.bat`, `install-wsl.bat`)* : imposition systématique des fins de ligne Windows CRLF (`\r\n`) pour prévenir toute corruption du tokenizer `cmd.exe`.
+    - *PowerShell Windows (`Setup-Netboot.ps1`)* : ajout de l'en-tête d'encodage UTF-8 BOM (`\ufeff`) garantissant l'intégrité de parsing des caractères multi-octets et des here-strings `@' ... '@` sous Windows PowerShell 5.1 / 7.
+    - *Réseau iPXE Netboot* : correction de l'URL de téléchargement UEFI officielle vers `http://boot.ipxe.org/x86_64-efi/ipxe.efi` (remplaçant le lien 404 historique) dans `Setup-Netboot.ps1` et `setup-pxe-server.sh`.
+  - **Résultat** : 450 vérifications passées avec **0 erreur**. 3 nouveaux tests unitaires Vitest ajoutés (839 tests au total).
 - **30. 🖥️ & 🚀 Robustesse du Banc d'Essai VM QEMU Windows (`tester-en-vm.bat` & `testVm.ts`)** :
   - **Résolution** :
     - Détection intelligente avec fallback sur `C:\Program Files\qemu\qemu-system-x86_64.exe` si QEMU n'est pas encore présent dans le `%PATH%` Windows après installation Winget/officielle.

@@ -190,7 +190,7 @@ echo.
 echo Lancement immediat de votre OS...
 wsl -d %DISTRO_NAME%
 pause
-`;
+`.replace(/\r?\n/g, '\r\n');
 }
 
 /**
@@ -487,7 +487,7 @@ if exist "%CD%\\dist\\test-vm-disk.qcow2" (
 )
 pause
 goto MENU
-`;
+`.replace(/\r?\n/g, '\r\n');
 }
 
 /**
@@ -627,7 +627,7 @@ echo ===========================================================================
 
 pause
 exit /b 0
-`;
+`.replace(/\r?\n/g, '\r\n');
 }
 
 /**
@@ -841,7 +841,7 @@ if exist auto-build.bat (
     pause
 )
 goto MENU
-`;
+`.replace(/\r?\n/g, '\r\n');
 }
 
 /**

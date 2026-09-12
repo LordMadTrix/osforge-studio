@@ -113,6 +113,10 @@ cp /usr/lib/ipxe/undionly.kpxe "\${PXE_ROOT}/undionly.kpxe" 2>/dev/null || \\
 cp /usr/share/ipxe/undionly.kpxe "\${PXE_ROOT}/undionly.kpxe" 2>/dev/null || \\
 wget -q -O "\${PXE_ROOT}/undionly.kpxe" "http://boot.ipxe.org/undionly.kpxe" || true
 
+cp /usr/lib/ipxe/ipxe.efi "\${PXE_ROOT}/ipxe.efi" 2>/dev/null || \\
+cp /usr/share/ipxe/ipxe.efi "\${PXE_ROOT}/ipxe.efi" 2>/dev/null || \\
+wget -q -O "\${PXE_ROOT}/ipxe.efi" "http://boot.ipxe.org/x86_64-efi/ipxe.efi" || true
+
 # Copie ou génération du boot.ipxe
 cat > "\${HTTP_ROOT}/boot.ipxe" << 'IPXE_EOF'
 ${generateIpxeScript(recipe)}
@@ -188,7 +192,7 @@ export function generatePxeServerPowershell(recipe: OSRecipe): string {
     '}',
     'if (-not (Test-Path $IpxeEfi)) {',
     '    Write-Host "[INFO] Téléchargement de ipxe.efi (boot.ipxe.org)..." -ForegroundColor Gray',
-    '    Invoke-WebRequest -Uri "http://boot.ipxe.org/ipxe.efi" -OutFile $IpxeEfi -UseBasicParsing',
+    '    Invoke-WebRequest -Uri "http://boot.ipxe.org/x86_64-efi/ipxe.efi" -OutFile $IpxeEfi -UseBasicParsing',
     '}',
     '',
     'Write-Host "======================================================================" -ForegroundColor Green',
@@ -199,6 +203,6 @@ export function generatePxeServerPowershell(recipe: OSRecipe): string {
     '',
   ];
 
-  return scriptLines.join('\r\n');
+  return '\ufeff' + scriptLines.join('\r\n');
 }
 
