@@ -398,8 +398,17 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
                     </div>
                   </div>
 
-                  <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    {liveDesktops[de.id]?.isLive ? (
+                  <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                    {de.id === 'kde' && (recipe.distro === 'ubuntu' || recipe.distro === 'debian' || recipe.distro === 'linuxmint' || recipe.distro === 'kali' || recipe.distro === 'raspbian') ? (
+                      <>
+                        <span className="badge badge-cyan" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                          v5.27 LTS ({recipe.distro === 'ubuntu' ? 'Ubuntu 24.04' : recipe.distro === 'debian' ? 'Debian 12' : recipe.distro.toUpperCase()})
+                        </span>
+                        <span style={{ color: 'var(--text-dim)', fontSize: '0.62rem', fontWeight: 400 }}>
+                          (Upstream : {liveDesktops[de.id]?.latest || '6.x'})
+                        </span>
+                      </>
+                    ) : liveDesktops[de.id]?.isLive ? (
                       <>
                         <Rss size={9} color="var(--cyan)" />
                         <span style={{ color: 'var(--cyan)' }}>{liveDesktops[de.id].latest}</span>

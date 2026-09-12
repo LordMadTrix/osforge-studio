@@ -428,11 +428,24 @@ fi`;
   if (recipe.displayManager === 'sddm') {
     const sessionName = recipe.desktop === 'kde' ? 'plasma' : recipe.desktop;
     return `mkdir -p /etc/sddm.conf.d
-cat > /etc/sddm.conf.d/autologin.conf << 'SDDM_EOF'
+SDDM_SESSION="${sessionName}"
+if [ "${recipe.desktop}" = "kde" ]; then
+    if [ -f /usr/share/wayland-sessions/plasmawayland.desktop ]; then
+        SDDM_SESSION="plasmawayland"
+    elif [ -f /usr/share/wayland-sessions/plasma.desktop ]; then
+        SDDM_SESSION="plasma"
+    fi
+fi
+cat > /etc/sddm.conf.d/autologin.conf << SDDM_EOF
 [Autologin]
 User=${username}
-Session=${sessionName}
-SDDM_EOF`;
+Session=\${SDDM_SESSION}
+SDDM_EOF
+cat > /etc/sddm.conf.d/10-wayland.conf << 'SDDM_WAYLAND_EOF'
+[General]
+DisplayServer=wayland
+GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell
+SDDM_WAYLAND_EOF`;
   }
   if (recipe.displayManager === 'lightdm') {
     return `mkdir -p /etc/lightdm/lightdm.conf.d

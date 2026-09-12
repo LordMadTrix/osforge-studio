@@ -4314,7 +4314,36 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(script).toContain('/home/forgeuser/Desktop/osforge-systeminfo.desktop');
     });
   });
+
+  describe('34. 🖥️ & 🚀 Session Wayland Native KDE Plasma sous SDDM & Transparence des Versions', () => {
+    it('dmAutologinCmd : configure SDDM pour détecter et lancer en priorité la session Wayland (plasmawayland)', () => {
+      const kdeRecipe = makeRecipe({
+        distro: 'ubuntu',
+        desktop: 'kde',
+        displayManager: 'sddm',
+        user: { username: 'madtrix', fullName: 'MadTrix', shell: '/bin/bash', sudo: true, autologin: true } as any,
+      });
+      const script = generateBuildScript(kdeRecipe);
+      expect(script).toContain('plasmawayland.desktop');
+      expect(script).toContain('DisplayServer=wayland');
+      expect(script).toContain('QT_WAYLAND_SHELL_INTEGRATION=layer-shell');
+      expect(script).toContain('Session=${SDDM_SESSION}');
+    });
+
+    it('resolvePackageList : garantit xwayland et plasma-workspace-wayland pour KDE sur Debian/Ubuntu', () => {
+      const kdeRecipe = makeRecipe({
+        distro: 'ubuntu',
+        desktop: 'kde',
+      });
+      const pkgs = resolvePackageList(kdeRecipe);
+      expect(pkgs).toContain('plasma-workspace-wayland');
+      expect(pkgs).toContain('kwin-wayland');
+      expect(pkgs).toContain('xwayland');
+      expect(pkgs).toContain('sddm');
+    });
+  });
 });
+
 
 
 

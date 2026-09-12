@@ -146,7 +146,16 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **846 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **848 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **34. 🖥️ & 🚀 Session Wayland Native KDE Plasma sous SDDM & Transparence des Versions (KDE Plasma 5.27 LTS vs Plasma 6)** :
+  - **Diagnostic & Root Cause** :
+    - *Écart de Version (Plasma 5.27.12 vs Qt6 / Plasma 6)* : L'UI affichait un nom fixe « KDE Plasma (Qt6 & HDR Wayland) » et un badge upstream `6.x`, alors que sur Ubuntu 24.04 LTS (Noble Numbat) et Debian 12 (Bookworm), les dépôts officiels distribuent exclusivement **KDE Plasma 5.27.12 LTS (Qt5)** pour la stabilité du support 5 ans. Plasma 6 Qt6 est disponible sur Fedora 40+, Arch Linux, CachyOS et openSUSE Tumbleweed.
+    - *Session KWin (X11) au lieu de Wayland* : Dans `helpers.ts` (`dmAutologinCmd`), SDDM configurait en dur `Session=plasma`. Sous Debian/Ubuntu, `/usr/share/xsessions/plasma.desktop` correspond à la session X11, tandis que la session Wayland s'appelle `/usr/share/wayland-sessions/plasmawayland.desktop`. SDDM démarrait donc systématiquement sur KWin (X11).
+  - **Résolution Appliquée** :
+    - *Sélection dynamique Wayland dans SDDM (`helpers.ts`)* : Détection automatique au boot de la session Wayland (`plasmawayland` sous Debian/Ubuntu, `plasma` sous Arch/Fedora), injection de `DisplayServer=wayland` et `GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell` dans `/etc/sddm.conf.d/10-wayland.conf`.
+    - *Inclusion de `xwayland` (`packages.ts`)* : Ajout automatique du paquet `xwayland` pour assurer la compatibilité transparente de toutes les applications graphiques X11 au sein de la session Wayland.
+    - *Transparence totale dans l'UI (`desktopEnvironments.ts` & `DesktopSelector.tsx`)* : Titre épuré « KDE Plasma », description précisant « Plasma 6 Qt6 sur Arch/Fedora/openSUSE • Plasma 5.27 LTS sur Ubuntu/Debian », et badge de version contextuel à la distribution sélectionnée (`v5.27 LTS (Ubuntu 24.04)` vs `Plasma 6.x`).
+  - **Résultat** : 2 nouveaux tests unitaires Vitest ajoutés (848 tests au total, 100% au vert).
 - **33. 🎨 & 🖥️ Rendu Visuel 100% Fidèle : Résolution du Boot Splash Plymouth, Écrasement des Wallpapers KDE par Défaut & Autostart Fastfetch** :
   - **Diagnostic & Root Cause** :
     - *Boot Splash Plymouth (Logo Ubuntu)* : Le script Plymouth généré pour `osforge-custom` appelait `Image.Constant` qui n'existe pas dans le moteur C de Plymouth (`ply-image.c`), provoquant une erreur de parsing silencieuse lors du boot. De plus, sur Ubuntu, `/etc/alternatives/default.plymouth` surchargeait la configuration sans mise à jour d'alternatives, et les filigranes du logo Ubuntu (`/usr/share/plymouth/ubuntu-logo.png`, `watermark.png`) n'étaient pas écrasés, ce qui faisait retomber l'initramfs sur le logo Ubuntu orange classique.
