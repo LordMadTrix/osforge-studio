@@ -4242,7 +4242,80 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(sh).toContain('http://boot.ipxe.org/x86_64-efi/ipxe.efi');
     });
   });
+
+  describe('32. 📦 & 💾 Intégration 100% Hors-Ligne des Applications et Stacks dans l\'ISO (SquashFS Bake & XDG Desktop Shortcuts)', () => {
+    it('installe réellement les applications sélectionnées depuis les dépôts tiers (Brave, LibreWolf, VSCodium, Docker CE, WineHQ, NodeSource) dans le chroot', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'debian',
+        outputFormat: 'iso_hybrid',
+        thirdPartyRepos: ['brave', 'librewolf', 'vscodium', 'docker_ce', 'winehq', 'nodesource'],
+      }));
+
+      expect(script).toContain('apt-get install -y --no-install-recommends brave-browser librewolf codium docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin winehq-stable nodejs');
+    });
+
+    it('intègre directement le moteur IA local Ollama dans le chroot pendant la compilation de l\'ISO', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'debian',
+        outputFormat: 'iso_hybrid',
+        enableLocalAiStack: true,
+      }));
+
+      expect(script).toContain('# Intégration directe du moteur IA Ollama dans le chroot de l\'image ISO');
+      expect(script).toContain('curl -fsSL https://ollama.com/install.sh | sh');
+    });
+
+    it('résout automatiquement Docker Engine et Compose dans resolvePackageList pour la stack Homelab et Open-WebUI', () => {
+      const homelabPkgs = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        enableHomelabStack: true,
+        selectedPackages: [],
+        customPackages: [],
+      }));
+      expect(homelabPkgs).toContain('docker.io');
+      expect(homelabPkgs).toContain('docker-compose');
+
+      const fedoraHomelabPkgs = resolvePackageList(makeRecipe({
+        distro: 'fedora',
+        enableHomelabStack: true,
+        selectedPackages: [],
+        customPackages: [],
+      }));
+      expect(fedoraHomelabPkgs).toContain('moby-engine');
+      expect(fedoraHomelabPkgs).toContain('docker-compose');
+
+      const aiWebUiPkgs = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        enableLocalAiStack: true,
+        enableOpenWebUi: true,
+        selectedPackages: [],
+        customPackages: [],
+      }));
+      expect(aiWebUiPkgs).toContain('docker.io');
+    });
+
+    it('génère les lanceurs d\'applications XDG Desktop (.desktop) dans /usr/share/applications et sur le bureau utilisateur', () => {
+      const script = generateBuildScript(makeRecipe({
+        distro: 'debian',
+        outputFormat: 'iso_hybrid',
+        desktop: 'xfce',
+        selectedPackages: ['git', 'cockpit'],
+        enableNetworkSecurityGateway: true,
+        enableLocalAiStack: true,
+        enableOpenWebUi: true,
+        user: { username: 'forgeuser', fullName: 'Forge User', shell: '/bin/bash', sudo: true, autologin: true } as any,
+      }));
+
+      expect(script).toContain('/usr/share/applications/osforge-systeminfo.desktop');
+      expect(script).toContain('/usr/share/applications/osforge-lazygit.desktop');
+      expect(script).toContain('/usr/share/applications/osforge-cockpit.desktop');
+      expect(script).toContain('/usr/share/applications/osforge-adguard.desktop');
+      expect(script).toContain('/usr/share/applications/osforge-openwebui.desktop');
+      expect(script).toContain('/home/forgeuser/Desktop/osforge-systeminfo.desktop');
+    });
+  });
 });
+
 
 
 

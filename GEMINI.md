@@ -146,7 +146,20 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **839 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **843 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **32. 📦 & 💾 Intégration 100% Hors-Ligne des Applications et Stacks dans l'ISO (SquashFS Bake & XDG Desktop Shortcuts)** :
+  - **Diagnostic & Root Cause** :
+    - Les applications cochées dans les dépôts tiers (`thirdPartyRepos` : Brave, LibreWolf, VSCodium, Docker CE, WineHQ, NodeSource) créaient les fichiers `.sources` et exécutaient `apt-get update`, mais omettaient l'étape `apt-get install` : les dépôts étaient configurés mais les logiciels absents de l'image ISO live.
+    - La stack IA locale Ollama (`ollamaSetupCmd`) différait l'installation au runtime via un service systemd exécutant `curl | sh` post-boot (`After=network-online.target`). Sur une machine sans réseau immédiat au boot de l'ISO live, Ollama n'était pas disponible.
+    - La stack Homelab (`enableHomelabStack`) et Open-WebUI ne garantissaient pas l'inclusion des paquets Docker Engine (`docker.io` / `moby-engine`) dans `resolvePackageList` si l'utilisateur ne cochait pas explicitement le paquet Docker dans le catalogue.
+    - Les outils intégrés (Fastfetch, LazyGit, consoles web Cockpit, AdGuard Home, Open-WebUI) n'avaient pas de lanceurs graphiques `.desktop` dans `/usr/share/applications/` ni sur le Bureau utilisateur.
+  - **Résolution Appliquée** :
+    - *Installation directe chroot des applications tierces (`helpers.ts`)* : injection des commandes `apt-get install -y --no-install-recommends` pour Brave, LibreWolf, VSCodium (`codium`), Docker CE, WineHQ (`winehq-stable`) et NodeSource (`nodejs`) dès la compilation de l'image ISO.
+    - *Intégration directe du moteur IA Ollama (`helpers.ts`)* : exécution de `curl -fsSL https://ollama.com/install.sh | sh` directement dans le chroot avec activation d'`ollama.service` pour que le binaire `/usr/local/bin/ollama` soit immédiatement disponible hors-ligne dans le SquashFS.
+    - *Résolution automatique Docker Engine (`packages.ts`)* : ajout automatique des paquets Docker par famille de distro dès que `enableHomelabStack` ou `enableOpenWebUi` est sélectionné.
+    - *Générateur de raccourcis XDG Desktop (`generateApplicationShortcutsChrootCommands`)* : déploiement automatique des fichiers `.desktop` pour l'information système Fastfetch, LazyGit TUI, la console Cockpit, le tableau de bord AdGuard Home et l'interface de chat Open-WebUI dans `/usr/share/applications/` et sur le bureau utilisateur.
+    - *Interface utilisateur (`PackageCatalog.tsx`)* : badge explicite `💾 100% Intégrés Hors-Ligne dans l'ISO` dans le tiroir de sélection active.
+  - **Résultat** : 4 nouveaux tests unitaires Vitest ajoutés (843 tests au total, 100% au vert).
 - **31. 🔬 & 🛡️ Audit Exhaustif de Tous les Générateurs de Scripts (450 Vérifications — Zéro Défaut)** :
   - **Audit Multi-Matrices 100% Automatisé** :
     - Exécution de 450 tests réels couvrant l'ensemble des 21 distributions Linux, 11 types de noyaux, 14 bureaux, tous les formats de sortie, tous les scripts batch Windows, scripts shell Linux/macOS, PowerShell, manifestes cloud-init/Ansible/GitHub Actions/Terraform, Dockerfile et JSON.

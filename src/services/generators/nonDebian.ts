@@ -47,6 +47,7 @@ import {
   btrfsSnapshotsCmd,
   proAudioSetupCmd,
   crowdsecSetupCmd,
+  generateApplicationShortcutsChrootCommands,
 } from './helpers';
 import { offlineRepoConfigCmd } from './offlineCache';
 import { generateBrandingChrootCommands } from './branding';
@@ -650,6 +651,7 @@ ${metasploitSetupCmd(recipe, family)}
 ${btrfsSnapshotsCmd(recipe, family)}
 ${proAudioSetupCmd(recipe, family)}
 ${crowdsecSetupCmd(recipe, family)}
+${generateApplicationShortcutsChrootCommands(recipe)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh
@@ -975,6 +977,7 @@ ${metasploitSetupCmd(recipe, family)}
 ${btrfsSnapshotsCmd(recipe, family)}
 ${proAudioSetupCmd(recipe, family)}
 ${crowdsecSetupCmd(recipe, family)}
+${generateApplicationShortcutsChrootCommands(recipe)}
 
 cat << 'FIRSTBOOT_EOF' > /root/firstboot.sh
 #!/bin/sh

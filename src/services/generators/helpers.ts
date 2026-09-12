@@ -139,7 +139,13 @@ export function ollamaSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFam
     return `echo -e "\${YELLOW:-}[INFO] Ollama n'est pas encore câblé pour Void : aucun paquet xbps réel et l'installeur officiel (ollama.com/install.sh) ne documente pas de support runit.\${NC:-}" 2>/dev/null || true`;
   }
   const modelToPull = recipe.localAiModel ? ` && /usr/local/bin/ollama pull ${shQuote(recipe.localAiModel)} || true` : '';
-  let script = `cat > /etc/systemd/system/ollama-setup.service << 'OLLAMASVC_EOF'
+  let script = `# Intégration directe du moteur IA Ollama dans le chroot de l'image ISO
+if ! command -v ollama &>/dev/null; then
+    echo -e "\${YELLOW:-}[INFO] Installation du moteur IA Ollama dans l'image ISO...\${NC:-}"
+    curl -fsSL https://ollama.com/install.sh | sh 2>/dev/null || true
+fi
+
+cat > /etc/systemd/system/ollama-setup.service << 'OLLAMASVC_EOF'
 [Unit]
 Description=OSForge Studio - installation Ollama (ollama.com/install.sh)
 After=network-online.target
@@ -1324,7 +1330,19 @@ Signed-By: /etc/apt/keyrings/librewolf.gpg
 LIBREWOLF_EOF`);
   }
 
-  blocks.push(`apt-get update -qq 2>/dev/null || true`);
+  const installPkgs: string[] = [];
+  if (repos.includes('brave')) installPkgs.push('brave-browser');
+  if (repos.includes('librewolf')) installPkgs.push('librewolf');
+  if (repos.includes('vscodium')) installPkgs.push('codium');
+  if (repos.includes('docker_ce')) installPkgs.push('docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin');
+  if (repos.includes('winehq')) installPkgs.push('winehq-stable');
+  if (repos.includes('nodesource')) installPkgs.push('nodejs');
+
+  let postUpdate = 'apt-get update -qq 2>/dev/null || true';
+  if (installPkgs.length > 0) {
+    postUpdate += `\n\n# Installation effective des applications sélectionnées directement dans l'ISO\napt-get install -y --no-install-recommends ${installPkgs.join(' ')} 2>/dev/null || echo -e "\${YELLOW:-}[INFO] Un ou plusieurs paquets tiers seront finalisés dès que le réseau sera disponible.\${NC:-}"`;
+  }
+  blocks.push(postUpdate);
   return blocks.join('\n\n');
 }
 
@@ -1536,6 +1554,114 @@ fi
 `;
 
   return script;
+}
+
+/**
+ * Génère les lanceurs d'applications XDG Desktop (.desktop) pour les applications et outils
+ * intégrés dans l'ISO live afin qu'ils apparaissent instantanément dans les menus du bureau.
+ */
+export function generateApplicationShortcutsChrootCommands(recipe: OSRecipe): string {
+  if (recipe.desktop === 'none' || recipe.desktop === 'web_kiosk') return '';
+
+  const username = recipe.user.username;
+  const osName = sanitizeGrubTitle(recipe.branding.osName || 'ForgeOS');
+  const commands: string[] = [
+    `# ==============================================================================
+# Raccourcis d'Applications XDG Desktop Intégrés dans l'ISO
+# ==============================================================================
+mkdir -p /usr/share/applications "/home/${username}/Desktop" "/etc/skel/Desktop"`,
+  ];
+
+  // 1. Lanceur Fastfetch / Info Système
+  commands.push(`cat > /usr/share/applications/osforge-systeminfo.desktop << 'DESKTOP_SYSINFO_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=À propos de ${osName}
+GenericName=Informations Système
+Comment=Afficher les spécifications matérielles et la configuration système
+Exec=bash -c "fastfetch 2>/dev/null || uname -a; echo ''; read -p 'Appuyez sur Entrée pour fermer...' dummy"
+Icon=help-about
+Terminal=true
+Categories=System;Utility;
+StartupNotify=false
+DESKTOP_SYSINFO_EOF`);
+
+  // 2. Lanceur LazyGit TUI si git sélectionné
+  if (recipe.selectedPackages.includes('git')) {
+    commands.push(`cat > /usr/share/applications/osforge-lazygit.desktop << 'DESKTOP_LG_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=LazyGit
+GenericName=Interface Git Terminal
+Comment=Gestionnaire de dépôts Git interactif
+Exec=bash -c "lazygit 2>/dev/null || git status; read -p 'Entrée pour quitter' dummy"
+Icon=git
+Terminal=true
+Categories=Development;RevisionControl;
+StartupNotify=false
+DESKTOP_LG_EOF`);
+  }
+
+  // 3. Lanceur Cockpit Console si passerelle ou paquet sélectionné
+  if (recipe.enableNetworkSecurityGateway || recipe.selectedPackages.includes('cockpit')) {
+    commands.push(`cat > /usr/share/applications/osforge-cockpit.desktop << 'DESKTOP_COCKPIT_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Console d'Administration Cockpit
+GenericName=Gestion Système Web
+Comment=Gérer le système, les disques, le réseau et les logs via navigateur
+Exec=xdg-open https://localhost:9090
+Icon=utilities-system-monitor
+Terminal=false
+Categories=System;Settings;
+StartupNotify=true
+DESKTOP_COCKPIT_EOF`);
+  }
+
+  // 4. Lanceur AdGuard Home Dashboard si passerelle ou homelab
+  if (recipe.enableNetworkSecurityGateway || (recipe.enableHomelabStack && recipe.homelabServices?.includes('adguard'))) {
+    commands.push(`cat > /usr/share/applications/osforge-adguard.desktop << 'DESKTOP_ADGUARD_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=AdGuard Home Dashboard
+GenericName=Filtrage DNS & Publicités
+Comment=Console de contrôle du pare-feu DNS local
+Exec=xdg-open http://localhost:3000
+Icon=security-high
+Terminal=false
+Categories=Network;Security;
+StartupNotify=true
+DESKTOP_ADGUARD_EOF`);
+  }
+
+  // 5. Lanceur Open-WebUI si stack IA activée
+  if (recipe.enableLocalAiStack && recipe.enableOpenWebUi) {
+    commands.push(`cat > /usr/share/applications/osforge-openwebui.desktop << 'DESKTOP_OWEBUI_EOF'
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Open WebUI (Chat IA Local)
+GenericName=Interface Modèles IA
+Comment=Discuter avec les modèles de langage locaux LLM Ollama
+Exec=xdg-open http://localhost:3000
+Icon=dialog-information
+Terminal=false
+Categories=AI;Development;
+StartupNotify=true
+DESKTOP_OWEBUI_EOF`);
+  }
+
+  commands.push(`chmod 644 /usr/share/applications/osforge-*.desktop 2>/dev/null || true
+cp -f /usr/share/applications/osforge-systeminfo.desktop "/home/${username}/Desktop/osforge-systeminfo.desktop" 2>/dev/null || true
+cp -f /usr/share/applications/osforge-systeminfo.desktop "/etc/skel/Desktop/osforge-systeminfo.desktop" 2>/dev/null || true
+chmod +x "/home/${username}/Desktop/"*.desktop 2>/dev/null || true
+chown -R "${username}:${username}" "/home/${username}/Desktop" 2>/dev/null || true`);
+
+  return commands.join('\n\n');
 }
 
 

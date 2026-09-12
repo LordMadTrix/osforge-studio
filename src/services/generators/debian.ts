@@ -49,6 +49,7 @@ import {
   btrfsSnapshotsCmd,
   proAudioSetupCmd,
   crowdsecSetupCmd,
+  generateApplicationShortcutsChrootCommands,
 } from './helpers';
 import { generateBrandingChrootCommands } from './branding';
 import { offlineRepoConfigCmd } from './offlineCache';
@@ -611,6 +612,7 @@ ${networkSecurityGatewayCmd(recipe, 'debian')}
 ${btrfsSnapshotsCmd(recipe, 'debian')}
 ${proAudioSetupCmd(recipe, 'debian')}
 ${crowdsecSetupCmd(recipe, 'debian')}
+${generateApplicationShortcutsChrootCommands(recipe)}
 
 # Sécurité & Durcissement (CIS Benchmark / UFW / nftables)
 ${firewallCmd(recipe, 'debian')}

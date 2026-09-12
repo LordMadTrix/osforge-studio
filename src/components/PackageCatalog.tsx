@@ -346,10 +346,13 @@ export const PackageCatalog: React.FC<PackageCatalogProps> = ({ recipe, onChange
             animation: 'fadeIn 0.15s ease-out',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 700, color: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.8rem', fontWeight: 700, color: '#e2e8f0' }}>
                 <span>📦</span>
                 <span>{lang === 'fr' ? 'Logiciels sélectionnés dans cette recette :' : 'Selected packages in this recipe:'}</span>
                 <span className="badge badge-cyan">{totalSelectedCount}</span>
+                <span className="badge badge-emerald" style={{ fontSize: '0.66rem', letterSpacing: '0.02em' }}>
+                  {lang === 'fr' ? '💾 100% Intégrés Hors-Ligne dans l\'ISO' : '💾 100% Baked Offline into ISO'}
+                </span>
               </div>
               {totalSelectedCount > 0 && (
                 <button

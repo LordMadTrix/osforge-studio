@@ -530,6 +530,39 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Profil Homelab Docker Stacks (pré-installe Docker Engine et Compose dans le RootFS)
+  if (recipe.enableHomelabStack) {
+    if (isDebianLike) {
+      pkgs.push('docker.io', 'docker-compose');
+    } else if (isArchLike) {
+      pkgs.push('docker', 'docker-compose');
+    } else if (isFedoraLike) {
+      pkgs.push('moby-engine', 'docker-compose');
+    } else if (distroId === 'alpine') {
+      pkgs.push('docker', 'docker-cli-compose');
+    } else if (distroId === 'opensuse' || distroId === 'void') {
+      pkgs.push('docker', 'docker-compose');
+    }
+  }
+
+  // Profil Appliance IA Locale (Open-WebUI nécessite le moteur de conteneurs Docker)
+  if (recipe.enableLocalAiStack && recipe.enableOpenWebUi) {
+    if (isDebianLike) {
+      pkgs.push('docker.io');
+    } else if (isArchLike || distroId === 'opensuse' || distroId === 'void' || distroId === 'alpine') {
+      pkgs.push('docker');
+    } else if (isFedoraLike) {
+      pkgs.push('moby-engine');
+    }
+  }
+
+  // Dépôts Tiers Officiels (outils prérequis pour trousseaux GPG deb822)
+  if (recipe.thirdPartyRepos && recipe.thirdPartyRepos.length > 0) {
+    if (isDebianLike) {
+      pkgs.push('curl', 'ca-certificates', 'gnupg');
+    }
+  }
+
   // Thèmes d'icônes personnalisés
   const iconTheme = recipe.branding.iconTheme;
   if (iconTheme === 'papirus-dark' || iconTheme === 'papirus-light') {
