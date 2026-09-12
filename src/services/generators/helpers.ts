@@ -529,6 +529,45 @@ fi`;
   return `echo -e "\${YELLOW:-}[INFO] Auto-login non câblé pour le gestionnaire de connexion \\"${recipe.displayManager}\\" (seuls GDM/SDDM/LightDM sont pris en charge).\${NC:-}" 2>/dev/null || true`;
 }
 
+/**
+ * Assure la stabilité et la résilience graphique des environnements de bureau
+ * dans les machines virtuelles (VirtualBox, QEMU, VMware, Proxmox) et sur matériel physique.
+ * Évite les crashs Muffin / Clutter et le "mode de secours" (fallback mode) de Cinnamon.
+ */
+export function desktopResilienceCmd(recipe: OSRecipe, _family: 'debian' | NonDebianFamily): string {
+  const parts: string[] = [];
+
+  if (recipe.desktop === 'cinnamon') {
+    parts.push(`# Résilience et compatibilité VirtualBox / QEMU / VMware pour Cinnamon
+# Détecte automatiquement l'environnement virtuel ou l'absence d'accélération 3D matérielle
+# et bascule sur le rendu logiciel Mesa llvmpipe haute performance pour éviter tout crash de Muffin.
+mkdir -p /usr/local/bin /etc/X11/Xsession.d
+cat > /usr/local/bin/cinnamon << 'CINNAMON_WRAPPER_EOF'
+#!/bin/sh
+if systemd-detect-virt -q 2>/dev/null || [ ! -e /dev/dri/renderD128 ]; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export CINNAMON_2D=1
+    export MUFFIN_NO_SHADOWS=1
+    export CLUTTER_PAINT=disable-culling
+fi
+exec /usr/bin/cinnamon "$@"
+CINNAMON_WRAPPER_EOF
+chmod 755 /usr/local/bin/cinnamon 2>/dev/null || true
+
+cat > /etc/X11/Xsession.d/99cinnamon-vm-tuning << 'XSESSION_EOF'
+if systemd-detect-virt -q 2>/dev/null || [ ! -e /dev/dri/renderD128 ]; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export CINNAMON_2D=1
+    export MUFFIN_NO_SHADOWS=1
+    export CLUTTER_PAINT=disable-culling
+fi
+XSESSION_EOF
+chmod 644 /etc/X11/Xsession.d/99cinnamon-vm-tuning 2>/dev/null || true`);
+  }
+
+  return parts.join('\n');
+}
+
 export function kioskSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
   if (recipe.desktop !== 'web_kiosk' && !recipe.enableKioskMode) return '';
   const useFirefox = (recipe.distro === 'ubuntu' || recipe.distro === 'linuxmint');

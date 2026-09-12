@@ -29,6 +29,7 @@ import {
   calamaresInstallerCmd,
   gpuDriverCmd,
   dmAutologinCmd,
+  desktopResilienceCmd,
   kioskSetupCmd,
   dotfilesCloneCmd,
   customServicesCmd,
@@ -634,6 +635,7 @@ ${gpuDriverCmd(recipe, family)}
 ${generateAlternativeBootloaderCommands(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
+${desktopResilienceCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}
@@ -960,6 +962,7 @@ ${calamaresInstallerCmd(recipe, family)}
 ${gpuDriverCmd(recipe, family)}
 ${dmCmd}
 ${dmAutologinCmd(recipe, family)}
+${desktopResilienceCmd(recipe, family)}
 ${kioskSetupCmd(recipe, family)}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, family)}

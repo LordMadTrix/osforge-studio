@@ -143,7 +143,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   } else if (recipe.desktop === 'cinnamon') {
     if (isDebianLike) {
-      pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
+      pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox-esr', 'xorg', 'xserver-xorg-video-all', 'xserver-xorg-input-all', 'mesa-utils', 'libgl1-mesa-dri', 'spice-vdagent', 'pipewire', 'pipewire-audio', 'wireplumber', 'network-manager');
     } else if (isArchLike) {
       pkgs.push('cinnamon', 'lightdm', 'lightdm-gtk-greeter', 'nemo', 'firefox', 'pipewire', 'wireplumber', 'networkmanager');
     } else if (distroId === 'fedora') {

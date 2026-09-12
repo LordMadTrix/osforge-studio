@@ -4481,6 +4481,37 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(liveBat).toContain('qemu-img create -f qcow2 "$DISK_FILE" 40G');
     });
   });
+
+  describe('39. 🛡️ Résilience Graphique Cinnamon sous VirtualBox & Rendu Logiciel Mesa llvmpipe', () => {
+    it('desktopResilienceCmd : génère le wrapper /usr/local/bin/cinnamon avec détection VM et rendu Mesa', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const script = generateBuildScript(recipe);
+
+      expect(script).toContain('/usr/local/bin/cinnamon');
+      expect(script).toContain('systemd-detect-virt -q');
+      expect(script).toContain('export LIBGL_ALWAYS_SOFTWARE=1');
+      expect(script).toContain('export CINNAMON_2D=1');
+      expect(script).toContain('export MUFFIN_NO_SHADOWS=1');
+      expect(script).toContain('/etc/X11/Xsession.d/99cinnamon-vm-tuning');
+    });
+
+    it('resolvePackageList : installe les paquets de rendu OpenGL Mesa et pilotes d’entrée pour Debian Cinnamon', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const pkgs = resolvePackageList(recipe);
+
+      expect(pkgs).toContain('mesa-utils');
+      expect(pkgs).toContain('libgl1-mesa-dri');
+      expect(pkgs).toContain('xserver-xorg-input-all');
+      expect(pkgs).toContain('spice-vdagent');
+    });
+
+    it('branding : ne contient pas monospace-font-name dans org.cinnamon.desktop.interface', () => {
+      const recipe = makeRecipe({ distro: 'debian', desktop: 'cinnamon' });
+      const script = generateBuildScript(recipe);
+
+      expect(script).not.toMatch(/\[org\/cinnamon\/desktop\/interface\][^[]*monospace-font-name/);
+    });
+  });
 });
 
 

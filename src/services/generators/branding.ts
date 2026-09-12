@@ -907,7 +907,6 @@ gtk-theme='Adwaita-dark'
 icon-theme='${iconTheme}'
 cursor-theme='${cursorTheme}'
 font-name='${uiFont} 10'
-monospace-font-name='${monoFont} 10'
 
 [org/mate/desktop/interface]
 gtk-theme='Adwaita-dark'

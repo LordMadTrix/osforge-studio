@@ -28,6 +28,7 @@ import {
   calamaresInstallerCmd,
   gpuDriverCmd,
   dmAutologinCmd,
+  desktopResilienceCmd,
   kioskSetupCmd,
   dotfilesCloneCmd,
   customServicesCmd,
@@ -604,6 +605,7 @@ ${generateAlternativeBootloaderCommands(recipe, 'debian')}
 
 ${dmCmd}
 ${dmAutologinCmd(recipe, 'debian')}
+${desktopResilienceCmd(recipe, 'debian')}
 ${kioskSetupCmd(recipe, 'debian')}
 ${dotfilesCloneCmd(recipe)}
 ${customServicesCmd(recipe, 'debian')}

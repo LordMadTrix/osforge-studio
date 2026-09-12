@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **865 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **868 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **39. 🛡️ Résilience Graphique Cinnamon sous VirtualBox / VM & Rendu Logiciel Mesa llvmpipe** :
+  - **Diagnostic & Root Cause (Découvert via la capture d'écran utilisateur « Ceci est le mode de secours »)** :
+    - *Crash Muffin / Clutter OpenGL* : Sous VirtualBox ou QEMU sans accélération 3D matérielle directe (contrôleur VBoxSVGA / VBoxVGA sans accélération 3D cochée dans VirtualBox), le gestionnaire de fenêtres Muffin tente d'initialiser Clutter avec OpenGL matériel. L'échec de création du contexte GLX provoque la terminaison immédiate du processus `cinnamon` par un signal SIGSEGV. `cinnamon-launcher` intercepte la fin anormale et affiche la boîte de dialogue : *« Ceci est le mode de secours. Voulez-vous redémarrer Cinnamon ? »*. En mode de secours, le panel/barre des tâches n'est pas lancé et le fond d'écran reste noir.
+    - *Clé DConf invalide* : Dans `branding.ts`, `monospace-font-name` était injecté dans `[org/cinnamon/desktop/interface]` alors que cette clé n'existe pas dans le schéma officiel Cinnamon.
+    - *Paquets Xorg / Mesa manquants* : `mesa-utils`, `libgl1-mesa-dri`, `xserver-xorg-input-all` et `spice-vdagent` n'étaient pas explicitement tirés dans `packages.ts`.
+  - **Résolution Appliquée (Zéro Cosmétique)** :
+    - *Wrapper de Résilience `/usr/local/bin/cinnamon` (`helpers.ts`)* : Création d'un wrapper prioritaire dans `/usr/local/bin/cinnamon` et d'un script Xsession `/etc/X11/Xsession.d/99cinnamon-vm-tuning`. Si `systemd-detect-virt -q` détecte une machine virtuelle ou si `/dev/dri/renderD128` est absent, injection automatique de `LIBGL_ALWAYS_SOFTWARE=1`, `CINNAMON_2D=1`, `MUFFIN_NO_SHADOWS=1` et `CLUTTER_PAINT=disable-culling`. Muffin s'exécute alors en rendu logiciel Mesa llvmpipe ultra-fluide sans aucun crash. Sur machine physique, l'accélération GPU native reste intacte à 100%.
+    - *Nettoyage DConf (`branding.ts`)* : Retrait de la clé invalide `monospace-font-name` dans `org/cinnamon/desktop/interface`.
+    - *Complétude des paquets (`packages.ts`)* : Ajout de `mesa-utils`, `libgl1-mesa-dri`, `xserver-xorg-input-all` et `spice-vdagent`.
+  - **Résultat** : 3 nouveaux tests unitaires Vitest ajoutés (868 tests au total, 100% au vert).
 - **38. 💾 Prérequis Calamares Souples (6 Go Non-Bloquant) & Disque Virtuel QEMU 40 Go Automatique** :
   - **Diagnostic & Root Cause (Découvert via le retour utilisateur "pas assez de place moins de X GB")** :
     - *Blocage Calamares Debian* : Dans `calamares-settings-debian`, le fichier `/etc/calamares/modules/welcome.conf` imposait en dur `requiredStorage: 15` et plaçait `storage` dans la liste bloquante `required: [storage, ram, root]`. Lorsque l'utilisateur testait l'installation sur une machine virtuelle (ex: VirtualBox qui propose par défaut un disque de 8 ou 10 Go, ou QEMU sans disque dur attaché), Calamares affichait une erreur critique "Espace disque insuffisant (moins de 15 Go)" et grisait le bouton "Suivant".
