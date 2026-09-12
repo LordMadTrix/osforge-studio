@@ -574,6 +574,54 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Applications de Bureau par Défaut (Navigateur, Terminal, Éditeur)
+  if (recipe.defaultApps) {
+    const browser = recipe.defaultApps.browser;
+    if (browser === 'google_chrome') {
+      if (isDebianLike) {
+        pkgs.push('curl', 'ca-certificates', 'gnupg', 'google-chrome-stable');
+      } else if (isFedoraLike) {
+        pkgs.push('google-chrome-stable');
+      } else {
+        pkgs.push('chromium');
+      }
+    } else if (browser === 'chromium') {
+      pkgs.push('chromium');
+    } else if (browser === 'brave') {
+      if (isDebianLike) {
+        pkgs.push('curl', 'ca-certificates', 'gnupg', 'brave-browser');
+      } else if (isFedoraLike || isArchLike) {
+        pkgs.push('brave-browser');
+      }
+    } else if (browser === 'librewolf') {
+      if (isDebianLike) {
+        pkgs.push('curl', 'ca-certificates', 'gnupg', 'librewolf');
+      } else if (isFedoraLike || isArchLike) {
+        pkgs.push('librewolf');
+      }
+    }
+
+    const term = recipe.defaultApps.terminal;
+    if (term === 'kitty') {
+      pkgs.push('kitty');
+    } else if (term === 'alacritty') {
+      pkgs.push('alacritty');
+    }
+
+    const ed = recipe.defaultApps.textEditor;
+    if (ed === 'vscodium') {
+      if (isDebianLike) {
+        pkgs.push('curl', 'ca-certificates', 'gnupg', 'codium');
+      } else {
+        pkgs.push('codium');
+      }
+    } else if (ed === 'micro') {
+      pkgs.push('micro');
+    } else if (ed === 'nano') {
+      pkgs.push('nano');
+    }
+  }
+
   // Thèmes d'icônes personnalisés
   const iconTheme = recipe.branding.iconTheme;
   if (iconTheme === 'papirus-dark' || iconTheme === 'papirus-light') {

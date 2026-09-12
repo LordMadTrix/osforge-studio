@@ -1240,14 +1240,27 @@ echo -e "\${YELLOW:-}[INFO] Mode immuable configuré : les modifications en RAM 
  * Configure les dépôts officiels tiers modernes avec trousseaux /etc/apt/keyrings/
  */
 export function thirdPartyReposCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
-  if (!recipe.thirdPartyRepos || recipe.thirdPartyRepos.length === 0) return '';
+  const repos = [...(recipe.thirdPartyRepos || [])];
+  if (recipe.defaultApps?.browser === 'google_chrome' && !repos.includes('google_chrome')) {
+    repos.push('google_chrome');
+  }
+  if (recipe.defaultApps?.browser === 'brave' && !repos.includes('brave')) {
+    repos.push('brave');
+  }
+  if (recipe.defaultApps?.browser === 'librewolf' && !repos.includes('librewolf')) {
+    repos.push('librewolf');
+  }
+  if (recipe.defaultApps?.textEditor === 'vscodium' && !repos.includes('vscodium')) {
+    repos.push('vscodium');
+  }
+
+  if (repos.length === 0) return '';
   if (family !== 'debian') {
-    return `# [Repos] Dépôts tiers demandés : ${recipe.thirdPartyRepos.join(', ')}
+    return `# [Repos] Dépôts tiers demandés : ${repos.join(', ')}
 echo -e "\${YELLOW:-}[INFO] Pour la famille ${family}, les paquets tiers sont résolus via les dépôts natifs ou communautaires.\${NC:-}"
 `;
   }
 
-  const repos = recipe.thirdPartyRepos;
   const blocks: string[] = [
     `# ==============================================================================
 # Dépôts Officiels Tiers Modernes (APT Keyrings /etc/apt/keyrings/)
@@ -1343,9 +1356,22 @@ Signed-By: /etc/apt/keyrings/librewolf.gpg
 LIBREWOLF_EOF`);
   }
 
+  if (repos.includes('google_chrome')) {
+    blocks.push(`# Google Chrome Official Repo
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg 2>/dev/null || true
+cat << 'CHROME_EOF' > /etc/apt/sources.list.d/google-chrome.sources
+Types: deb
+URIs: http://dl.google.com/linux/chrome/deb/
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/google-chrome.gpg
+CHROME_EOF`);
+  }
+
   const installPkgs: string[] = [];
   if (repos.includes('brave')) installPkgs.push('brave-browser');
   if (repos.includes('librewolf')) installPkgs.push('librewolf');
+  if (repos.includes('google_chrome')) installPkgs.push('google-chrome-stable');
   if (repos.includes('vscodium')) installPkgs.push('codium');
   if (repos.includes('docker_ce')) installPkgs.push('docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin');
   if (repos.includes('winehq')) installPkgs.push('winehq-stable');

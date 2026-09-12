@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **848 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **852 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **35. 🌐 Applications de Bureau par Défaut Personnalisables (Google Chrome, Chromium, Brave, LibreWolf, Kitty, VSCodium)** :
+  - **Diagnostic & Besoin Utilisateur** :
+    - Firefox était historiquement imposé par défaut dans tous les environnements graphiques (KDE, GNOME, XFCE, Cosmic). L'utilisateur souhaitait pouvoir choisir ses applications de bureau favorites au lieu de Firefox, par exemple installer et configurer nativement Google Chrome ou Chromium en 1 clic.
+  - **Résolution Appliquée (Zéro Cosmétique)** :
+    - *Modèle & Types (`os.ts`)* : Définition de `DefaultApplicationsConfig` (`browser`: `firefox` | `google_chrome` | `chromium` | `brave` | `librewolf`, `terminal`: `default` | `kitty` | `alacritty`, `textEditor`: `default` | `vscodium` | `micro` | `nano`), et ajout de `'google_chrome'` dans les dépôts tiers officiels.
+    - *Dépôt officiel Google Chrome Linux (`helpers.ts`)* : Injection de la clé GPG officielle (`dl.google.com/linux/linux_signing_key.pub`), génération de `/etc/apt/sources.list.d/google-chrome.sources` et installation directe de `google-chrome-stable` dans le SquashFS.
+    - *Résolution universelle des paquets (`packages.ts`)* : Détection automatique des dépendances (`google-chrome-stable`, `chromium`, `brave-browser`, `librewolf`, `kitty`, `alacritty`, `codium`).
+    - *Standard Freedesktop XDG & Alternatives Système (`branding.ts`)* : Génération automatique de `/etc/xdg/mimeapps.list` et `/etc/skel/.config/mimeapps.list` pour associer le navigateur choisi aux protocoles HTTP, HTTPS, text/html, configuration de `update-alternatives --set x-www-browser` et `x-terminal-emulator`, définition de `BROWSER=` dans `/etc/environment`, et application au login via `xdg-settings set default-web-browser`.
+    - *Interface Utilisateur (`DesktopSelector.tsx`)* : Panneau dédié avec cartes interactives pour sélectionner en 1 clic le navigateur web par défaut (Firefox, Chrome, Chromium, Brave, LibreWolf), l'émulateur de terminal (Natif, Kitty GPU, Alacritty Rust) et l'éditeur de code (Natif, VSCodium, Micro, Nano).
+  - **Résultat** : 4 nouveaux tests unitaires Vitest ajoutés (852 tests au total, 100% au vert).
 - **34. 🖥️ & 🚀 Session Wayland Native KDE Plasma sous SDDM & Transparence des Versions (KDE Plasma 5.27 LTS vs Plasma 6)** :
   - **Diagnostic & Root Cause** :
     - *Écart de Version (Plasma 5.27.12 vs Qt6 / Plasma 6)* : L'UI affichait un nom fixe « KDE Plasma (Qt6 & HDR Wayland) » et un badge upstream `6.x`, alors que sur Ubuntu 24.04 LTS (Noble Numbat) et Debian 12 (Bookworm), les dépôts officiels distribuent exclusivement **KDE Plasma 5.27.12 LTS (Qt5)** pour la stabilité du support 5 ans. Plasma 6 Qt6 est disponible sur Fedora 40+, Arch Linux, CachyOS et openSUSE Tumbleweed.

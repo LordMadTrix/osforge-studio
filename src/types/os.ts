@@ -309,7 +309,8 @@ export interface OSRecipe {
   enableSelectivePersistence?: boolean;
   enableUsbPersistence?: boolean;
   persistenceSizeMb?: number;
-  thirdPartyRepos?: ('vscodium' | 'docker_ce' | 'winehq' | 'nodesource' | 'xanmod' | 'brave' | 'librewolf')[];
+  thirdPartyRepos?: ('vscodium' | 'docker_ce' | 'winehq' | 'nodesource' | 'xanmod' | 'brave' | 'librewolf' | 'google_chrome')[];
+  defaultApps?: DefaultApplicationsConfig;
   enableNetworkSecurityGateway?: boolean;
   gatewayServices?: ('adguard_home' | 'wireguard_server' | 'fail2ban' | 'cockpit')[];
   enableOfflineCache?: boolean;
@@ -320,6 +321,12 @@ export interface OSRecipe {
   firstBootScript: string;
   dotfilesGitUrl?: string;
   cloudInitYaml?: string;
+}
+
+export interface DefaultApplicationsConfig {
+  browser?: 'firefox' | 'google_chrome' | 'chromium' | 'brave' | 'librewolf';
+  terminal?: 'default' | 'kitty' | 'alacritty';
+  textEditor?: 'default' | 'vscodium' | 'nano' | 'micro';
 }
 
 export interface DistroPreset {

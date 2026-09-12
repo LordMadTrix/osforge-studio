@@ -563,6 +563,144 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
           </div>
         </div>
 
+        {/* Applications de Bureau par Défaut */}
+        <div className="glass-panel" style={{ padding: '18px' }}>
+          <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Globe size={16} color="var(--cyan)" />
+            {lang === 'fr' ? 'Applications de Bureau par Défaut' : 'Default Desktop Applications'}
+            <InfoTooltip
+              text={lang === 'fr'
+                ? 'Choisissez le navigateur web, le terminal et l’éditeur de texte configurés par défaut dans les associations XDG MIME et alternatives système.'
+                : 'Select the default web browser, terminal emulator, and code editor configured in XDG MIME associations.'}
+            />
+          </h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {/* 1. Navigateur Web */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                🌐 {lang === 'fr' ? 'Navigateur Web par Défaut' : 'Default Web Browser'}
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  { id: 'firefox', name: 'Mozilla Firefox', desc: 'Standard / ESR open-source', badge: 'Recommandé' },
+                  { id: 'google_chrome', name: 'Google Chrome', desc: 'Dépôt officiel Google Linux (x86_64)', badge: 'Officiel' },
+                  { id: 'chromium', name: 'Chromium', desc: 'Moteur open-source pur sans télémétrie', badge: 'Open-Source' },
+                  { id: 'brave', name: 'Brave Browser', desc: 'Protection vie privée & adblocker natif', badge: 'Privacy' },
+                  { id: 'librewolf', name: 'LibreWolf', desc: 'Fork Firefox durci anti-tracking', badge: 'Hardened' },
+                ].map((b) => {
+                  const currentBrowser = recipe.defaultApps?.browser || 'firefox';
+                  const isSelected = currentBrowser === b.id;
+                  return (
+                    <div
+                      key={b.id}
+                      onClick={() => onChange({
+                        defaultApps: { ...recipe.defaultApps, browser: b.id as any }
+                      })}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                        border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                            {b.name}
+                          </span>
+                          <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                            {b.badge}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          {b.desc}
+                        </div>
+                      </div>
+                      {isSelected && <CheckCircle2 size={14} color="var(--cyan)" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Émulateur de Terminal */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                ⌨️ {lang === 'fr' ? 'Émulateur de Terminal' : 'Terminal Emulator'}
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  { id: 'default', name: lang === 'fr' ? 'Terminal Natif du Bureau' : 'Native Desktop Terminal', desc: 'Konsole, GNOME Terminal, XFCE Terminal', badge: 'Standard' },
+                  { id: 'kitty', name: 'Kitty Terminal', desc: 'Accélération GPU OpenGL, ligatures, tuilage rapide', badge: 'GPU Pro' },
+                  { id: 'alacritty', name: 'Alacritty', desc: 'Minimaliste, léger et ultra-rapide codé en Rust', badge: 'Rust' },
+                ].map((t) => {
+                  const currentTerminal = recipe.defaultApps?.terminal || 'default';
+                  const isSelected = currentTerminal === t.id;
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => onChange({
+                        defaultApps: { ...recipe.defaultApps, terminal: t.id as any }
+                      })}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: isSelected ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                        border: isSelected ? '1px solid var(--violet)' : '1px solid var(--border-subtle)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                            {t.name}
+                          </span>
+                          <span className="badge badge-violet" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                            {t.badge}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          {t.desc}
+                        </div>
+                      </div>
+                      {isSelected && <CheckCircle2 size={14} color="var(--violet)" />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 3. Éditeur de Texte / Code */}
+              <div style={{ marginTop: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  📝 {lang === 'fr' ? 'Éditeur de Code / Texte' : 'Code & Text Editor'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.defaultApps?.textEditor || 'default'}
+                  onChange={(e) => onChange({
+                    defaultApps: { ...recipe.defaultApps, textEditor: e.target.value as any }
+                  })}
+                >
+                  <option value="default">{lang === 'fr' ? 'Natif du bureau (Kate, Gedit, Mousepad)' : 'Native Desktop Editor'}</option>
+                  <option value="vscodium">VSCodium (VS Code 100% open-source & telemetry-free)</option>
+                  <option value="micro">Micro (Éditeur terminal moderne avec raccourcis Ctrl+C/Ctrl+V)</option>
+                  <option value="nano">GNU Nano (Classique sysadmin)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Branding & Boot Theme */}
         <div className="glass-panel" style={{ padding: '18px' }}>
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>

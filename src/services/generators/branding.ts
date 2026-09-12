@@ -888,6 +888,20 @@ export function generateAutostartThemeCmd(recipe: OSRecipe): string {
   const cursorTheme = mapCursorThemeName(recipe.branding.cursorTheme);
   const username = recipe.user?.username || 'forge';
 
+  const browser = recipe.defaultApps?.browser || 'firefox';
+  let browserDesktop = recipe.distro === 'debian' ? 'firefox-esr.desktop' : 'firefox.desktop';
+  if (browser === 'google_chrome') browserDesktop = 'google-chrome.desktop';
+  else if (browser === 'chromium') browserDesktop = 'chromium.desktop';
+  else if (browser === 'brave') browserDesktop = 'brave-browser.desktop';
+  else if (browser === 'librewolf') browserDesktop = 'librewolf.desktop';
+
+  const termChoice = recipe.defaultApps?.terminal || 'default';
+  const termWelcomeCmd = termChoice === 'kitty'
+    ? 'if command -v kitty >/dev/null 2>&1; then kitty --hold fastfetch; exit 0; fi; '
+    : termChoice === 'alacritty'
+      ? 'if command -v alacritty >/dev/null 2>&1; then alacritty -e fastfetch; exit 0; fi; '
+      : '';
+
   return `# ==============================================================================
 # Script Autostart Universel d'Application du Thème & Design System
 # ==============================================================================
@@ -934,6 +948,11 @@ if command -v xfconf-query >/dev/null 2>&1 && [ -f "$WALLPAPER" ]; then
     xfconf-query -c xsettings -p /Net/IconThemeName -s "${iconTheme}" >/dev/null 2>&1 || true
     xfconf-query -c xsettings -p /Gtk/CursorThemeName -s "${cursorTheme}" >/dev/null 2>&1 || true
 fi
+
+# 4. Navigateur Web par défaut
+if command -v xdg-settings >/dev/null 2>&1; then
+    xdg-settings set default-web-browser "${browserDesktop}" >/dev/null 2>&1 || true
+fi
 AUTOSTART_SH_EOF
 chmod +x /usr/local/bin/osforge-apply-theme.sh
 
@@ -956,7 +975,7 @@ Type=Application
 Version=1.0
 Name=Bienvenue sur ${recipe.branding.osName || 'ForgeOS'}
 Comment=Affichage automatique des spécifications système Fastfetch
-Exec=bash -c "sleep 1.5; if command -v konsole >/dev/null 2>&1; then konsole --hold -e fastfetch; elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal -H -e fastfetch; elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal -- bash -c 'fastfetch; exec bash'; elif command -v kitty >/dev/null 2>&1; then kitty --hold fastfetch; elif command -v foot >/dev/null 2>&1; then foot -H fastfetch; else x-terminal-emulator -e bash -c 'fastfetch; exec bash' 2>/dev/null || true; fi"
+Exec=bash -c "sleep 1.5; ${termWelcomeCmd}if command -v konsole >/dev/null 2>&1; then konsole --hold -e fastfetch; elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal -H -e fastfetch; elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal -- bash -c 'fastfetch; exec bash'; elif command -v kitty >/dev/null 2>&1; then kitty --hold fastfetch; elif command -v foot >/dev/null 2>&1; then foot -H fastfetch; else x-terminal-emulator -e bash -c 'fastfetch; exec bash' 2>/dev/null || true; fi"
 Icon=utilities-terminal
 Terminal=false
 Categories=System;Utility;
@@ -1483,6 +1502,81 @@ fi
 }
 
 /**
+ * Configure les applications de bureau par défaut du système (MIME Associations XDG & Alternatives)
+ */
+export function generateDefaultApplicationsCmd(recipe: OSRecipe): string {
+  const browser = recipe.defaultApps?.browser || 'firefox';
+  const terminal = recipe.defaultApps?.terminal || 'default';
+  const textEditor = recipe.defaultApps?.textEditor || 'default';
+
+  let browserDesktop = recipe.distro === 'debian' ? 'firefox-esr.desktop' : 'firefox.desktop';
+  let browserBin = recipe.distro === 'debian' ? '/usr/bin/firefox-esr' : '/usr/bin/firefox';
+
+  if (browser === 'google_chrome') {
+    browserDesktop = 'google-chrome.desktop';
+    browserBin = '/usr/bin/google-chrome-stable';
+  } else if (browser === 'chromium') {
+    browserDesktop = 'chromium.desktop';
+    browserBin = '/usr/bin/chromium';
+  } else if (browser === 'brave') {
+    browserDesktop = 'brave-browser.desktop';
+    browserBin = '/usr/bin/brave-browser';
+  } else if (browser === 'librewolf') {
+    browserDesktop = 'librewolf.desktop';
+    browserBin = '/usr/bin/librewolf';
+  }
+
+  let termCmd = '';
+  if (terminal === 'kitty') {
+    termCmd = `if command -v update-alternatives >/dev/null 2>&1 && [ -x /usr/bin/kitty ]; then
+    update-alternatives --set x-terminal-emulator /usr/bin/kitty 2>/dev/null || true
+fi`;
+  } else if (terminal === 'alacritty') {
+    termCmd = `if command -v update-alternatives >/dev/null 2>&1 && [ -x /usr/bin/alacritty ]; then
+    update-alternatives --set x-terminal-emulator /usr/bin/alacritty 2>/dev/null || true
+fi`;
+  }
+
+  let editorMime = '';
+  if (textEditor === 'vscodium') {
+    editorMime = 'text/plain=codium.desktop\napplication/x-zerosize=codium.desktop\n';
+  }
+
+  return `# ==============================================================================
+# Applications de Bureau par Défaut (Associations MIME XDG & Alternatives)
+# ==============================================================================
+echo -e "\${BLUE}[BRANDING] Configuration des applications par défaut (${browser})...\${NC}"
+mkdir -p /etc/xdg /etc/skel/.config
+
+cat << 'MIMEAPPS_EOF' > /etc/xdg/mimeapps.list
+[Default Applications]
+text/html=${browserDesktop}
+x-scheme-handler/http=${browserDesktop}
+x-scheme-handler/https=${browserDesktop}
+x-scheme-handler/about=${browserDesktop}
+x-scheme-handler/unknown=${browserDesktop}
+application/xhtml+xml=${browserDesktop}
+${editorMime}MIMEAPPS_EOF
+
+cp -f /etc/xdg/mimeapps.list /etc/skel/.config/mimeapps.list 2>/dev/null || true
+
+# Définition des alternatives système officielles
+if command -v update-alternatives >/dev/null 2>&1; then
+    if [ -x "${browserBin}" ]; then
+        update-alternatives --set x-www-browser "${browserBin}" 2>/dev/null || true
+        update-alternatives --set gnome-www-browser "${browserBin}" 2>/dev/null || true
+    fi
+    ${termCmd}
+fi
+
+# Variable globale d'environnement BROWSER
+if [ -f /etc/environment ]; then
+    grep -q '^BROWSER=' /etc/environment 2>/dev/null || echo "BROWSER=${browserBin}" >> /etc/environment
+fi
+`;
+}
+
+/**
  * Point d'entrée consolidé qui regroupe toute la personnalisation système
  */
 export function generateBrandingChrootCommands(recipe: OSRecipe, baseId = 'debian'): string {
@@ -1506,6 +1600,8 @@ ${generateStartupSoundCmd(recipe)}
 ${generateFastfetchMotdCmd(recipe)}
 
 ${generateAutostartThemeCmd(recipe)}
+
+${generateDefaultApplicationsCmd(recipe)}
 
 ${generatePlymouthCmd(recipe)}
 

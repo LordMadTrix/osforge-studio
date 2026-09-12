@@ -4342,6 +4342,57 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(pkgs).toContain('sddm');
     });
   });
+
+  describe('35. 🌐 Applications de Bureau par Défaut Personnalisables (Google Chrome, Chromium, Brave, LibreWolf, Kitty)', () => {
+    it('installe automatiquement Google Chrome et injecte son dépôt officiel APT quand sélectionné', () => {
+      const chromeRecipe = makeRecipe({
+        distro: 'debian',
+        defaultApps: {
+          browser: 'google_chrome',
+          terminal: 'kitty',
+          textEditor: 'vscodium',
+        },
+      });
+
+      const pkgs = resolvePackageList(chromeRecipe);
+      expect(pkgs).toContain('google-chrome-stable');
+      expect(pkgs).toContain('kitty');
+      expect(pkgs).toContain('codium');
+
+      const script = generateBuildScript(chromeRecipe);
+      expect(script).toContain('google-chrome.gpg');
+      expect(script).toContain('google-chrome.sources');
+      expect(script).toContain('google-chrome-stable');
+      expect(script).toContain('text/html=google-chrome.desktop');
+      expect(script).toContain('update-alternatives --set x-www-browser "/usr/bin/google-chrome-stable"');
+    });
+
+    it('résout Chromium, Brave et LibreWolf sans conflit', () => {
+      const chromiumPkgs = resolvePackageList(makeRecipe({
+        distro: 'ubuntu',
+        defaultApps: { browser: 'chromium' },
+      }));
+      expect(chromiumPkgs).toContain('chromium');
+
+      const braveRecipe = makeRecipe({
+        distro: 'debian',
+        defaultApps: { browser: 'brave' },
+      });
+      const bravePkgs = resolvePackageList(braveRecipe);
+      expect(bravePkgs).toContain('brave-browser');
+      const braveScript = generateBuildScript(braveRecipe);
+      expect(braveScript).toContain('brave-browser-release.sources');
+
+      const wolfRecipe = makeRecipe({
+        distro: 'debian',
+        defaultApps: { browser: 'librewolf' },
+      });
+      const wolfPkgs = resolvePackageList(wolfRecipe);
+      expect(wolfPkgs).toContain('librewolf');
+      const wolfScript = generateBuildScript(wolfRecipe);
+      expect(wolfScript).toContain('librewolf.sources');
+    });
+  });
 });
 
 

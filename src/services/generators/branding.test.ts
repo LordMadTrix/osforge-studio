@@ -18,6 +18,7 @@ import {
   generateProAliasesCmd,
   generateStartupSoundCmd,
   generateAutostartThemeCmd,
+  generateDefaultApplicationsCmd,
   generateBrandingChrootCommands,
 } from './branding';
 import { resolvePackageList } from './packages';
@@ -493,6 +494,37 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(cmd).toContain('/usr/share/plymouth/ubuntu-logo.png');
       expect(cmd).toContain('/etc/plymouth/plymouthd.conf');
       expect(cmd).toContain('update-alternatives');
+    });
+  });
+
+  describe('Applications de Bureau par Défaut (XDG MIME & Alternatives)', () => {
+    it('generateDefaultApplicationsCmd : associe Google Chrome par défaut pour HTTP/HTTPS et alternatives', () => {
+      const recipe = makeRecipe({
+        defaultApps: {
+          browser: 'google_chrome',
+          terminal: 'kitty',
+          textEditor: 'vscodium',
+        },
+      });
+      const cmd = generateDefaultApplicationsCmd(recipe);
+      expect(cmd).toContain('/etc/xdg/mimeapps.list');
+      expect(cmd).toContain('text/html=google-chrome.desktop');
+      expect(cmd).toContain('x-scheme-handler/https=google-chrome.desktop');
+      expect(cmd).toContain('text/plain=codium.desktop');
+      expect(cmd).toContain('update-alternatives --set x-www-browser "/usr/bin/google-chrome-stable"');
+      expect(cmd).toContain('update-alternatives --set x-terminal-emulator /usr/bin/kitty');
+      expect(cmd).toContain('BROWSER=/usr/bin/google-chrome-stable');
+    });
+
+    it('generateDefaultApplicationsCmd : supporte Chromium, Brave et LibreWolf', () => {
+      const rChromium = makeRecipe({ defaultApps: { browser: 'chromium' } });
+      expect(generateDefaultApplicationsCmd(rChromium)).toContain('text/html=chromium.desktop');
+
+      const rBrave = makeRecipe({ defaultApps: { browser: 'brave' } });
+      expect(generateDefaultApplicationsCmd(rBrave)).toContain('text/html=brave-browser.desktop');
+
+      const rLibreWolf = makeRecipe({ defaultApps: { browser: 'librewolf' } });
+      expect(generateDefaultApplicationsCmd(rLibreWolf)).toContain('text/html=librewolf.desktop');
     });
   });
 });
