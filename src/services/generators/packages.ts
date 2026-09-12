@@ -509,7 +509,7 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
-  // Branding & Thème (Plymouth & Fastfetch)
+  // Branding & Thème (Plymouth & Fastfetch & Rendu SVG -> PNG)
   if (recipe.branding.bootSplashTheme) {
     if (isDebianLike) {
       pkgs.push('plymouth', 'plymouth-themes');
@@ -519,6 +519,17 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   }
   if (recipe.branding.enableFastfetchMotd !== false) {
     pkgs.push('fastfetch');
+  }
+  if (recipe.desktop !== 'none' || recipe.branding.bootSplashTheme) {
+    if (isDebianLike) {
+      pkgs.push('librsvg2-bin');
+    } else if (isArchLike) {
+      pkgs.push('librsvg');
+    } else if (isFedoraLike) {
+      pkgs.push('librsvg2-tools');
+    } else if (distroId === 'alpine') {
+      pkgs.push('librsvg');
+    }
   }
 
   // Profil Passerelle Réseau & Sécurité Domestique OOB
@@ -676,13 +687,13 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
   // Support des images vectorielles SVG et de la configuration DConf système
   if (recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk') {
     if (isDebianLike) {
-      pkgs.push('librsvg2-common', 'dconf-cli');
+      pkgs.push('librsvg2-bin', 'librsvg2-common', 'dconf-cli');
     } else if (isArchLike) {
       pkgs.push('librsvg', 'dconf');
     } else if (isFedoraLike) {
-      pkgs.push('librsvg2', 'dconf');
+      pkgs.push('librsvg2-tools', 'librsvg2', 'dconf');
     } else if (distroId === 'opensuse') {
-      pkgs.push('librsvg-2-2', 'dconf');
+      pkgs.push('rsvg-convert', 'librsvg-2-2', 'dconf');
     } else if (distroId === 'alpine' || distroId === 'void') {
       pkgs.push('librsvg', 'dconf');
     }

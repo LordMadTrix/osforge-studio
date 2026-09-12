@@ -146,7 +146,18 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **843 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **846 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **33. 🎨 & 🖥️ Rendu Visuel 100% Fidèle : Résolution du Boot Splash Plymouth, Écrasement des Wallpapers KDE par Défaut & Autostart Fastfetch** :
+  - **Diagnostic & Root Cause** :
+    - *Boot Splash Plymouth (Logo Ubuntu)* : Le script Plymouth généré pour `osforge-custom` appelait `Image.Constant` qui n'existe pas dans le moteur C de Plymouth (`ply-image.c`), provoquant une erreur de parsing silencieuse lors du boot. De plus, sur Ubuntu, `/etc/alternatives/default.plymouth` surchargeait la configuration sans mise à jour d'alternatives, et les filigranes du logo Ubuntu (`/usr/share/plymouth/ubuntu-logo.png`, `watermark.png`) n'étaient pas écrasés, ce qui faisait retomber l'initramfs sur le logo Ubuntu orange classique.
+    - *Fond d'écran KDE Plasma (Montagnes par défaut)* : KDE Plasma (`org.kde.image`) rejette les fichiers SVG comme fond d'écran et ne charge que les formats matriciels (.png, .jpg). L'absence de `librsvg2-bin` dans la liste de paquets empêchait la rasterisation en PNG 1920x1080. De plus, Plasma charge au premier boot les dossiers de thèmes Look-And-Feel Lookups (`Next`, `Altai`, `Breeze`) plutôt que les configurations tierces si les assets d'origine ne sont pas écrasés.
+    - *Fenêtre de Terminal Fastfetch* : Fastfetch était configuré uniquement dans `/etc/profile.d/00-fastfetch-welcome.sh` (interactif uniquement), sans déclencheur autostart graphique Freedesktop `.desktop` au démarrage de session.
+  - **Résolution Appliquée** :
+    - *Moteur de thème Plymouth sur-mesure (`branding.ts`)* : Remplacement de l'appel invalide par une image de barre de chargement vectorielle rasterisée (`progress_bar.png`), repli textuel `Image.Text` si le logo est absent, écrasement préventif de tous les watermarks et logos Ubuntu résiduels (`/usr/share/plymouth/ubuntu-logo.png`), déclaration explicite auprès d'`update-alternatives` sous Debian/Ubuntu, écriture de `/etc/plymouth/plymouthd.conf` et mise à jour de l'initramfs.
+    - *Dépendance de rasterisation universelle (`packages.ts`)* : Ajout automatique de `librsvg2-bin` (Debian/Ubuntu), `librsvg` (Arch/Alpine) et `librsvg2-tools` (Fedora) dès qu'un environnement de bureau ou un boot splash Plymouth est présent.
+    - *Garantie d'affichage immédiat du Wallpaper (`branding.ts`)* : Rendu PNG 1920x1080 prioritaire avec `rsvg-convert`, écrasement direct des répertoires de wallpapers par défaut KDE (`/usr/share/wallpapers/Next`, `Altai`, `Breeze`), configuration DConf GNOME/Cinnamon en PNG et priorité PNG dans `osforge-apply-theme.sh`.
+    - *Lanceur de Bienvenue Fastfetch Autostart (`branding.ts`)* : Injection de `/etc/xdg/autostart/osforge-welcome.desktop` et déploiement dans `/etc/skel/.config/autostart/` pour ouvrir automatiquement la fenêtre de terminal (Konsole, XFCE Terminal, GNOME Terminal, Kitty) avec Fastfetch dès le premier login.
+  - **Résultat** : 3 nouveaux tests unitaires Vitest ajoutés (846 tests au total, 100% au vert).
 - **32. 📦 & 💾 Intégration 100% Hors-Ligne des Applications et Stacks dans l'ISO (SquashFS Bake & XDG Desktop Shortcuts)** :
   - **Diagnostic & Root Cause** :
     - Les applications cochées dans les dépôts tiers (`thirdPartyRepos` : Brave, LibreWolf, VSCodium, Docker CE, WineHQ, NodeSource) créaient les fichiers `.sources` et exécutaient `apt-get update`, mais omettaient l'étape `apt-get install` : les dépôts étaient configurés mais les logiciels absents de l'image ISO live.

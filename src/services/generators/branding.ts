@@ -440,6 +440,11 @@ mkdir -p /usr/share/pixmaps
 cat << 'LOGOSVG_EOF' > /usr/share/pixmaps/${slug}.svg
 ${logoSvg}
 LOGOSVG_EOF
+
+# Rendu PNG haute résolution (requis par Plymouth, menus d'applications et SDDM)
+if command -v rsvg-convert &>/dev/null && [ -f "/usr/share/pixmaps/${slug}.svg" ]; then
+    rsvg-convert -w 256 -h 256 "/usr/share/pixmaps/${slug}.svg" -o "/usr/share/pixmaps/${slug}.png" 2>/dev/null || true
+fi
 `;
 }
 
@@ -479,19 +484,30 @@ mkdir -p "/usr/share/wallpapers/${slug}/contents/images"
 
 ${fetchOrWriteScript}
 
-# Si le SVG existe, creer le lien dans le dossier des wallpapers KDE
-if [ -f "/usr/share/backgrounds/${slug}-wallpaper.svg" ]; then
-    cp -f "/usr/share/backgrounds/${slug}-wallpaper.svg" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.svg" 2>/dev/null || true
-    WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.svg"
-    # Fallback rasterise PNG si rsvg-convert est disponible
-    if command -v rsvg-convert &>/dev/null; then
-        rsvg-convert -w 1920 -h 1080 "/usr/share/backgrounds/${slug}-wallpaper.svg" -o "/usr/share/backgrounds/${slug}-wallpaper.png" 2>/dev/null || true
-        cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.png" 2>/dev/null || true
-    fi
-else
-    cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.png" 2>/dev/null || true
-    WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.png"
+# Rasterisation haute fidélité en PNG 1920x1080 (format universel accepté par KDE, GNOME, XFCE, SDDM)
+if command -v rsvg-convert &>/dev/null && [ -f "/usr/share/backgrounds/${slug}-wallpaper.svg" ]; then
+    rsvg-convert -w 1920 -h 1080 "/usr/share/backgrounds/${slug}-wallpaper.svg" -o "/usr/share/backgrounds/${slug}-wallpaper.png" 2>/dev/null || true
 fi
+
+# Sélection de la cible prioritaire PNG (avec repli SVG)
+if [ -f "/usr/share/backgrounds/${slug}-wallpaper.png" ]; then
+    WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.png"
+    cp -f "/usr/share/backgrounds/${slug}-wallpaper.png" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.png" 2>/dev/null || true
+    [ -f "/usr/share/backgrounds/${slug}-wallpaper.svg" ] && cp -f "/usr/share/backgrounds/${slug}-wallpaper.svg" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.svg" 2>/dev/null || true
+else
+    WALLPAPER_TARGET="/usr/share/backgrounds/${slug}-wallpaper.svg"
+    cp -f "/usr/share/backgrounds/${slug}-wallpaper.svg" "/usr/share/wallpapers/${slug}/contents/images/1920x1080.svg" 2>/dev/null || true
+fi
+
+# Remplacement direct des fonds d'écran par défaut KDE Plasma (Next, Altai, Breeze)
+# Garantit que le fond d'écran personnalisé s'affiche instantanément au boot live sans attendre d'action utilisateur
+for WP_DIR in /usr/share/wallpapers/Next /usr/share/wallpapers/Altai /usr/share/wallpapers/Breeze; do
+    if [ -d "$WP_DIR/contents/images" ]; then
+        cp -f "$WALLPAPER_TARGET" "$WP_DIR/contents/images/1920x1080.png" 2>/dev/null || true
+        cp -f "$WALLPAPER_TARGET" "$WP_DIR/contents/images/1920x1080.jpg" 2>/dev/null || true
+        cp -f "$WALLPAPER_TARGET" "$WP_DIR/contents/images/2560x1600.png" 2>/dev/null || true
+    fi
+done
 
 # Métadonnées pour sélecteur KDE Plasma
 cat << 'METADATA_EOF' > "/usr/share/wallpapers/${slug}/metadata.json"
@@ -524,9 +540,16 @@ for (var i = 0; i < allDesktops.length; i++) {
     var d = allDesktops[i];
     d.wallpaperPlugin = "org.kde.image";
     d.currentConfigGroup = Array("Wallpaper", "org.kde.image", "General");
-    d.writeConfig("Image", "file:///usr/share/backgrounds/${slug}-wallpaper.svg");
+    d.writeConfig("Image", "file:///usr/share/backgrounds/${slug}-wallpaper.png");
 }
 PLASMA_UPDATE_EOF
+
+# Pré-configuration du fichier de session utilisateur KDE Plasma dans /etc/skel
+mkdir -p /etc/skel/.config
+cat >> /etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc << 'PLASMA_SKEL_EOF'
+[Containments][1][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/backgrounds/${slug}-wallpaper.png
+PLASMA_SKEL_EOF
 
 # 2. Profil DConf système indispensable (GNOME / Cinnamon / MATE)
 mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
@@ -537,22 +560,22 @@ DCONF_PROFILE_EOF
 
 cat << DCONF_BG_EOF > /etc/dconf/db/local.d/01-background
 [org/gnome/desktop/background]
-picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
-picture-uri-dark='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.png'
+picture-uri-dark='file:///usr/share/backgrounds/${slug}-wallpaper.png'
 picture-options='zoom'
 primary-color='#000000'
 secondary-color='#000000'
 
 [org/cinnamon/desktop/background]
-picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.png'
 picture-options='zoom'
 
 [org/mate/desktop/background]
-picture-filename='/usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-filename='/usr/share/backgrounds/${slug}-wallpaper.png'
 picture-options='zoom'
 
 [io/elementary/desktop/background]
-picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.svg'
+picture-uri='file:///usr/share/backgrounds/${slug}-wallpaper.png'
 picture-options='zoom'
 DCONF_BG_EOF
 
@@ -874,8 +897,8 @@ mkdir -p /usr/local/bin /etc/xdg/autostart /etc/skel/.config/autostart
 cat << 'AUTOSTART_SH_EOF' > /usr/local/bin/osforge-apply-theme.sh
 #!/bin/sh
 # OSForge Studio - Application dynamique des composants visuels au login
-WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.svg"
-[ -f "$WALLPAPER" ] || WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.png"
+WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.png"
+[ -f "$WALLPAPER" ] || WALLPAPER="/usr/share/backgrounds/${slug}-wallpaper.svg"
 
 # 1. KDE Plasma (plasma-apply-*)
 if command -v plasma-apply-wallpaperimage >/dev/null 2>&1 && [ -f "$WALLPAPER" ]; then
@@ -917,6 +940,7 @@ chmod +x /usr/local/bin/osforge-apply-theme.sh
 cat << 'AUTOSTART_DESKTOP_EOF' > /etc/xdg/autostart/osforge-branding.desktop
 [Desktop Entry]
 Type=Application
+Version=1.0
 Name=OSForge Branding Enforcer
 Comment=Applique les couleurs et themes au demarrage de session
 Exec=/usr/local/bin/osforge-apply-theme.sh
@@ -926,10 +950,26 @@ X-GNOME-Autostart-enabled=true
 X-KDE-autostart-phase=2
 AUTOSTART_DESKTOP_EOF
 
+cat << 'WELCOME_DESKTOP_EOF' > /etc/xdg/autostart/osforge-welcome.desktop
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Bienvenue sur ${recipe.branding.osName || 'ForgeOS'}
+Comment=Affichage automatique des spécifications système Fastfetch
+Exec=bash -c "sleep 1.5; if command -v konsole >/dev/null 2>&1; then konsole --hold -e fastfetch; elif command -v xfce4-terminal >/dev/null 2>&1; then xfce4-terminal -H -e fastfetch; elif command -v gnome-terminal >/dev/null 2>&1; then gnome-terminal -- bash -c 'fastfetch; exec bash'; elif command -v kitty >/dev/null 2>&1; then kitty --hold fastfetch; elif command -v foot >/dev/null 2>&1; then foot -H fastfetch; else x-terminal-emulator -e bash -c 'fastfetch; exec bash' 2>/dev/null || true; fi"
+Icon=utilities-terminal
+Terminal=false
+Categories=System;Utility;
+StartupNotify=false
+X-KDE-autostart-after=panel
+WELCOME_DESKTOP_EOF
+
 cp -f /etc/xdg/autostart/osforge-branding.desktop /etc/skel/.config/autostart/osforge-branding.desktop 2>/dev/null || true
+cp -f /etc/xdg/autostart/osforge-welcome.desktop /etc/skel/.config/autostart/osforge-welcome.desktop 2>/dev/null || true
 
 # Synchronisation du squelette /etc/skel vers le home utilisateur principal s'il existe deja
 if [ -d "/home/${username}" ]; then
+    mkdir -p "/home/${username}/.config/autostart" 2>/dev/null || true
     cp -rn /etc/skel/. "/home/${username}/" 2>/dev/null || true
     chown -R "${username}:${username}" "/home/${username}" 2>/dev/null || true
 fi
@@ -1224,10 +1264,6 @@ export function generatePlymouthCmd(recipe: OSRecipe): string {
   const osName = recipe.branding.osName || 'Linux';
   const edition = recipe.branding.editionName || 'Edition';
   const accent = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
-  const rgb = hexToRgb(accent);
-  const pr = (rgb.r / 255).toFixed(2);
-  const pg = (rgb.g / 255).toFixed(2);
-  const pb = (rgb.b / 255).toFixed(2);
 
   if (theme === 'osforge-custom') {
     return `# ==============================================================================
@@ -1249,60 +1285,88 @@ ImageDir=/usr/share/plymouth/themes/${slug}
 ScriptFile=/usr/share/plymouth/themes/${slug}/${slug}.script
 PLYMOUTH_CONF_EOF
 
-    # Script d'animation Plymouth (Script Plugin)
+    # Conversion préalable du logo vectoriel en PNG 256x256
+    if command -v rsvg-convert &>/dev/null; then
+        [ -f "/usr/share/pixmaps/${slug}.svg" ] && rsvg-convert -w 256 -h 256 "/usr/share/pixmaps/${slug}.svg" -o "/usr/share/pixmaps/${slug}.png" 2>/dev/null || true
+    fi
+    if [ -f "/usr/share/pixmaps/${slug}.png" ]; then
+        cp -f "/usr/share/pixmaps/${slug}.png" "/usr/share/plymouth/themes/${slug}/logo.png" 2>/dev/null || true
+        # Remplacement préventif de tout logo Ubuntu persistant
+        cp -f "/usr/share/pixmaps/${slug}.png" /usr/share/plymouth/ubuntu-logo.png 2>/dev/null || true
+        for T_DIR in /usr/share/plymouth/themes/*; do
+            [ -f "$T_DIR/ubuntu-logo.png" ] && cp -f "/usr/share/pixmaps/${slug}.png" "$T_DIR/ubuntu-logo.png" 2>/dev/null || true
+            [ -f "$T_DIR/watermark.png" ] && cp -f "/usr/share/pixmaps/${slug}.png" "$T_DIR/watermark.png" 2>/dev/null || true
+        done
+    fi
+
+    # Création de l'asset graphique de la barre de chargement aux couleurs de l'OS (${accent})
+    cat << 'PBAR_SVG_EOF' > "/usr/share/plymouth/themes/${slug}/progress_bar.svg"
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+  <rect width="16" height="16" rx="4" fill="${accent}"/>
+</svg>
+PBAR_SVG_EOF
+    if command -v rsvg-convert &>/dev/null; then
+        rsvg-convert -w 16 -h 16 "/usr/share/plymouth/themes/${slug}/progress_bar.svg" -o "/usr/share/plymouth/themes/${slug}/progress_bar.png" 2>/dev/null || true
+    fi
+
+    # Script d'animation Plymouth officiel (Script Plugin standard)
     cat << 'PLYMOUTH_SCRIPT_EOF' > "/usr/share/plymouth/themes/${slug}/${slug}.script"
 # Thème Plymouth Officiel ${osName} (${edition})
 Window.SetBackgroundTopColor(0.04, 0.05, 0.08);
 Window.SetBackgroundBottomColor(0.02, 0.02, 0.04);
 
-# Chargement du logo ou repli textuel
+# Chargement du logo ou repli textuel si l'image est absente
 logo.image = Image("logo.png");
 if (!logo.image) {
-    logo.image = Image("/usr/share/pixmaps/${slug}.png");
+    logo.image = Image.Text("${osName}", 1, 1, 1);
 }
 
 if (logo.image) {
     logo.sprite = Sprite(logo.image);
-    logo.opacity_angle = 0;
     logo.x = Window.GetX() + (Window.GetWidth() - logo.image.GetWidth()) / 2;
     logo.y = Window.GetY() + (Window.GetHeight() - logo.image.GetHeight()) / 2 - 40;
     logo.sprite.SetPosition(logo.x, logo.y, 10);
     logo.sprite.SetOpacity(1);
 }
 
-# Barre de progression personnalisée aux couleurs de l'accentuation (${accent})
+# Barre de progression dynamique
 progress_bar.width = Window.GetWidth() * 0.35;
 progress_bar.height = 8;
 progress_bar.x = Window.GetX() + (Window.GetWidth() - progress_bar.width) / 2;
 progress_bar.y = Window.GetY() + (Window.GetHeight() / 2) + 70;
 
-progress_box.image = Image.Clip(Image.Null(), 0, 0, progress_bar.width, progress_bar.height);
-progress_box.sprite = Sprite();
-progress_box.sprite.SetPosition(progress_bar.x, progress_bar.y, 5);
+progress_bar.raw_image = Image("progress_bar.png");
+progress_bar.sprite = Sprite();
+progress_bar.sprite.SetPosition(progress_bar.x, progress_bar.y, 15);
 
 fun progress_callback (duration, progress) {
     current_w = progress_bar.width * progress;
-    if (current_w > 0) {
-        fill_img = Image.Constant(${pr}, ${pg}, ${pb}, 0.9);
-        bar_img = fill_img.Scale(current_w, progress_bar.height);
-        progress_box.sprite.SetImage(bar_img);
+    if (current_w > 0 && progress_bar.raw_image) {
+        bar_img = progress_bar.raw_image.Scale(Math.Max(2, current_w), progress_bar.height);
+        progress_bar.sprite.SetImage(bar_img);
+        progress_bar.sprite.SetOpacity(1);
     }
 }
 Plymouth.SetBootProgressFunction(progress_callback);
 
 fun quit_callback () {
     if (logo.sprite) logo.sprite.SetOpacity(0);
-    if (progress_box.sprite) progress_box.sprite.SetOpacity(0);
+    if (progress_bar.sprite) progress_bar.sprite.SetOpacity(0);
 }
 Plymouth.SetQuitFunction(quit_callback);
 PLYMOUTH_SCRIPT_EOF
 
-    # Si le logo existe, le dupliquer pour le thème Plymouth
-    if [ -f "/usr/share/pixmaps/${slug}.png" ]; then
-        cp -f "/usr/share/pixmaps/${slug}.png" "/usr/share/plymouth/themes/${slug}/logo.png" 2>/dev/null || true
+    # Configuration explicite du fichier de configuration Plymouth principal
+    mkdir -p /etc/plymouth
+    printf "[Daemon]\\nTheme=%s\\nShowDelay=0\\nDeviceTimeout=8\\n" "${slug}" > /etc/plymouth/plymouthd.conf 2>/dev/null || true
+
+    # Déclaration auprès d'update-alternatives (systèmes Debian / Ubuntu)
+    if command -v update-alternatives &>/dev/null; then
+        update-alternatives --install /etc/alternatives/default.plymouth default.plymouth "/usr/share/plymouth/themes/${slug}/${slug}.plymouth" 200 2>/dev/null || true
+        update-alternatives --set default.plymouth "/usr/share/plymouth/themes/${slug}/${slug}.plymouth" 2>/dev/null || true
     fi
 
-    # Déclaration du thème auprès de Plymouth et mise à jour de l'initramfs
+    # Application du thème et mise à jour de l'initramfs
     plymouth-set-default-theme -R "${slug}" 2>/dev/null || plymouth-set-default-theme -R "spinner" 2>/dev/null || true
 fi
 `;
@@ -1321,6 +1385,20 @@ fi
 # ==============================================================================
 if command -v plymouth-set-default-theme &>/dev/null; then
     echo -e "\${BLUE}[BRANDING] Activation du theme Plymouth : ${plymouthTheme}...\${NC}"
+    # Écrasement des logos et filigranes Ubuntu résiduels
+    if [ -f "/usr/share/pixmaps/${slug}.png" ]; then
+        cp -f "/usr/share/pixmaps/${slug}.png" /usr/share/plymouth/ubuntu-logo.png 2>/dev/null || true
+        for THEME_DIR in /usr/share/plymouth/themes/*; do
+            [ -f "$THEME_DIR/ubuntu-logo.png" ] && cp -f "/usr/share/pixmaps/${slug}.png" "$THEME_DIR/ubuntu-logo.png" 2>/dev/null || true
+            [ -f "$THEME_DIR/watermark.png" ] && cp -f "/usr/share/pixmaps/${slug}.png" "$THEME_DIR/watermark.png" 2>/dev/null || true
+        done
+    fi
+    mkdir -p /etc/plymouth
+    printf "[Daemon]\\nTheme=%s\\nShowDelay=0\\nDeviceTimeout=8\\n" "${plymouthTheme}" > /etc/plymouth/plymouthd.conf 2>/dev/null || true
+    if command -v update-alternatives &>/dev/null && [ -f "/usr/share/plymouth/themes/${plymouthTheme}/${plymouthTheme}.plymouth" ]; then
+        update-alternatives --install /etc/alternatives/default.plymouth default.plymouth "/usr/share/plymouth/themes/${plymouthTheme}/${plymouthTheme}.plymouth" 200 2>/dev/null || true
+        update-alternatives --set default.plymouth "/usr/share/plymouth/themes/${plymouthTheme}/${plymouthTheme}.plymouth" 2>/dev/null || true
+    fi
     plymouth-set-default-theme -R "${plymouthTheme}" 2>/dev/null || plymouth-set-default-theme -R "spinner" 2>/dev/null || true
 fi
 `;

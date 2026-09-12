@@ -165,10 +165,11 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       const recipe = makeRecipe();
       const cmd = generateWallpaperSetupCmd(recipe);
       expect(cmd).toContain('/usr/share/backgrounds/steammachineos-wallpaper.svg');
-      expect(cmd).toContain('/usr/share/wallpapers/steammachineos/metadata.json');
       expect(cmd).toContain('/etc/dconf/profile/user');
       expect(cmd).toContain('/etc/dconf/db/local.d/01-background');
-      expect(cmd).toContain("picture-uri='file:///usr/share/backgrounds/steammachineos-wallpaper.svg'");
+      expect(cmd).toContain("picture-uri='file:///usr/share/backgrounds/steammachineos-wallpaper.png'");
+      expect(cmd).toContain('/usr/share/wallpapers/Next');
+      expect(cmd).toContain('/usr/share/wallpapers/Altai');
       expect(cmd).not.toContain('${WALLPAPER_TARGET}');
       expect(cmd).toContain('defaultWallpaperTheme=steammachineos');
       expect(cmd).toContain('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml');
@@ -444,6 +445,54 @@ describe('Branding & Personnalisation Complète (Zéro Cosmétique)', () => {
       expect(cmd).toContain('gsettings set org.gnome.desktop.interface icon-theme \'Papirus-Dark\'');
       expect(cmd).toContain('xfconf-query -c xfce4-desktop');
       expect(cmd).toContain('X-KDE-autostart-phase=2');
+    });
+
+    it('generateAutostartThemeCmd : déploie le lanceur autostart de terminal de bienvenue Fastfetch au premier boot', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS ROG Edition',
+        },
+      });
+      const cmd = generateAutostartThemeCmd(recipe);
+      expect(cmd).toContain('/etc/xdg/autostart/osforge-welcome.desktop');
+      expect(cmd).toContain('konsole --hold -e fastfetch');
+      expect(cmd).toContain('utilities-terminal');
+      expect(cmd).toContain('/etc/skel/.config/autostart/osforge-welcome.desktop');
+    });
+  });
+
+  describe('Neutralisation des Thèmes et Logos de Secours Ubuntu dans Plymouth', () => {
+    it('generatePlymouthCmd : écrase les watermarks Ubuntu et configure update-alternatives pour le splash custom', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS',
+          bootSplashTheme: 'osforge-custom',
+          accentColor: '#ff003c',
+        },
+      });
+      const cmd = generatePlymouthCmd(recipe);
+      expect(cmd).toContain('/usr/share/plymouth/ubuntu-logo.png');
+      expect(cmd).toContain('update-alternatives --install /etc/alternatives/default.plymouth');
+      expect(cmd).toContain('update-alternatives --set default.plymouth');
+      expect(cmd).toContain('/etc/plymouth/plymouthd.conf');
+      expect(cmd).toContain('progress_bar.raw_image = Image("progress_bar.png")');
+      expect(cmd).not.toContain('Image.Constant');
+    });
+
+    it('generatePlymouthCmd : écrase aussi les logos Ubuntu sur les thèmes standards (spinner, bgrt, etc.)', () => {
+      const recipe = makeRecipe({
+        branding: {
+          ...makeRecipe().branding,
+          osName: 'MadOS',
+          bootSplashTheme: 'bgrt',
+        },
+      });
+      const cmd = generatePlymouthCmd(recipe);
+      expect(cmd).toContain('/usr/share/plymouth/ubuntu-logo.png');
+      expect(cmd).toContain('/etc/plymouth/plymouthd.conf');
+      expect(cmd).toContain('update-alternatives');
     });
   });
 });
