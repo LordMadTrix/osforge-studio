@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateBuildScript } from './index';
 import { resolvePackageList } from './packages';
+import { generateAutoBuildBat, generateUniversalLauncherBat } from './launchers';
 import { generateShareableUrl, extractRecipeFromUrl } from '../recipeSharing';
 import { calculateResourceEstimate } from '../resourceEstimator';
 import { OSRecipe } from '../../types/os';
@@ -360,6 +361,40 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(script).toContain('SystemMaxUse=100M');
     });
   });
+
+  describe('17. Résilience DKMS Noyau, Assainissement DPKG & Sécurisation Pipefail Batch', () => {
+    it('résout automatiquement zstd et la suite LLVM pour DKMS sur noyau XanMod', () => {
+      const xanmodRecipe: OSRecipe = {
+        ...baseMockRecipe,
+        kernel: 'xanmod',
+        selectedPackages: ['nvidia-driver'],
+      };
+      const pkgs = resolvePackageList(xanmodRecipe);
+      expect(pkgs).toContain('zstd');
+      expect(pkgs).toContain('clang');
+      expect(pkgs).toContain('lld');
+      expect(pkgs).toContain('llvm');
+      expect(pkgs).toContain('build-essential');
+      expect(pkgs).toContain('dkms');
+    });
+
+    it('injecte le mécanisme d\'assainissement DPKG résilient dans le chroot debian', () => {
+      const script = generateBuildScript(baseMockRecipe);
+      expect(script).toContain('BROKEN_DPKG_PKGS=$(dpkg -l 2>/dev/null | grep -E \'^i[UFRH]\' | awk \'{print $2}\' || true)');
+      expect(script).toContain('dpkg --purge --force-all "$b_pkg"');
+      expect(script).toContain('apt-get -f install -y --no-install-recommends');
+    });
+
+    it('injecte set -o pipefail et la détection d\'artéfact dans les batchs Windows', () => {
+      const autoBuildBat = generateAutoBuildBat(baseMockRecipe);
+      expect(autoBuildBat).toContain('set -o pipefail');
+      expect(autoBuildBat).toContain('[ERREUR FATALE] Aucun fichier image trouve dans dist');
+
+      const universalBat = generateUniversalLauncherBat(baseMockRecipe);
+      expect(universalBat).toContain('set -o pipefail');
+    });
+  });
 });
+
 
 

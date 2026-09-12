@@ -128,7 +128,7 @@ if not exist "build.sh" (
 )
 echo Execution de build.sh dans WSL2 en mode root (sans mot de passe)...
 echo.
-wsl -u root -- bash -c "sed -i 's/\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
+wsl -u root -- bash -c "set -o pipefail; sed -i 's/\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
 echo.
 echo [INFO] Les logs complets ont ete sauvegardes dans : build.log
 pause

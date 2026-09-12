@@ -146,7 +146,20 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **852 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **855 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **36. 🛡️ Résilience DKMS Noyaux Alternatifs (XanMod LLVM / Nvidia), Auto-Guérison DPKG & Sécurisation Pipefail Batch** :
+  - **Diagnostic & Root Cause (Découvert via la capture d'écran utilisateur)** :
+    - *Échec compilation DKMS (`nvidia-kernel-dkms`)* : Sur le noyau XanMod (`linux-xanmod-x64v3`), le kbuild exporte `LLVM=1` car XanMod est compilé avec Clang/LLVM. Dans un chroot debootstrap minimal, `clang` n'était pas installé (`clang: not found`), provoquant un échec de conftest DKMS (`bad exit status: 2`, exit code 10).
+    - *Blocage en cascade DPKG (`set -e`)* : DPKG restait avec des paquets à moitié configurés. Dès qu'un helper ultérieur (`vscodiumSetupCmd`) lançait `apt-get install -y ... curl gnupg`, APT tentait de reconfigurer `nvidia-kernel-dkms`, échouait à nouveau, et `set -e` arrêtait le chroot avant la création du SquashFS et de l'ISO.
+    - *Extraction Ollama bloquée par manque de `zstd`* : Le script officiel `ollama.com/install.sh` affichait `ERROR: This version requires zstd for extraction`.
+    - *Masquage d'erreur dans les scripts Windows* : Dans `auto-build.bat` et `launchers.ts`, `./build.sh 2>&1 | tee -a auto-build.log` retournait le code de sortie 0 de `tee` (sans `set -o pipefail`). Le batch croyait la compilation réussie, affichait `[OK] Compilation terminée` puis échouait au lancement de QEMU (`[ATTENTION] Aucune image ISO trouvée dans dist\`).
+  - **Résolution Appliquée (Zéro Cosmétique)** :
+    - *Dépendances DKMS LLVM XanMod (`packages.ts`)* : Injection automatique de `build-essential`, `dkms`, `clang`, `lld`, `llvm` et `libelf-dev` dès qu'un noyau XanMod est combiné avec un pilote graphique propriétaire ou module DKMS.
+    - *Extraction universelle `zstd` (`packages.ts`, `debian.ts`, `helpers.ts`)* : Ajout de `zstd` au bootstrap de base Debian/Ubuntu et installation explicite avant le script d'Ollama.
+    - *Mécanisme d'Auto-Guérison Proactif DPKG (`debian.ts`)* : Après la boucle d'installation des paquets, détection automatique des paquets en état non configuré (`grep -E '^i[UFRH]'`), purge sécurisée avec `dpkg --purge --force-all` et restauration de la cohérence avec `apt-get -f install`. Le système bascule proprement sur les pilotes open-source sans jamais bloquer l'ISO.
+    - *Garantie de non-régression dans les helpers (`helpers.ts`)* : Ajout de `|| true` sur les commandes préalables de paquets dans `vscodiumSetupCmd`.
+    - *Sécurisation stricte Pipefail & Validation Artéfact (`auto-build.bat`, `launch.bat`, `launchers.ts`)* : Ajout systématique de `set -o pipefail` dans les sous-shells WSL, et validation stricte de l'existence réelle d'un artéfact dans `dist\` avant de déclarer la réussite du build.
+  - **Résultat** : 3 nouveaux tests unitaires Vitest ajoutés (855 tests au total, 100% au vert).
 - **35. 🌐 Applications de Bureau par Défaut Personnalisables (Google Chrome, Chromium, Brave, LibreWolf, Kitty, VSCodium)** :
   - **Diagnostic & Besoin Utilisateur** :
     - Firefox était historiquement imposé par défaut dans tous les environnements graphiques (KDE, GNOME, XFCE, Cosmic). L'utilisateur souhaitait pouvoir choisir ses applications de bureau favorites au lieu de Firefox, par exemple installer et configurer nativement Google Chrome ou Chromium en 1 clic.

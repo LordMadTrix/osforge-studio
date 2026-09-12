@@ -563,13 +563,38 @@ echo.
 :: [4/5] Compilation de l'ISO (avec affichage direct et conversion CRLF)
 echo [4/5] Compilation de l'ISO en cours (peut prendre plusieurs minutes)...
 echo [%DATE% %TIME%] Lancement de build.sh en root >> "%LOG_FILE%"
-wsl -u root -- bash -c "sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee -a auto-build.log"
+wsl -u root -- bash -c "set -o pipefail; sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee -a auto-build.log"
 if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ===============================================================================
     echo [ERREUR] La compilation a echoue. Consultez %LOG_FILE% pour le detail.
+    echo ===============================================================================
     pause
     exit /b 1
 )
-echo [OK] Compilation terminee. Image disponible dans dist\\
+
+set ISO_PATH=dist\\${isoName}
+if not exist "%ISO_PATH%" (
+    for %%f in (dist\\*.iso) do set ISO_PATH=%%f
+)
+if not exist "%ISO_PATH%" (
+    for %%f in (dist\\*.qcow2 dist\\*.vmdk dist\\*.raw dist\\*.tar.gz) do set ISO_PATH=%%f
+)
+
+if not exist "%ISO_PATH%" (
+    echo.
+    echo ===============================================================================
+    echo [ERREUR FATALE] Aucun fichier image trouve dans dist\\ apres la compilation.
+    echo La compilation s'est interrompue avant de generer l'image finale.
+    echo Consultez %LOG_FILE% pour identifier l'erreur exacte.
+    echo ===============================================================================
+    pause
+    exit /b 1
+)
+
+echo ===============================================================================
+echo [OK] Compilation terminee avec succes : %ISO_PATH%
+echo ===============================================================================
 echo.
 
 :: ---------------------------------------------------------------------------
@@ -591,21 +616,10 @@ if "%QEMU_CMD%"=="" (
     )
 )
 
-set ISO_PATH=dist\\${isoName}
-if not exist "%ISO_PATH%" (
-    for %%f in (dist\\*.iso) do set ISO_PATH=%%f
-)
-
 if "%QEMU_CMD%"=="" (
     echo [ATTENTION] QEMU n'a pas pu etre installe automatiquement.
     echo Compilation terminee avec succes : %ISO_PATH%
     echo Lancez run-live-windows.bat pour tester manuellement.
-    pause
-    exit /b 0
-)
-
-if not exist "%ISO_PATH%" (
-    echo [ATTENTION] Aucune image ISO trouvee dans dist\\ pour le test.
     pause
     exit /b 0
 )
@@ -689,8 +703,18 @@ echo ""
 echo -e "\${YELLOW}[2/4] Compilation de l'ISO en cours (peut prendre plusieurs minutes)...\${NC}"
 sed -i 's/\\\\r$//' build.sh 2>/dev/null || true
 chmod +x build.sh
+set -o pipefail
 sudo ./build.sh 2>&1 | tee -a "\${LOG_FILE}"
-echo -e "\${GREEN}[OK] Compilation terminée. Image disponible dans dist/\${NC}"
+
+ISO_CHECK=$(ls dist/*.iso dist/*.qcow2 dist/*.vmdk dist/*.raw dist/*.tar.gz 2>/dev/null | head -n1 || true)
+if [ -z "\${ISO_CHECK}" ]; then
+    echo -e "\${RED}===============================================================================\${NC}"
+    echo -e "\${RED}[ERREUR FATALE] Aucun fichier image trouvé dans dist/ après la compilation.\${NC}"
+    echo -e "\${RED}Consultez \${LOG_FILE} pour identifier l'erreur exacte.\${NC}"
+    echo -e "\${RED}===============================================================================\${NC}"
+    exit 1
+fi
+echo -e "\${GREEN}[OK] Compilation terminée avec succès : \${ISO_CHECK}\${NC}"
 echo ""
 
 # ------------------------------------------------------------------------------
@@ -807,7 +831,7 @@ echo ===========================================================================
 echo   Compilation locale via WSL2 / Bash
 echo ===============================================================================
 echo Lancement de la compilation dans WSL2 en mode root...
-wsl -u root -- bash -c "sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
+wsl -u root -- bash -c "set -o pipefail; sed -i 's/\\\\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee build.log"
 pause
 goto MENU
 

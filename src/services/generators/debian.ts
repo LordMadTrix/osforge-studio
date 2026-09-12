@@ -335,7 +335,7 @@ ${recipe.kernel && recipe.kernel !== 'generic' && !REAL_ALT_KERNEL ? `echo -e "\
 ` : ''}${needsCrossArchEmulation && !isTarFormat ? `echo -e "\${RED}[AVERTISSEMENT] Le RootFS \\"${recipe.arch}\\" sera correctement construit, MAIS la chaîne d'amorçage de ce générateur (GRUB BIOS i386-pc + UEFI x86_64-efi, El Torito) est câblée exclusivement pour x86_64 : l'ISO produite ne démarrera PAS sur du matériel ${recipe.arch}. Choisissez le format \\"Distribution Windows WSL2\\" ou \\"Conteneur Docker RootFS\\" pour obtenir un RootFS ${recipe.arch} réellement utilisable dès maintenant.\${NC}"
 ` : ''}debootstrap --arch="${debArch}"${needsCrossArchEmulation ? ' --foreign' : ''} \\${target.components ? `
   --components="${target.components}" \\` : ''}
-  --include="${recipe.distro === 'raspbian' || REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2" \\
+  --include="${recipe.distro === 'raspbian' || REAL_ALT_KERNEL ? '' : `${kernelPkg},`}live-boot,systemd-sysv,initramfs-tools,ca-certificates,locales,sudo,curl,wget,gnupg,iproute2,zstd" \\
   ${target.suite} "\${ROOTFS_DIR}" "${target.mirror}"
 ${needsCrossArchEmulation ? `cp /usr/bin/${qemuStaticBinary} "\${ROOTFS_DIR}/usr/bin/"
 chroot "\${ROOTFS_DIR}" /debootstrap/debootstrap --second-stage
@@ -510,6 +510,18 @@ for pkg in ${pkgs}; do
     $APT_INSTALL "$pkg" || echo "Info: $pkg omis ou non disponible dans le miroir apt principal."
 done
 
+# Assainissement résilient de la base DPKG (gestion proactive des échecs de compilation de modules DKMS tiers)
+dpkg --configure -a 2>/dev/null || true
+BROKEN_DPKG_PKGS=$(dpkg -l 2>/dev/null | grep -E '^i[UFRH]' | awk '{print $2}' || true)
+if [ -n "$BROKEN_DPKG_PKGS" ]; then
+    echo -e "\${YELLOW}[AVERTISSEMENT] Certains paquets n'ont pas pu être configurés (ex: module noyau DKMS incompatible avec ce kernel) : assainissement automatique...\${NC}"
+    for b_pkg in $BROKEN_DPKG_PKGS; do
+        echo -e "\${YELLOW}Retrait sécurisé du paquet non fonctionnel : $b_pkg\${NC}"
+        dpkg --purge --force-all "$b_pkg" 2>/dev/null || true
+    done
+    apt-get -f install -y --no-install-recommends 2>/dev/null || true
+fi
+
 # Utilitaires modernes (installations automatisées directes si absents du miroir Debian)
 if command -v curl &>/dev/null; then
     # Fastfetch
@@ -650,6 +662,7 @@ LOOP_HOOK_EOF
 chmod +x /etc/initramfs-tools/scripts/init-premount/00_loop_devices
 
 # Régénération de l'initramfs avec live-boot et les modules de stockage
+dpkg --configure -a 2>/dev/null || true
 if command -v update-initramfs &>/dev/null; then
     update-initramfs -u -k all 2>/dev/null || update-initramfs -c -k all 2>/dev/null || true
 fi

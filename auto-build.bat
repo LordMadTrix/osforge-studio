@@ -90,15 +90,33 @@ echo ===========================================================================
 echo [%DATE% %TIME%] Lancement de build.sh en root >> "%LOG_FILE%"
 
 :: sed supprime les retours chariot Windows CRLF eventuels pouvant bloquer bash
-wsl -u root -- bash -c "sed -i 's/\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee -a auto-build.log"
+wsl -u root -- bash -c "set -o pipefail; sed -i 's/\r$//' build.sh 2>/dev/null || true; chmod +x build.sh && ./build.sh 2>&1 | tee -a auto-build.log"
 if %ERRORLEVEL% NEQ 0 (
     echo.
+    echo ===============================================================================
     echo [ERREUR] La compilation a echoue. Consultez %LOG_FILE% pour le detail.
+    echo ===============================================================================
     pause
     exit /b 1
 )
+
+set ISO_PATH=
+for %%f in (dist\*.iso) do set ISO_PATH=%%f
+if "!ISO_PATH!"=="" for %%f in (dist\*.qcow2 dist\*.vmdk dist\*.raw dist\*.tar.gz) do set ISO_PATH=%%f
+
+if "!ISO_PATH!"=="" (
+    echo.
+    echo ===============================================================================
+    echo [ERREUR FATALE] Aucun fichier image trouve dans dist\ apres la compilation.
+    echo La compilation s'est interrompue avant de generer l'image finale.
+    echo Consultez %LOG_FILE% pour identifier l'erreur exacte.
+    echo ===============================================================================
+    pause
+    exit /b 1
+)
+
 echo ===============================================================================
-echo [OK] Compilation terminee avec succes.
+echo [OK] Compilation terminee avec succes : !ISO_PATH!
 echo.
 
 :: ---------------------------------------------------------------------------
@@ -119,15 +137,6 @@ if "%QEMU_CMD%"=="" (
         winget install SoftwareFreedomConservancy.QEMU --accept-package-agreements --accept-source-agreements >>"%LOG_FILE%" 2>&1
         if exist "C:\Program Files\qemu\qemu-system-x86_64.exe" set "QEMU_CMD=C:\Program Files\qemu\qemu-system-x86_64.exe"
     )
-)
-
-set ISO_PATH=
-for %%f in (dist\*.iso) do set ISO_PATH=%%f
-
-if "%ISO_PATH%"=="" (
-    echo [ATTENTION] Aucune image ISO trouvee dans dist\ pour le test.
-    pause
-    exit /b 0
 )
 
 if "%QEMU_CMD%"=="" (

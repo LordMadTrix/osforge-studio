@@ -747,5 +747,19 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
+  // Utilitaires de compression et d'archivage universels (requis par Ollama et scripts modernes)
+  pkgs.push('zstd');
+
+  // Dépendances de compilation noyau / DKMS pour noyaux alternatifs (XanMod compilé avec Clang/LLVM)
+  const hasDkms = pkgs.some(p => p.includes('dkms') || p.includes('nvidia')) ||
+    recipe.gpuDriver === 'nvidia_proprietary' ||
+    recipe.selectedPackages.some(p => p.includes('dkms') || p.includes('nvidia')) ||
+    recipe.customPackages.some(p => p.includes('dkms') || p.includes('nvidia'));
+  if (hasDkms && recipe.kernel === 'xanmod') {
+    if (isDebianLike) {
+      pkgs.push('build-essential', 'dkms', 'clang', 'lld', 'llvm', 'libelf-dev');
+    }
+  }
+
   return Array.from(new Set(pkgs.filter(Boolean)));
 }

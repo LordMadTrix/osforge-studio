@@ -142,6 +142,7 @@ export function ollamaSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFam
   let script = `# Intégration directe du moteur IA Ollama dans le chroot de l'image ISO
 if ! command -v ollama &>/dev/null; then
     echo -e "\${YELLOW:-}[INFO] Installation du moteur IA Ollama dans l'image ISO...\${NC:-}"
+    which zstd >/dev/null 2>&1 || { apt-get update -qq 2>/dev/null; apt-get install -y --no-install-recommends zstd 2>/dev/null || true; }
     curl -fsSL https://ollama.com/install.sh | sh 2>/dev/null || true
 fi
 
@@ -343,7 +344,7 @@ VSCODIUMREPO_EOF
 dnf install -y codium 2>/dev/null || echo -e "\${YELLOW:-}[AVERTISSEMENT] Installation de VSCodium échouée (réseau indisponible pendant la compilation ?).\${NC:-}"`;
   }
   if (family !== 'debian') return '';
-  return `apt-get install -y --no-install-recommends curl gnupg 2>/dev/null
+  return `apt-get install -y --no-install-recommends curl gnupg 2>/dev/null || true
 mkdir -p /usr/share/keyrings
 curl -fsSL https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null | gpg --batch --yes --dearmor -o /usr/share/keyrings/vscodium-archive-keyring.gpg 2>/dev/null
 echo 'deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/vscodium-archive-keyring.gpg] https://download.vscodium.com/debs vscodium main' > /etc/apt/sources.list.d/vscodium.list
