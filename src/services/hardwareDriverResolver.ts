@@ -2,7 +2,7 @@ import { OSRecipe } from '../types/os';
 
 export type CpuVendor = 'intel' | 'amd' | 'arm' | 'generic';
 export type GpuVendor = 'nvidia_proprietary' | 'nvidia_nouveau' | 'amd_radeon' | 'intel_arc' | 'vm_virtual';
-export type WifiVendor = 'intel_wifi' | 'realtek_wifi' | 'broadcom_wifi' | 'generic_all';
+export type WifiVendor = 'intel_wifi' | 'realtek_wifi' | 'broadcom_wifi' | 'mediatek_wifi' | 'atheros_wifi' | 'generic_all';
 export type FormFactor = 'desktop' | 'laptop' | 'handheld_deck' | 'server_headless';
 
 export interface TargetHardwareProfile {
@@ -125,15 +125,38 @@ export function resolveHardwareDrivers(
 
   // 3. Puces Wi-Fi & Sans-fil
   if (profile.wifi === 'broadcom_wifi') {
+    // Broadcom BCM43xx — pilote propriétaire STA (DKMS)
     if (isDebianLike) addPkg('broadcom-sta-dkms', 'Pilote Wi-Fi Broadcom BCM43xx propriétaire', 'Proprietary Broadcom BCM43xx Wi-Fi driver');
     else if (isArchLike) addPkg('broadcom-wl-dkms', 'Pilote Broadcom WL DKMS pour Arch', 'Broadcom WL DKMS driver for Arch');
+    else if (isFedoraLike) {
+      // RPMFusion-nonfree uniquement — avertissement honnête si le dépôt n'est pas activé
+      addPkg('broadcom-wl', 'Pilote Broadcom WL pour Fedora (RPMFusion-nonfree requis)', 'Broadcom WL driver for Fedora (RPMFusion-nonfree required)');
+    } else if (isSuseLike) {
+      addPkg('broadcom-wl-kmp-default', 'Pilote Broadcom WL KMP pour openSUSE (Packman requis)', 'Broadcom WL KMP driver for openSUSE (Packman required)');
+    } else if (isAlpineLike || isVoidLike) {
+      // linux-firmware contient brcm/* sur Alpine et Void
+      addPkg('linux-firmware', 'Firmwares Broadcom inclus dans linux-firmware (brcm/*)', 'Broadcom firmwares included in linux-firmware (brcm/*)');
+    }
   } else if (profile.wifi === 'realtek_wifi') {
+    // Realtek RTL8xxx — firmware-realtek sur Debian, linux-firmware partout ailleurs
     if (isDebianLike) addPkg('firmware-realtek', 'Firmwares cartes Wi-Fi et Bluetooth Realtek RTL8xxx', 'Realtek RTL8xxx Wi-Fi and Bluetooth firmwares');
-    else if (isArchLike || isFedoraLike || isVoidLike) addPkg('linux-firmware', 'Ensemble des firmwares matériels sans-fil', 'Full wireless hardware firmware bundle');
+    else if (isArchLike || isFedoraLike || isVoidLike || isAlpineLike) addPkg('linux-firmware', 'Ensemble des firmwares matériels sans-fil', 'Full wireless hardware firmware bundle');
     else if (isSuseLike) addPkg('kernel-firmware-realtek', 'Firmwares Realtek pour openSUSE', 'Realtek firmwares for openSUSE');
   } else if (profile.wifi === 'intel_wifi') {
+    // Intel iwlwifi (Wi-Fi 6E/7) — firmware-iwlwifi sur Debian, linux-firmware sur Arch/Fedora/Alpine/Void
     if (isDebianLike) addPkg('firmware-iwlwifi', 'Firmwares puces Wi-Fi Intel Wireless / Wi-Fi 6E/7', 'Intel Wireless / Wi-Fi 6E/7 firmwares');
+    else if (isArchLike || isFedoraLike || isAlpineLike || isVoidLike) addPkg('linux-firmware', 'Firmwares Intel iwlwifi inclus dans linux-firmware', 'Intel iwlwifi firmwares included in linux-firmware');
     else if (isSuseLike) addPkg('kernel-firmware-iwlwifi', 'Firmwares Wi-Fi Intel pour openSUSE', 'Intel Wi-Fi firmwares for openSUSE');
+  } else if (profile.wifi === 'mediatek_wifi') {
+    // MediaTek MT7xxx (Wi-Fi 6/6E) — firmware-mediatek sur Debian Trixie (v20250410-2, confirmé réel)
+    if (isDebianLike) addPkg('firmware-mediatek', 'Firmwares puces Wi-Fi MediaTek MT7xxx (Wi-Fi 6/6E)', 'MediaTek MT7xxx Wi-Fi 6/6E firmwares');
+    else if (isArchLike || isFedoraLike || isAlpineLike || isVoidLike) addPkg('linux-firmware', 'Firmwares MediaTek inclus dans linux-firmware (mediatek/*)', 'MediaTek firmwares included in linux-firmware (mediatek/*)');
+    else if (isSuseLike) addPkg('kernel-firmware-mediatek', 'Firmwares Wi-Fi MediaTek pour openSUSE', 'MediaTek Wi-Fi firmwares for openSUSE');
+  } else if (profile.wifi === 'atheros_wifi') {
+    // Qualcomm Atheros ath10k/ath11k/ath12k — firmware-atheros sur Debian Trixie (v20250410-2, confirmé réel)
+    if (isDebianLike) addPkg('firmware-atheros', 'Firmwares puces Wi-Fi Qualcomm Atheros ath10k/ath11k/ath12k', 'Qualcomm Atheros ath10k/ath11k/ath12k Wi-Fi firmwares');
+    else if (isArchLike || isFedoraLike || isAlpineLike || isVoidLike) addPkg('linux-firmware', 'Firmwares Atheros inclus dans linux-firmware (ath10k/ath11k)', 'Atheros firmwares included in linux-firmware (ath10k/ath11k)');
+    else if (isSuseLike) addPkg('kernel-firmware-ath10k', 'Firmwares Qualcomm Atheros ath10k pour openSUSE', 'Qualcomm Atheros ath10k firmwares for openSUSE');
   } else if (profile.wifi === 'generic_all') {
     if (isDebianLike) {
       addPkg('firmware-linux-free', 'Firmwares matériels libres de base', 'Base free hardware firmwares');

@@ -447,6 +447,8 @@ export const HardwareAuditModal: React.FC<HardwareAuditModalProps> = ({
                     <option value="intel_wifi">Intel Wireless (Wi-Fi 6E/7 iwlwifi)</option>
                     <option value="realtek_wifi">Realtek RTL8xxx (Wi-Fi / Bluetooth)</option>
                     <option value="broadcom_wifi">Broadcom BCM43xx (STA DKMS)</option>
+                    <option value="mediatek_wifi">MediaTek MT7xxx (Wi-Fi 6/6E firmware-mediatek)</option>
+                    <option value="atheros_wifi">Qualcomm Atheros (ath10k / ath11k / ath12k)</option>
                   </select>
                 </div>
 

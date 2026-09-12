@@ -147,3 +147,98 @@ describe('Hardware Driver Resolver (Zéro Cosmétique)', () => {
     expect(alpineRes.addedPackages).toContain('tpm2-tools');
   });
 });
+
+describe("Wi-Fi drivers — MediaTek & Atheros & lacunes Intel/Broadcom comblées (firmware-mediatek v20250410-2 et firmware-atheros v20250410-2 confirmés réels sur Debian Trixie le 2026-09-12 via packages.debian.org ; ollama v0.34.0 dans Arch [extra] confirmé via archlinux.org/packages/search/json)", () => {
+
+  describe("MediaTek MT7xxx (Wi-Fi 6/6E) — firmware-mediatek confirmé réel sur Debian Trixie", () => {
+    it("Debian → firmware-mediatek", () => {
+      const res = resolveHardwareDrivers(BASE_RECIPE, { ...DEFAULT_HARDWARE_PROFILE, wifi: "mediatek_wifi" });
+      expect(res.addedPackages).toContain("firmware-mediatek");
+    });
+    it("Arch → linux-firmware (contient mediatek/*)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "arch" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "mediatek_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Fedora → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "fedora" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "mediatek_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Alpine → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "alpine" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "mediatek_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("openSUSE → kernel-firmware-mediatek", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "opensuse" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "mediatek_wifi" });
+      expect(res.addedPackages).toContain("kernel-firmware-mediatek");
+    });
+  });
+
+  describe("Qualcomm Atheros ath10k/ath11k/ath12k — firmware-atheros confirmé réel sur Debian Trixie", () => {
+    it("Debian → firmware-atheros", () => {
+      const res = resolveHardwareDrivers(BASE_RECIPE, { ...DEFAULT_HARDWARE_PROFILE, wifi: "atheros_wifi" });
+      expect(res.addedPackages).toContain("firmware-atheros");
+    });
+    it("Arch → linux-firmware (contient ath10k/ath11k/*)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "arch" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "atheros_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Fedora → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "fedora" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "atheros_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("openSUSE → kernel-firmware-ath10k", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "opensuse" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "atheros_wifi" });
+      expect(res.addedPackages).toContain("kernel-firmware-ath10k");
+    });
+    it("Void → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "void" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "atheros_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+  });
+
+  describe("Intel iwlwifi — lacune comblée : Arch/Fedora/Alpine/Void obtenaient RIEN (retour silencieux)", () => {
+    it("Arch → linux-firmware (contient iwlwifi/*)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "arch" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Fedora → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "fedora" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Alpine → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "alpine" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Void → linux-firmware", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "void" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Debian → firmware-iwlwifi (inchangé)", () => {
+      const res = resolveHardwareDrivers(BASE_RECIPE, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("firmware-iwlwifi");
+    });
+    it("openSUSE → kernel-firmware-iwlwifi (inchangé)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "opensuse" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "intel_wifi" });
+      expect(res.addedPackages).toContain("kernel-firmware-iwlwifi");
+    });
+  });
+
+  describe("Broadcom BCM43xx — lacune comblée : Fedora/openSUSE/Alpine/Void obtenaient RIEN", () => {
+    it("Fedora → broadcom-wl (RPMFusion-nonfree)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "fedora" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "broadcom_wifi" });
+      expect(res.addedPackages).toContain("broadcom-wl");
+    });
+    it("openSUSE → broadcom-wl-kmp-default (Packman)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "opensuse" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "broadcom_wifi" });
+      expect(res.addedPackages).toContain("broadcom-wl-kmp-default");
+    });
+    it("Alpine → linux-firmware (brcm/*)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "alpine" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "broadcom_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+    it("Void → linux-firmware (brcm/*)", () => {
+      const res = resolveHardwareDrivers({ ...BASE_RECIPE, distro: "void" }, { ...DEFAULT_HARDWARE_PROFILE, wifi: "broadcom_wifi" });
+      expect(res.addedPackages).toContain("linux-firmware");
+    });
+  });
+});

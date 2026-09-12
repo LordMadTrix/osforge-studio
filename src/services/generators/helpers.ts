@@ -134,15 +134,59 @@ export function tailscaleServiceCmd(recipe: OSRecipe, family: 'debian' | NonDebi
 
 export function ollamaSetupCmd(recipe: OSRecipe, family: 'debian' | NonDebianFamily): string {
   if (!recipe.selectedPackages.includes('ollama_ai') && !recipe.selectedPackages.includes('ollama_cli') && !recipe.enableLocalAiStack) return '';
-  if (family === 'alpine' || family === 'arch' || family === 'fedora' || family === 'suse') return '';
+  // Les familles void/alpine/suse/arch/fedora sont gérées individuellement ci-dessous
+  // Void : runit ne supporte pas l'installeur officiel (musl + runit, pas de systemd)
   if (family === 'void') {
     return `echo -e "\${YELLOW:-}[INFO] Ollama n'est pas encore câblé pour Void : aucun paquet xbps réel et l'installeur officiel (ollama.com/install.sh) ne documente pas de support runit.\${NC:-}" 2>/dev/null || true`;
   }
+  // Alpine : musl libc incompatible avec l'installeur officiel Ollama (lié en glibc)
+  if (family === 'alpine') {
+    return `echo -e "\${YELLOW:-}[INFO] Ollama non supporté sur Alpine : l'installeur officiel (ollama.com/install.sh) requiert glibc, incompatible avec musl. Utilisez Debian/Arch/Fedora pour la stack IA locale.\${NC:-}" 2>/dev/null || true`;
+  }
+  // openSUSE : hors périmètre pour l'instant (zypper non géré par l'installeur officiel)
+  if (family === 'suse') {
+    return `echo -e "\${YELLOW:-}[INFO] Ollama non câblé pour openSUSE : l'installeur officiel ne gère pas zypper. Installez manuellement : https://ollama.com/download/linux\${NC:-}" 2>/dev/null || true`;
+  }
+  // Arch : vrai paquet natif 'ollama' dans le dépôt [extra] (v0.34.0, vérifié en direct le 2026-09-12)
+  if (family === 'arch') {
+    const archModelPull = recipe.localAiModel ? `\nollama pull ${shQuote(recipe.localAiModel)} 2>/dev/null || true` : '';
+    let archScript = `# Ollama via le paquet natif Arch [extra] (v0.34.0+, systemctl enable ollama)
+if ! pacman -Q ollama &>/dev/null 2>&1; then
+    echo -e "\${YELLOW:-}[INFO] Installation du moteur IA Ollama (paquet natif Arch [extra])...\${NC:-}"
+    pacman -S --noconfirm ollama 2>/dev/null || true
+fi
+systemctl enable ollama${archModelPull}`;
+    if (recipe.enableOpenWebUi) {
+      archScript += `\n# Open-WebUI : création one-shot du conteneur puis service de démarrage
+docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart unless-stopped ghcr.io/open-webui/open-webui:main 2>/dev/null || true
+cat > /etc/systemd/system/open-webui.service << 'OWEBUI_EOF'
+[Unit]
+Description=OSForge Studio - Open-WebUI Local AI Interface
+After=docker.service ollama.service
+Wants=docker.service ollama.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/docker start open-webui
+ExecStop=/usr/bin/docker stop open-webui
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+OWEBUI_EOF
+${serviceEnableCmd('open-webui.service', family)}`;
+    }
+    return archScript;
+  }
   const modelToPull = recipe.localAiModel ? ` && /usr/local/bin/ollama pull ${shQuote(recipe.localAiModel)} || true` : '';
+  // Fedora/Rocky : l'installeur officiel ollama.com/install.sh détecte /etc/redhat-release et gère dnf
+  const zstdInstallCmd = family === 'fedora' ? 'dnf install -y zstd 2>/dev/null || true' : 'apt-get update -qq 2>/dev/null; apt-get install -y --no-install-recommends zstd 2>/dev/null || true';
   let script = `# Intégration directe du moteur IA Ollama dans le chroot de l'image ISO
 if ! command -v ollama &>/dev/null; then
     echo -e "\${YELLOW:-}[INFO] Installation du moteur IA Ollama dans l'image ISO...\${NC:-}"
-    which zstd >/dev/null 2>&1 || { apt-get update -qq 2>/dev/null; apt-get install -y --no-install-recommends zstd 2>/dev/null || true; }
+    which zstd >/dev/null 2>&1 || { ${zstdInstallCmd}; }
     curl -fsSL https://ollama.com/install.sh | sh 2>/dev/null || true
 fi
 
@@ -165,17 +209,23 @@ OLLAMASVC_EOF
 ${serviceEnableCmd('ollama-setup.service', family)}`;
 
   if (recipe.enableOpenWebUi) {
-    script += `\ncat > /etc/systemd/system/open-webui.service << 'OWEBUI_EOF'
+    // Correction bug Type=oneshot : docker run -d termine sh immédiatement, systemd croit le service fini
+    // Solution : création one-shot du conteneur ici, puis service Type=simple qui fait docker start au boot
+    script += `\n# Open-WebUI : création one-shot du conteneur puis service de démarrage
+docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart unless-stopped ghcr.io/open-webui/open-webui:main 2>/dev/null || true
+cat > /etc/systemd/system/open-webui.service << 'OWEBUI_EOF'
 [Unit]
 Description=OSForge Studio - Open-WebUI Local AI Interface
 After=docker.service ollama.service
-Wants=ollama.service
+Wants=docker.service ollama.service
 
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/bin/sh -c "docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart unless-stopped ghcr.io/open-webui/open-webui:main 2>/dev/null || true"
+Type=simple
+ExecStart=/usr/bin/docker start open-webui
 ExecStop=/usr/bin/docker stop open-webui
+RemainAfterExit=yes
+Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
