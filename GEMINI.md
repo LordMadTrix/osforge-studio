@@ -146,7 +146,23 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **868 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **888 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **40. 🛜 Drivers Wi-Fi MediaTek/Atheros + lacunes Intel/Broadcom + Ollama Arch/Fedora + Open WebUI Type=simple** :
+  - **Axe 1 — Wi-Fi (`hardwareDriverResolver.ts`, `HardwareAuditModal.tsx`)** :
+    - *WifiVendor étendu* : ajout de `mediatek_wifi` (MediaTek MT7xxx Wi-Fi 6/6E) et `atheros_wifi` (Qualcomm Atheros ath10k/ath11k/ath12k). Paquets vérifiés en direct le 2026-09-12 : `firmware-mediatek` v20250410-2 et `firmware-atheros` v20250410-2 tous deux confirmés réels sur Debian Trixie via `packages.debian.org/trixie/<pkg>`. Pour Arch/Fedora/Alpine/Void : `linux-firmware` (contient `mediatek/*` et `ath10k/ath11k/*`). Pour openSUSE : `kernel-firmware-mediatek` et `kernel-firmware-ath10k`.
+    - *Lacune Intel iwlwifi* : Arch, Fedora, Alpine et Void retournaient `''` silencieusement. Corrigé → `linux-firmware` (contient `iwlwifi/*`).
+    - *Lacune Broadcom BCM43xx* : Fedora, openSUSE, Alpine et Void retournaient `''` silencieusement. Corrigé → `broadcom-wl` (Fedora/RPMFusion-nonfree, avertissement dans la description), `broadcom-wl-kmp-default` (openSUSE/Packman), `linux-firmware brcm/*` (Alpine/Void).
+    - *UI* : 2 nouvelles options dans le sélecteur `HardwareAuditModal.tsx`.
+  - **Axe 2 — Bug Ollama silencieux (`helpers.ts`)** :
+    - *Bug* : `ollamaSetupCmd` retournait `''` pour Arch, Fedora, Alpine et openSUSE via un guard unique à la ligne 137 (`if (family === 'alpine' || family === 'arch' || family === 'fedora' || family === 'suse') return ''`). Aucune trace dans les logs, aucune erreur, aucun service créé — pure cosmétique.
+    - *Arch* : vrai paquet natif `ollama` v0.34.0 dans `[extra]` (vérifié via `archlinux.org/packages/search/json/?name=ollama` le 2026-09-12). Installé via `pacman -S --noconfirm ollama` + `systemctl enable ollama`. PAS de `ollama-setup.service` (inutile).
+    - *Fedora* : l'installeur officiel `ollama.com/install.sh` détecte `/etc/redhat-release` et gère dnf nativement. Même mécanisme `ollama-setup.service` que Debian. zstd installé via `dnf install -y zstd`.
+    - *Alpine* : avertissement honnête — musl libc incompatible avec l'installeur officiel (lié en glibc). Aucun service créé.
+    - *openSUSE* : avertissement honnête — zypper non supporté par l'installeur officiel. Lien vers installation manuelle.
+  - **Axe 3 — Bug Open WebUI `Type=oneshot` (`helpers.ts`)** :
+    - *Bug* : `open-webui.service` avait `Type=oneshot` + `ExecStart=/bin/sh -c "docker run -d ..."`. `/bin/sh` se terminait immédiatement après `docker run -d` (conteneur lancé en arrière-plan), systemd marquait le service comme terminé → plus de redémarrage au boot, `Restart=on-failure` inopérant.
+    - *Correction* : séparation création / démarrage. La création du conteneur (`docker run -d ... --name open-webui --restart unless-stopped`) est faite une seule fois dans la phase de build. Le service `open-webui.service` devient `Type=simple` avec `ExecStart=/usr/bin/docker start open-webui` → systemd surveille le vrai PID, `Restart=on-failure` + `RestartSec=10` opérationnels.
+  - **Résultat** : 20 nouveaux tests dans `hardwareDriverResolver.test.ts` + 5 tests dans `advancedFeatures.test.ts` (888 tests au total, 100% au vert). Commit `65c1c5e`.
 - **39. 🛡️ Résilience Graphique Cinnamon sous VirtualBox / VM & Rendu Logiciel Mesa llvmpipe** :
   - **Diagnostic & Root Cause (Découvert via la capture d'écran utilisateur « Ceci est le mode de secours »)** :
     - *Crash Muffin / Clutter OpenGL* : Sous VirtualBox ou QEMU sans accélération 3D matérielle directe (contrôleur VBoxSVGA / VBoxVGA sans accélération 3D cochée dans VirtualBox), le gestionnaire de fenêtres Muffin tente d'initialiser Clutter avec OpenGL matériel. L'échec de création du contexte GLX provoque la terminaison immédiate du processus `cinnamon` par un signal SIGSEGV. `cinnamon-launcher` intercepte la fin anormale et affiche la boîte de dialogue : *« Ceci est le mode de secours. Voulez-vous redémarrer Cinnamon ? »*. En mode de secours, le panel/barre des tâches n'est pas lancé et le fond d'écran reste noir.
