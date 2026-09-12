@@ -146,7 +146,15 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **835 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **836 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- **29. 🐛 & 🛡️ Correction de Syntaxe Bash Chroot — Fermeture `fi` du Dépôt Noyau XanMod/LTS/RT (`debian.ts`)** :
+  - **Diagnostic & Root Cause** :
+    - Déclencheur : crash lors de la compilation WSL/Bash (`/bin/bash: line 1451: syntax error: unexpected end of file`) sur les recettes utilisant un noyau alternatif XanMod, LTS ou Realtime sur base Debian/Ubuntu.
+    - Cause racine : dans `src/services/generators/debian.ts`, la condition `if curl -fsSL https://dl.xanmod.org/archive.key ...; then ... else ...` d'ajout du trousseau GPG et dépôt XanMod comportait un `if ! apt-get ...; then ... fi` interne mais omettait le `fi` fermant la condition parente. Bash analysait alors tout le reste du script chroot jusqu'au EOF sans trouver de fermeture.
+  - **Résolution & Sanité Totale** :
+    - Ajout du `fi` manquant dans `debian.ts`.
+    - Audit exhaustif par script scratch vérifiant `wsl bash -n` sur l'ensemble de la matrice des distributions (Debian, Ubuntu, Arch, Fedora, etc.), des 11 types de noyaux et de tous les presets. Zéro erreur de syntaxe bash résiduelle.
+    - Nouveau test unitaire de non-régression dans `src/services/scriptGenerators.test.ts` validant le strict équilibre des `if`/`fi` dans la section de configuration du noyau.
 - **28. 🥽 & 🖨️ Packs Casques VR (OpenXR) & Fabrication Numérique (Impression 3D & Laser CNC)** :
   - **Écosystème Casques VR & Réalité Virtuelle** :
     - 3 paquets logiciels vérifiés multi-distros : `openxr_runtime` (Monado service/gui conforme Khronos), `vr_headset_drivers` (règles udev matériel VR), `vr_wireless_streaming` (Avahi mDNS + PipeWire streaming pour Meta Quest / Pico 4 avec WiVRn/ALVR).

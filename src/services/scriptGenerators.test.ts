@@ -4189,6 +4189,33 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(ipxe).toContain('hostname=forge-pxe');
     });
   });
+
+  describe('Chantier 29 : Robustesse syntaxique Bash — Fermeture fi du bloc conditionnel noyau XanMod / LTS / RT', () => {
+    it('ferme correctement la condition if curl XanMod avec fi pour éviter syntax error unexpected EOF', () => {
+      for (const k of ['xanmod', 'lts', 'realtime'] as const) {
+        const script = generateBuildScript(makeRecipe({
+          distro: 'ubuntu',
+          distroVersion: '24.04',
+          kernel: k,
+        }));
+
+        // Le bloc XanMod doit comporter son fi fermant la condition d'accès réseau au dépôt
+        expect(script).toContain('if curl -fsSL https://dl.xanmod.org/archive.key');
+        expect(script).toContain('Dépôt XanMod injoignable');
+        expect(script).toMatch(/else\s+echo -e "[^"]*Dépôt XanMod injoignable[^"]*"\s+apt-get install -y --no-install-recommends [^\n]+\s+fi/);
+
+        // Sanité : le nombre de 'if ' doit correspondre au nombre de 'fi' dans la section XanMod
+        const xanmodSection = script.substring(
+          script.indexOf('Ajout du dépôt APT officiel XanMod'),
+          script.indexOf('# Installation sécurisée et résiliente des logiciels sélectionnés')
+        );
+        const ifCount = (xanmodSection.match(/\bif\b/g) || []).length;
+        const fiCount = (xanmodSection.match(/\bfi\b/g) || []).length;
+        expect(ifCount).toBe(fiCount);
+      }
+    });
+  });
 });
+
 
 

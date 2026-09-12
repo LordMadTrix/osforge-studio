@@ -474,6 +474,8 @@ if curl -fsSL https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyr
 else
     echo -e "\${RED}[AVERTISSEMENT] Dépôt XanMod injoignable (bloqué par le réseau/pare-feu ?) : noyau ${kernelPkg} par défaut installé à la place.\${NC}"
     apt-get install -y --no-install-recommends ${kernelPkg}
+fi
+
 ` : ''}${REAL_ALT_KERNEL === 'surface' ? `# Noyau Linux-Surface — dépôt officiel pkg.surfacelinux.com pour tablettes tactiles Microsoft Surface
 echo -e "\${YELLOW}[INFO] Ajout du dépôt APT officiel Linux-Surface (pkg.surfacelinux.com)...\${NC}"
 apt-get install -y --no-install-recommends curl ca-certificates gpg
