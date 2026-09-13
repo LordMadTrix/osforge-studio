@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { OSRecipe, NetworkConfig as NetworkConfigType, BootloaderType } from '../types/os';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield, Sliders, Disc } from 'lucide-react';
+import { User, Key, Globe, TerminalSquare, Wifi, Network, Zap, Shield, Disc } from 'lucide-react';
 import { DiskLayoutCalculator } from './DiskLayoutCalculator';
-import { GamingTuningModal } from './GamingTuningModal';
 
 interface SystemConfigProps {
   recipe: OSRecipe;
@@ -38,8 +37,6 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
     'Asia/Tokyo',
     'UTC',
   ];
-
-  const [isGamingModalOpen, setIsGamingModalOpen] = useState(false);
 
   const updateNet = (updated: Partial<NetworkConfigType>) => {
     onChange({ network: { ...recipe.network, ...updated } });
@@ -532,83 +529,6 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-          {/* Gaming Optimizations */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
-                  {lang === 'fr' ? '🎮 Optimisations Gaming' : '🎮 Gaming Optimizations'}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  {lang === 'fr' ? 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count' : 'Gamemode, MangoHud, TCP BBR+, sysctl vm.max_map_count'}
-                </div>
-              </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={recipe.enableGamingOptimizations ?? false}
-                  onChange={(e) => onChange({ enableGamingOptimizations: e.target.checked })}
-                />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsGamingModalOpen(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.72rem',
-                color: '#c084fc',
-                background: 'rgba(168, 85, 247, 0.1)',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                width: 'fit-content',
-                marginTop: '4px',
-              }}
-            >
-              <Sliders size={12} />
-              <span>{lang === 'fr' ? '⚙️ Régler MangoHUD, Proton-GE & Audio Low-Latency' : '⚙️ Tune MangoHUD, Proton-GE & Low-Latency Audio'}</span>
-            </button>
-          </div>
-
-          {/* Steam Console Mode (Steam Machine) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: recipe.enableSteamConsoleMode ? 'rgba(16, 124, 65, 0.15)' : 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: recipe.enableSteamConsoleMode ? '1px solid #107c41' : '1px solid var(--border-subtle)', transition: 'all 0.15s ease' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: recipe.enableSteamConsoleMode ? '#4ade80' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>🕹️</span>
-                <span>{lang === 'fr' ? 'Mode Console Steam Machine (TV / Salon)' : 'Steam Machine Console Mode (TV / Living Room)'}</span>
-                <span className="badge badge-cyan" style={{ fontSize: '0.62rem' }}>SteamOS 3</span>
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {lang === 'fr'
-                  ? 'Démarrage direct en session Steam GamepadUI + Gamescope HDR/VRR + règles UDEV manettes (Xbox/PS5/Switch/8BitDo)'
-                  : 'Direct boot into Steam GamepadUI session + Gamescope HDR/VRR + UDEV gamepad rules (Xbox/PS5/Switch/8BitDo)'}
-              </div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={recipe.enableSteamConsoleMode ?? false}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  const updated: Partial<OSRecipe> = { enableSteamConsoleMode: checked };
-                  if (checked) {
-                    updated.enableGamingOptimizations = true;
-                    if (!recipe.selectedPackages.includes('steam')) {
-                      updated.selectedPackages = Array.from(new Set([...recipe.selectedPackages, 'steam', 'gamepad_drivers']));
-                    }
-                  }
-                  onChange(updated);
-                }}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-
           {/* Laptop Power Saving */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
             <div>
@@ -1191,15 +1111,6 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           })}
         </div>
       </div>
-
-      {/* Gaming Tuning Modal */}
-      <GamingTuningModal
-        isOpen={isGamingModalOpen}
-        onClose={() => setIsGamingModalOpen(false)}
-        recipe={recipe}
-        onChange={(updated) => onChange(updated)}
-        lang={lang}
-      />
     </div>
   );
 };

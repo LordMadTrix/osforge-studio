@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **920 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 116 fichiers.
+- Suite de tests : **922 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 120 fichiers.
+- **44. 🖥️ Découpage Strict en Pages Dédiées & Résolution du Chevauchement Studio Expert (`SimulatorsView.tsx`, `BrandingDesignView.tsx`, `GamingConfigView.tsx`, `DesktopSelector.tsx`, `SystemConfig.tsx`, `ExpertProStudio.tsx`)** :
+  - *Problème identifié (Découvert via capture d'écran utilisateur)* : En naviguant dans le Studio Expert, les sous-sections (`ui_desktop`, `ui_simulators`, `brand_design`) et (`sys_config`, `sys_gaming`) étaient arbitrairement fusionnées dans le JSX sous de mêmes composants monolithiques (`DesktopSelector` et `SystemConfig`). De plus, une grille CSS `repeat(auto-fit, minmax(320px, 1fr))` écrasait les blocs en créant un trou noir à gauche et des colonnes de texte compressées.
+  - *Architecture Ciblée 1-à-1 Pure (Zéro Cosmétique)* :
+    - `SimulatorsView.tsx` (NOUVEAU) : Page dédiée exclusive aux simulateurs interactifs (Séquence de boot Plymouth + Live Desktop), avec onglets de bascule et sélection de thèmes Plymouth en direct.
+    - `BrandingDesignView.tsx` (NOUVEAU) : Page dédiée exclusive au Design System (Couleur d'accent, 11 wallpapers vectoriels HD & URL custom, icônes, curseurs, polices d'interface et code monospace, palettes terminal, disposition boutons et toggles d'identité système).
+    - `GamingConfigView.tsx` (NOUVEAU) : Page dédiée exclusive aux performances Gaming & Hardware ROG (Feral GameMode, Hugepages, TCP BBR+, sysctl vm.max_map_count, régulateur CPU Governor, latence audio PipeWire en millisecondes temps réel, télémétrie MangoHud, Valve Proton-GE, profils GPU CoreCtrl, mode console Steam Machine Gamescope HDR).
+    - `DesktopSelector.tsx` (Nettoyé) : Centré exclusivement sur la grille des 18 bureaux/WMs, configuration Kiosk, gestionnaire de session (Display Manager) et applications par défaut (Navigateur, Terminal, Éditeur), avec layout à 2 colonnes équilibrées `minmax(420px, 1fr)`.
+    - `SystemConfig.tsx` (Nettoyé) : Centré exclusivement sur l'identité & hostname, compte utilisateur, SSH & clés, réseau Headless OOB (Wi-Fi, WireGuard, Tailscale, IP DHCP/statique) et profils d'alimentation / audio pro.
+    - `ExpertProStudio.tsx` : Câblage strict 1-à-1 de chacune des 10 sous-sections sur son composant dédié.
+  - *Résultat* : 2 nouveaux tests unitaires dans `sectionPages.test.ts` (**922 tests au total, 100% au vert**). 0 warning et 0 erreur oxlint sur 120 fichiers. Build de production impeccable.
 - **43. 🚀 Les 5 Grandes Extensions d'OSForge Studio (Recipe Doctor, VirtualBox, Netboot PXE, Proxmox/Packer, 4 Nouveaux Presets)** :
   - **Axe 1 — Recipe Doctor (`recipeDoctor.ts`, `RecipeDoctorModal.tsx`, `Header.tsx`, `StatsBanner.tsx`)** :
     - *Diagnostic Statique Temps Réel* : Détection proactive des incompatibilités bloquantes (ISO sur familles non-Debian, bootstrap cross-arch non-Debian, bureaux absents d'EPEL9 sur Rocky 9, compte SSH sans mot de passe ni clé, conteneur LUKS sans mot de passe).

@@ -7,8 +7,11 @@ import {
 import { OSRecipe, DistroId } from '../types/os';
 import { DistroSelector } from './DistroSelector';
 import { DesktopSelector } from './DesktopSelector';
+import { SimulatorsView } from './SimulatorsView';
+import { BrandingDesignView } from './BrandingDesignView';
 import { PackageCatalog } from './PackageCatalog';
 import { SystemConfig } from './SystemConfig';
+import { GamingConfigView } from './GamingConfigView';
 import { SecurityConfig } from './SecurityConfig';
 import { PostInstallScripts } from './PostInstallScripts';
 import { RecipeInspector } from './RecipeInspector';
@@ -615,7 +618,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
             </div>
           </div>
 
-          {/* Contenu Découpé par Sous-Section */}
+          {/* Contenu Découpé par Sous-Section (Chaque section a sa propre page dédiée) */}
           <div style={{ minHeight: '400px' }}>
             {activeSection === 'base_distro' && (
               <DistroSelector
@@ -628,13 +631,31 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
 
-            {(activeSection === 'ui_desktop' || activeSection === 'ui_simulators' || activeSection === 'brand_design') && (
+            {activeSection === 'ui_desktop' && (
               <DesktopSelector
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
                 onOpenScreenshots={onOpenScreenshots}
+              />
+            )}
+
+            {activeSection === 'ui_simulators' && (
+              <SimulatorsView
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+              />
+            )}
+
+            {activeSection === 'brand_design' && (
+              <BrandingDesignView
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
               />
             )}
 
@@ -647,8 +668,17 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
 
-            {(activeSection === 'sys_config' || activeSection === 'sys_gaming') && (
+            {activeSection === 'sys_config' && (
               <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+              />
+            )}
+
+            {activeSection === 'sys_gaming' && (
+              <GamingConfigView
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
