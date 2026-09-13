@@ -30,6 +30,13 @@ redimensionnées et compressées en WebP pour ce projet. Licences originales con
 | Raspberry Pi OS | Raspberry Pi Holdings | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Raspberry_Pi_OS_13_screenshot.png) |
 | openSUSE | KDE Project / openSUSE (capture : VulcanSphere) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:KDE_Plasma_6_screenshot_(openSUSE_dark_mode).png) |
 | Rocky Linux | Rocky Enterprise Software Foundation (capture : ZalnaRs) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Rocky_Linux_10_Workstation.png) |
+| Linux Mint | Linux Mint Devs (capture : Funkruf) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Linux_Mint_20_Cinnamon.png) |
+| Pop!_OS | System76 | GPL-3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Pop!_OS_24.04_LTS_custom_Pop_wallpaper_-_English.png) |
+| AlmaLinux | AlmaLinux OS Foundation | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:AlmaLinux_9.3_GNOME_Files_40.2_-_English.png) |
+| EndeavourOS | endeavouros-team | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:EndeavourOS_Endeavour.Neo.2024.09.22_default_desktop_-_English.png) |
+| Parrot Security | Parrot Dev Team | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Parrot-security-3.70f1117e.png) |
+| Armbian | Igor Pecovnik (Armbian Project) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Armbian-desktop.png) |
+| DietPi | Daniel Knight (DietPi Project) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:DietPi_installation_-_English.jpg) |
 
 ### Environnements de bureau
 
@@ -44,6 +51,22 @@ redimensionnées et compressées en WebP pour ce projet. Licences originales con
 | i3 | Michael Stapelberg | CC BY-SA 3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:I3_window_manager_screenshot.png) |
 | Sway | Alexey Samoilov (Ubuntu Sway Remix) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Ubuntu_Sway_Remix_Dekstop_(22.04).png) |
 | COSMIC | System76 | GPL-3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:COSMIC_Epoch_1.0.0_alpha_desktop.png) |
+| MATE | The Ubuntu MATE Team | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Ubuntu_MATE_25.04_default_desktop_-_English.png) |
+| Budgie | Ubuntu Budgie Team | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Ubuntu_Budgie_25.04_default_desktop_-_English.png) |
+| Deepin (DDE) | Deepin Technology Co., Ltd | GPL-3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Deepin_Linux_23.1_default_desktop_-_English.png) |
+| Pantheon | elementary, Inc. | GPL-3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Elementary_OS_8.0_default_desktop_-_English.png) |
+| LXDE | The Debian Project | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Debian_11.9.0_LXDE_default_desktop_-_English.png) |
+| Openbox | Freebie (Arch Linux / Openbox) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Arch_Linux_with_the_Openbox_WM.png) |
+| BSPWM | Aditya Shakya | GPL-3.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Archcraft-v2023.04-Bspwn.png) |
+| Wayfire | Drew DeVault / Wayfire team | MIT | [Fichier](https://commons.wikimedia.org/wiki/File:Wfire.png) |
+
+### Gestionnaires de connexion (Display Managers)
+
+| Greeter | Auteur | Licence | Source |
+|---|---|---|---|
+| SDDM | Lubuntu Team / SDDM developers | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Lubuntu_25.04_sddm-ocean_wallpaper_-_English.jpg) |
+| LightDM | MikoSushi000 | CC BY 4.0 | [Fichier](https://commons.wikimedia.org/wiki/File:LightDM-GTK-greeter.webp) |
+| GDM3 | GNOME Project | CC BY-SA 4.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Gdm_greeter.jpg) |
 
 Toutes les images ont été redimensionnées (960 px de large) et réencodées en WebP
 pour réduire leur poids ; le contenu visuel n'a pas été modifié.

@@ -147,6 +147,17 @@ après.
 ## État au moment de la rédaction de ce fichier
 
 - Suite de tests : **926 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 121 fichiers.
+- **48. 📸 Intégration Massive de Vraies Captures d'Écran Réelles (`screenshots.ts`, `ATTRIBUTIONS.md`, `SessionManagerView.tsx`, `public/screenshots/`)** :
+  - *Exigence Utilisateur* : « trouve sur le net des vrais screenshot » (remplacer les mockups et fallbacks par de vraies captures d'écran officielles sous licences libres).
+  - *Téléchargement & Conversion WebP HD (Wikimedia Commons)* :
+    - 8 Nouveaux Bureaux & WMs : MATE, Budgie, Deepin (DDE 23.1), Pantheon (elementary OS 8), LXDE, Openbox, BSPWM, Wayfire.
+    - 7 Nouvelles Distributions : Linux Mint, Pop!_OS, AlmaLinux, EndeavourOS, Parrot Security, Armbian, DietPi.
+    - 3 Display Managers réels : SDDM (Ocean), LightDM (GTK-Greeter), GDM3 (GNOME Login).
+    - Toutes les images ont été traitées, redimensionnées à 960px et compressées en WebP haute efficacité via `ffmpeg -c:v libwebp -quality 82`.
+  - *Galerie & Greeter Hub* :
+    - Mise à jour intégrale de `screenshots.ts` et du fichier légal d'attributions `ATTRIBUTIONS.md`.
+    - Ajout dans `SessionManagerView.tsx` d'une bascule interactive directe `[ 💻 Simulateur ]` / `[ 📸 Photo Réelle ]` permettant de voir en direct la vraie capture d'écran officielle de chaque Display Manager avec crédit auteur et lien Wikimedia Commons.
+  - *Résultat* : 926 tests unitaires passés à 100%, 0 warning et 0 erreur oxlint sur 121 fichiers, build de production propre.
 - **47. 🖥️ Hub Gestionnaire de Sessions & Greeter Interactif Dédié (`SessionManagerView.tsx`, `DesktopSelector.tsx`, `ExpertProStudio.tsx`, `sectionPages.test.ts`)** :
   - *Exigence Utilisateur* : « ameliore la szction gestion des sesion » (transformer la sous-section `ui_display_manager` en un hub moderne, visuel et 100% câblé).
   - *Composant Dédié `SessionManagerView.tsx`* :

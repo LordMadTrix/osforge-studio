@@ -1,4 +1,4 @@
-// Vraies captures d'écran (Wikimedia Commons, licences libres GPL/CC).
+// Vraies captures d'écran (Wikimedia Commons, licences libres GPL/CC/MIT).
 // Attribution complète dans ATTRIBUTIONS.md à la racine du projet.
 export interface ScreenshotAsset {
   src: string;
@@ -80,6 +80,48 @@ export const DISTRO_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
     source: 'https://commons.wikimedia.org/wiki/File:Rocky_Linux_10_Workstation.png',
     license: 'GPL-2.0-or-later',
   },
+  linuxmint: {
+    src: '/screenshots/distros/linuxmint.webp',
+    author: 'Linux Mint Devs (capture : Funkruf)',
+    source: 'https://commons.wikimedia.org/wiki/File:Linux_Mint_20_Cinnamon.png',
+    license: 'GPL-2.0-or-later',
+  },
+  popos: {
+    src: '/screenshots/distros/popos.webp',
+    author: 'System76',
+    source: 'https://commons.wikimedia.org/wiki/File:Pop!_OS_24.04_LTS_custom_Pop_wallpaper_-_English.png',
+    license: 'GPL-3.0',
+  },
+  almalinux: {
+    src: '/screenshots/distros/almalinux.webp',
+    author: 'AlmaLinux OS Foundation',
+    source: 'https://commons.wikimedia.org/wiki/File:AlmaLinux_9.3_GNOME_Files_40.2_-_English.png',
+    license: 'GPL-2.0-or-later',
+  },
+  endeavouros: {
+    src: '/screenshots/distros/endeavouros.webp',
+    author: 'endeavouros-team',
+    source: 'https://commons.wikimedia.org/wiki/File:EndeavourOS_Endeavour.Neo.2024.09.22_default_desktop_-_English.png',
+    license: 'GPL-2.0-or-later',
+  },
+  parrot: {
+    src: '/screenshots/distros/parrot.webp',
+    author: 'Parrot Dev Team',
+    source: 'https://commons.wikimedia.org/wiki/File:Parrot-security-3.70f1117e.png',
+    license: 'GPL-2.0-or-later',
+  },
+  armbian: {
+    src: '/screenshots/distros/armbian.webp',
+    author: 'Igor Pecovnik (Armbian Project)',
+    source: 'https://commons.wikimedia.org/wiki/File:Armbian-desktop.png',
+    license: 'GPL-2.0-or-later',
+  },
+  dietpi: {
+    src: '/screenshots/distros/dietpi.webp',
+    author: 'Daniel Knight (DietPi Project)',
+    source: 'https://commons.wikimedia.org/wiki/File:DietPi_installation_-_English.jpg',
+    license: 'GPL-2.0-or-later',
+  },
 };
 
 export const DESKTOP_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
@@ -136,5 +178,74 @@ export const DESKTOP_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
     author: 'System76',
     source: 'https://commons.wikimedia.org/wiki/File:COSMIC_Epoch_1.0.0_alpha_desktop.png',
     license: 'GPL-3.0',
+  },
+  mate: {
+    src: '/screenshots/desktops/mate.webp',
+    author: 'The Ubuntu MATE Team',
+    source: 'https://commons.wikimedia.org/wiki/File:Ubuntu_MATE_25.04_default_desktop_-_English.png',
+    license: 'GPL-2.0-or-later',
+  },
+  budgie: {
+    src: '/screenshots/desktops/budgie.webp',
+    author: 'Ubuntu Budgie Team',
+    source: 'https://commons.wikimedia.org/wiki/File:Ubuntu_Budgie_25.04_default_desktop_-_English.png',
+    license: 'GPL-2.0-or-later',
+  },
+  deepin: {
+    src: '/screenshots/desktops/deepin.webp',
+    author: 'Deepin Technology Co., Ltd',
+    source: 'https://commons.wikimedia.org/wiki/File:Deepin_Linux_23.1_default_desktop_-_English.png',
+    license: 'GPL-3.0',
+  },
+  pantheon: {
+    src: '/screenshots/desktops/pantheon.webp',
+    author: 'elementary, Inc.',
+    source: 'https://commons.wikimedia.org/wiki/File:Elementary_OS_8.0_default_desktop_-_English.png',
+    license: 'GPL-3.0',
+  },
+  lxde: {
+    src: '/screenshots/desktops/lxde.webp',
+    author: 'The Debian Project',
+    source: 'https://commons.wikimedia.org/wiki/File:Debian_11.9.0_LXDE_default_desktop_-_English.png',
+    license: 'GPL-2.0-or-later',
+  },
+  openbox: {
+    src: '/screenshots/desktops/openbox.webp',
+    author: 'Freebie (Arch Linux / Openbox)',
+    source: 'https://commons.wikimedia.org/wiki/File:Arch_Linux_with_the_Openbox_WM.png',
+    license: 'GPL-2.0-or-later',
+  },
+  bspwm: {
+    src: '/screenshots/desktops/bspwm.webp',
+    author: 'Aditya Shakya',
+    source: 'https://commons.wikimedia.org/wiki/File:Archcraft-v2023.04-Bspwn.png',
+    license: 'GPL-3.0',
+  },
+  wayfire: {
+    src: '/screenshots/desktops/wayfire.webp',
+    author: 'Drew DeVault / Wayfire team',
+    source: 'https://commons.wikimedia.org/wiki/File:Wfire.png',
+    license: 'MIT',
+  },
+};
+
+export const DM_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
+  sddm: {
+    src: '/screenshots/desktops/sddm.webp',
+    author: 'Lubuntu Team / SDDM developers',
+    source: 'https://commons.wikimedia.org/wiki/File:Lubuntu_25.04_sddm-ocean_wallpaper_-_English.jpg',
+    license: 'GPL-2.0-or-later',
+  },
+  lightdm: {
+    src: '/screenshots/desktops/lightdm.webp',
+    author: 'MikoSushi000',
+    source: 'https://commons.wikimedia.org/wiki/File:LightDM-GTK-greeter.webp',
+    license: 'CC BY 4.0',
+  },
+  gdm3: {
+    src: '/screenshots/desktops/gdm3.webp',
+    author: 'GNOME Project',
+    source: 'https://commons.wikimedia.org/wiki/File:Gdm_greeter.jpg',
+    license: 'CC BY-SA 4.0',
   },
 };

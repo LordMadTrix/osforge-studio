@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { OSRecipe, DisplayManagerId } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { getDesktopSessionName } from '../services/generators/helpers';
+import { DM_SCREENSHOTS } from '../data/screenshots';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
 import {
@@ -24,6 +25,7 @@ import {
   KeyRound,
   Layers,
   ChevronRight,
+  Camera,
 } from 'lucide-react';
 
 interface SessionManagerViewProps {
@@ -241,6 +243,7 @@ export const SessionManagerView: React.FC<SessionManagerViewProps> = ({
 
   // État de test pour le simulateur de greeter
   const [testLoginState, setTestLoginState] = useState<'idle' | 'logging_in' | 'success'>('idle');
+  const [greeterTab, setGreeterTab] = useState<'simulator' | 'real_screenshot'>('simulator');
   const [showConfigCode, setShowConfigCode] = useState(false);
 
   // Analyse du bureau actif et de la session cible
@@ -256,6 +259,7 @@ export const SessionManagerView: React.FC<SessionManagerViewProps> = ({
   const isRecommendedMatched = recipe.displayManager === recommendedDMId;
   const recommendedDMMeta = DM_CATALOG.find((dm) => dm.id === recommendedDMId);
   const currentDMMeta = DM_CATALOG.find((dm) => dm.id === recipe.displayManager) || DM_CATALOG[0];
+  const realScreenshot = DM_SCREENSHOTS[recipe.displayManager];
 
   // Gestion du déclenchement du test de login
   const handleSimulateLogin = () => {
@@ -570,6 +574,25 @@ export const SessionManagerView: React.FC<SessionManagerViewProps> = ({
                         >
                           {dm.framework}
                         </span>
+                        {DM_SCREENSHOTS[dm.id] && (
+                          <span
+                            style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 600,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: 'rgba(56, 189, 248, 0.12)',
+                              color: '#38bdf8',
+                              border: '1px solid rgba(56, 189, 248, 0.25)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <Camera size={10} />
+                            {lang === 'fr' ? 'Capture réelle' : 'Real screenshot'}
+                          </span>
+                        )}
                         {isRecommended && (
                           <span
                             style={{
@@ -643,12 +666,110 @@ export const SessionManagerView: React.FC<SessionManagerViewProps> = ({
                 <Eye size={18} color="var(--violet)" />
                 {lang === 'fr' ? 'Simulateur d’Écran de Connexion (Live Greeter)' : 'Live Greeter Simulator'}
               </h3>
-              <span className="badge badge-violet" style={{ fontSize: '0.68rem' }}>
-                Skin {currentDMMeta.name}
-              </span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                {realScreenshot && (
+                  <div style={{ display: 'flex', background: 'rgba(15, 23, 42, 0.6)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setGreeterTab('simulator')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: greeterTab === 'simulator' ? 700 : 500,
+                        background: greeterTab === 'simulator' ? 'rgba(168, 85, 247, 0.25)' : 'transparent',
+                        color: greeterTab === 'simulator' ? '#c084fc' : 'var(--text-muted)',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      💻 {lang === 'fr' ? 'Simulateur' : 'Simulator'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGreeterTab('real_screenshot')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.72rem',
+                        fontWeight: greeterTab === 'real_screenshot' ? 700 : 500,
+                        background: greeterTab === 'real_screenshot' ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
+                        color: greeterTab === 'real_screenshot' ? '#38bdf8' : 'var(--text-muted)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Camera size={11} />
+                      <span>{lang === 'fr' ? 'Photo Réelle' : 'Real Photo'}</span>
+                    </button>
+                  </div>
+                )}
+                <span className="badge badge-violet" style={{ fontSize: '0.68rem' }}>
+                  Skin {currentDMMeta.name}
+                </span>
+              </div>
             </div>
 
-            {/* Le Cadre d'Écran Greeter Interactif */}
+            {/* Affichage Vraie Photo d'Écran ou Simulateur Interactif */}
+            {greeterTab === 'real_screenshot' && realScreenshot ? (
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                background: '#000000',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
+                maxHeight: '380px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <img
+                  src={`${import.meta.env.BASE_URL}${realScreenshot.src.replace(/^\//, '')}`}
+                  alt={currentDMMeta.name}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    maxHeight: '380px',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: '8px 14px',
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '0.7rem',
+                  color: 'rgba(255,255,255,0.85)',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Camera size={12} color="#38bdf8" />
+                    <span>{lang === 'fr' ? 'Capture réelle vérifiée' : 'Verified real screenshot'} — {realScreenshot.author}</span>
+                  </span>
+                  <a
+                    href={realScreenshot.source}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#38bdf8', textDecoration: 'underline' }}
+                  >
+                    Wikimedia Commons ({realScreenshot.license})
+                  </a>
+                </div>
+              </div>
+            ) : (
+            /* Le Cadre d'Écran Greeter Interactif */
             <div
               style={{
                 position: 'relative',
@@ -957,6 +1078,7 @@ export const SessionManagerView: React.FC<SessionManagerViewProps> = ({
                 </button>
               </div>
             </div>
+            )}
           </div>
 
           {/* B. Contrôleur de Connexion Automatique (Auto-Login & Target Session) */}
