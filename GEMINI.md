@@ -146,7 +146,22 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **927 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 122 fichiers.
+- Suite de tests : **929 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 123 fichiers.
+- **50. 🎨 Éditeur de Thème en Direct & Live Theme Studio (`ThemeEditorPanel.tsx`, `SimulatorsView.tsx`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « pour la un editeur de theme » (intégrer un studio interactif d'édition de thème en direct directement au-dessus des simulateurs de démarrage Plymouth et du bureau interactif).
+  - *Composant Dédié `ThemeEditorPanel.tsx`* :
+    - Volet rétractable en 1-clic `[ 🎨 Éditeur de Thème ]` avec accordéon fluide, badge d'état contextuel et synchronisation en direct avec `recipe.branding`.
+    - 5 Onglets Spécialisés Zéro Cosmétique :
+      1. **Presets (1-Clic)** : 6 thèmes complets prêts à l'emploi (*ROG Gaming Performance*, *Cyberpunk 2077 Night*, *Matrix Terminal Hacker*, *Nordic Frost Minimal*, *Deep Space Nebula*, *Cupertino Modern*), injectant instantanément couleurs d'accent, splashs de boot, polices et wallpapers vectoriels.
+      2. **Couleurs & Palette** : 10 pastilles d'accès rapide (Crimson ROG `#e11d48`, Sky Cyan `#0284c7`, Emerald `#059669`, Amber `#d97706`, Violet `#7c3aed`, Rose `#e11d48`, Indigo `#4f46e5`, Neon Green `#22c55e`, Orange `#ea580c`, Dark Metal `#334155`) + sélecteur HTML5 natif et saisie hexadécimale avec validation.
+      3. **Boot & Plymouth** : Sélection interactive parmi les 9 thèmes Plymouth officiellement gérés (`osforge-custom`, `spinner`, `bgrt`, `fade-in`, `tribar`, `solar`, `glow`, `cyberpunk`, `matrix`) + toggle de thème GRUB 2 HD vectoriel + toggle de son de démarrage stéréo.
+      4. **Fond & Bureau** : Sélecteur visuel des 11 wallpapers vectoriels SVG intégrés (`minimal`, `carbon_dark`, `aurora_borealis`, `nordic_frost`, `sunset_synthwave`, `emerald_forest`, `tokyo_neon`, `cyberpunk`, `matrix`, `gaming_rog`, `deep_space`) + champ d'URL personnalisée pour image externe + positionnement des contrôles de fenêtre (Standard à droite vs style macOS à gauche).
+      5. **Nom & Logo (Identité)** : Personnalisation en direct du nom d'OS (`osName`), sous-titre de l'édition (`editionName`), numéro de version (`version`), et premier caractère dynamique dans le logo SVG.
+    - Élimination stricte de tout avertissement React 19 grâce à la dérivation synchrone de l'onglet actif (`manualTab ?? (activeSimulatorTab === 'desktop' ? 'desktop' : 'presets')`).
+  - *Intégration dans `SimulatorsView.tsx`* :
+    - Bouton d'action proactif dans la barre supérieure des simulateurs.
+    - Affichage immédiat du Theme Editor Panel au-dessus du simulateur actif (Boot Plymouth ou Desktop), permettant de voir instantanément le logo, les polices, le splash Plymouth ou le fond d'écran se transformer sans quitter la page.
+  - *Tests & Qualité* : 2 nouveaux tests unitaires validant l'injection SVG et la validité des 11 fonds d'écran (**929 tests Vitest 100% verts**). 0 warning et 0 erreur oxlint sur 123 fichiers. Build de production propre.
 - **49. 🔐 Galerie Complète & Vraies Captures d'Écran des Gestionnaires de Session (`displayManagers.ts`, `screenshots.ts`, `ATTRIBUTIONS.md`, `ScreenshotPreviewModal.tsx`, `SessionManagerView.tsx`, `sectionPages.test.ts`)** :
   - *Exigence Utilisateur* : « aussi pour les cession » (intégrer les vraies captures d'écran réelles et vérifiées pour l'ensemble des gestionnaires de session et greeters).
   - *Couverture 100% Réelle des 7 Display Managers (`public/screenshots/desktops/`)* :

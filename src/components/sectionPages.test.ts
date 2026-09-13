@@ -5,6 +5,7 @@ import { DESKTOPS } from '../data/desktopEnvironments';
 import { DISPLAY_MANAGERS } from '../data/displayManagers';
 import { DM_SCREENSHOTS } from '../data/screenshots';
 import { getDesktopSessionName, dmAutologinCmd } from '../services/generators/helpers';
+import { generateLogoSvg, generateWallpaperSvg } from '../services/generators/branding';
 
 describe('Navigation Studio Expert — Isolation stricte de chaque section sur sa propre page', () => {
   const expectedSections: StudioSectionId[] = [
@@ -183,5 +184,48 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
       });
     });
   });
+
+  describe('Live Theme Studio (ui_simulators) — Éditeur de Thème et Simulateurs', () => {
+    it('met à jour l’identité visuelle et le logo SVG en temps réel', () => {
+      const customRecipe: OSRecipe = {
+        ...sampleRecipe,
+        branding: {
+          ...sampleRecipe.branding,
+          osName: 'MadOS',
+          editionName: 'ROG Edition',
+          accentColor: '#e11d48',
+          wallpaperPreset: 'gaming_rog',
+          bootSplashTheme: 'osforge-custom',
+        },
+      };
+
+      const logo = generateLogoSvg(customRecipe);
+      expect(logo).toContain('#e11d48');
+      expect(logo).toContain('>M<'); // Première lettre de MadOS
+
+      const wallpaper = generateWallpaperSvg(customRecipe);
+      expect(wallpaper).toContain('<svg');
+      expect(wallpaper).toContain('MADOS');
+    });
+
+    it('génère un rendu SVG valide pour chacun des 11 presets de fonds d’écran', () => {
+      const presets = [
+        'minimal', 'carbon_dark', 'aurora_borealis', 'nordic_frost',
+        'sunset_synthwave', 'emerald_forest', 'tokyo_neon', 'cyberpunk',
+        'matrix', 'gaming_rog', 'deep_space',
+      ];
+
+      presets.forEach((p) => {
+        const r: OSRecipe = {
+          ...sampleRecipe,
+          branding: { ...sampleRecipe.branding, wallpaperPreset: p },
+        };
+        const svg = generateWallpaperSvg(r);
+        expect(svg).toContain('<svg');
+        expect(svg).toContain('viewBox="0 0 1920 1080"');
+      });
+    });
+  });
 });
+
 

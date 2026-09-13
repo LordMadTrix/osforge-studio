@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { OSRecipe } from '../types/os';
-import { Monitor, Eye, Play, Sparkles, Sliders } from 'lucide-react';
+import { Monitor, Eye, Play, Sparkles, Sliders, Palette, ChevronDown, ChevronUp } from 'lucide-react';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
+import { ThemeEditorPanel } from './ThemeEditorPanel';
 
 const BootPreviewSimulator = React.lazy(() => import('./BootPreviewSimulator').then(m => ({ default: m.BootPreviewSimulator })));
 const LiveDesktopSimulator = React.lazy(() => import('./LiveDesktopSimulator').then(m => ({ default: m.LiveDesktopSimulator })));
@@ -21,6 +22,7 @@ export const SimulatorsView: React.FC<SimulatorsViewProps> = ({
   onOpenTips,
 }) => {
   const [simulatorTab, setSimulatorTab] = useState<'boot' | 'desktop'>('boot');
+  const [showThemeEditor, setShowThemeEditor] = useState<boolean>(true);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -47,52 +49,89 @@ export const SimulatorsView: React.FC<SimulatorsViewProps> = ({
             </p>
           </div>
 
-          {/* Onglets de Bascule Simulateur */}
-          <div style={{ display: 'flex', gap: '8px', background: 'rgba(15, 23, 42, 0.6)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Bouton Toggle Éditeur de Thème */}
             <button
               type="button"
-              onClick={() => setSimulatorTab('boot')}
+              onClick={() => setShowThemeEditor((prev) => !prev)}
               style={{
                 padding: '7px 14px',
                 borderRadius: '6px',
                 fontSize: '0.8rem',
-                fontWeight: simulatorTab === 'boot' ? 700 : 500,
-                background: simulatorTab === 'boot' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
-                color: simulatorTab === 'boot' ? 'var(--cyan)' : 'var(--text-muted)',
-                border: simulatorTab === 'boot' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid transparent',
+                fontWeight: showThemeEditor ? 700 : 600,
+                background: showThemeEditor ? 'rgba(236, 72, 153, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+                color: showThemeEditor ? '#f472b6' : 'var(--text-main)',
+                border: showThemeEditor ? '1px solid #f472b6' : '1px solid rgba(255, 255, 255, 0.12)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 transition: 'all 0.15s ease',
               }}
+              title={lang === 'fr' ? 'Afficher/Masquer le panneau d’édition de thème' : 'Toggle theme editor controls'}
             >
-              <Play size={14} />
-              <span>{lang === 'fr' ? 'Séquence de Démarrage (Boot & Plymouth)' : 'Boot Splash & Plymouth'}</span>
+              <Palette size={14} />
+              <span>{lang === 'fr' ? 'Éditeur de Thème' : 'Theme Editor'}</span>
+              {showThemeEditor ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
-            <button
-              type="button"
-              onClick={() => setSimulatorTab('desktop')}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                fontWeight: simulatorTab === 'desktop' ? 700 : 500,
-                background: simulatorTab === 'desktop' ? 'rgba(168, 85, 247, 0.2)' : 'transparent',
-                color: simulatorTab === 'desktop' ? '#c084fc' : 'var(--text-muted)',
-                border: simulatorTab === 'desktop' ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Eye size={14} />
-              <span>{lang === 'fr' ? `Bureau Interactif (${recipe.desktop.toUpperCase()})` : `Live Desktop (${recipe.desktop.toUpperCase()})`}</span>
-            </button>
+
+            {/* Onglets de Bascule Simulateur */}
+            <div style={{ display: 'flex', gap: '6px', background: 'rgba(15, 23, 42, 0.6)', padding: '3px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <button
+                type="button"
+                onClick={() => setSimulatorTab('boot')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '5px',
+                  fontSize: '0.78rem',
+                  fontWeight: simulatorTab === 'boot' ? 700 : 500,
+                  background: simulatorTab === 'boot' ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                  color: simulatorTab === 'boot' ? 'var(--cyan)' : 'var(--text-muted)',
+                  border: simulatorTab === 'boot' ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Play size={13} />
+                <span>{lang === 'fr' ? 'Boot & Plymouth' : 'Boot & Plymouth'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSimulatorTab('desktop')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '5px',
+                  fontSize: '0.78rem',
+                  fontWeight: simulatorTab === 'desktop' ? 700 : 500,
+                  background: simulatorTab === 'desktop' ? 'rgba(168, 85, 247, 0.2)' : 'transparent',
+                  color: simulatorTab === 'desktop' ? '#c084fc' : 'var(--text-muted)',
+                  border: simulatorTab === 'desktop' ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Eye size={13} />
+                <span>{lang === 'fr' ? `Bureau (${recipe.desktop.toUpperCase()})` : `Desktop (${recipe.desktop.toUpperCase()})`}</span>
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Panneau Dédié Studio Éditeur de Thème en Direct */}
+        {showThemeEditor && (
+          <ThemeEditorPanel
+            recipe={recipe}
+            onChange={onChange}
+            lang={lang}
+            activeSimulatorTab={simulatorTab}
+          />
+        )}
 
         {/* Contrôles Rapides Dédiés au Simulateur Actif */}
         {simulatorTab === 'boot' && (
