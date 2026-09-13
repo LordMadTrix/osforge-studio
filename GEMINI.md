@@ -146,7 +146,24 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **926 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 121 fichiers.
+- Suite de tests : **927 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 122 fichiers.
+- **49. 🔐 Galerie Complète & Vraies Captures d'Écran des Gestionnaires de Session (`displayManagers.ts`, `screenshots.ts`, `ATTRIBUTIONS.md`, `ScreenshotPreviewModal.tsx`, `SessionManagerView.tsx`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « aussi pour les cession » (intégrer les vraies captures d'écran réelles et vérifiées pour l'ensemble des gestionnaires de session et greeters).
+  - *Couverture 100% Réelle des 7 Display Managers (`public/screenshots/desktops/`)* :
+    - `sddm` : Simple Desktop Display Manager avec thème officiel KDE Plasma 6 Breeze (Filip Fila & Krešimir Čohar, GPL-2.0+).
+    - `gdm3` : GNOME Display Manager officiel sous Debian 12 Bookworm (Paowee, GPL-2.0+).
+    - `lightdm` : LightDM GTK+ Greeter officiel (MikoSushi000, CC BY 4.0).
+    - `ly` : Ly TUI Console Matrix Display Manager officiel téléchargé depuis le dépôt amont `fairyglade/ly` (Nullgemm & Fairyglade, CC0 / Unlicense).
+    - `cosmic-greeter` : COSMIC Display Manager officiel Rust issu du dépôt amont System76 `pop-os/cosmic-greeter` (System76, GPL-3.0).
+    - `ddm` : Deepin Display Manager officiel DDE (Gabee143, CC0).
+    - `none` : Console Linux TTY1 text login prompt authentique (Grant Handy, CC BY-SA 4.0).
+    - Toutes les captures ont été converties en WebP haute fidélité 960px via `ffmpeg -c:v libwebp -quality 82`.
+  - *Refactoring & Catalogue Centralisé `src/data/displayManagers.ts`* :
+    - Extraction et factorisation propre du catalogue des 7 gestionnaires de session avec métadonnées techniques complètes (Framework, Empreinte RAM, Protocoles Wayland/X11/TTY, Unité systemd, Fichier de config, Recommandations).
+  - *Galerie Visuelle 3-Onglets & Modale Universelle (`ScreenshotPreviewModal.tsx`)* :
+    - Ajout du 3ème onglet dédié `[ 🔐 Sessions & Greeters ]` permettant de prévisualiser chaque greeter avec son screenshot réel, sa licence légale, son auteur et son lien source Wikimedia/GitHub.
+    - Ajout d'un bouton direct `[ 📸 Galerie Complète ]` dans `SessionManagerView.tsx` pour lancer l'exploration interactive des greeters en 1 clic.
+  - *Tests & Qualité* : 1 nouveau test unitaire validant la présence des 7 DMs et de leurs métadonnées/captures (**927 tests Vitest 100% verts**). 0 warning et 0 erreur oxlint sur 122 fichiers. Build de production propre.
 - **48. 📸 Intégration Massive de Vraies Captures d'Écran Réelles (`screenshots.ts`, `ATTRIBUTIONS.md`, `SessionManagerView.tsx`, `public/screenshots/`)** :
   - *Exigence Utilisateur* : « trouve sur le net des vrais screenshot » (remplacer les mockups et fallbacks par de vraies captures d'écran officielles sous licences libres).
   - *Téléchargement & Conversion WebP HD (Wikimedia Commons)* :

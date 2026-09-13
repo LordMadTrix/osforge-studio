@@ -64,9 +64,14 @@ redimensionnées et compressées en WebP pour ce projet. Licences originales con
 
 | Greeter | Auteur | Licence | Source |
 |---|---|---|---|
-| SDDM | Lubuntu Team / SDDM developers | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Lubuntu_25.04_sddm-ocean_wallpaper_-_English.jpg) |
+| SDDM | Filip Fila & Krešimir Čohar (KDE Community) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:Simple-desktop-display-manager-kde.png) |
 | LightDM | MikoSushi000 | CC BY 4.0 | [Fichier](https://commons.wikimedia.org/wiki/File:LightDM-GTK-greeter.webp) |
-| GDM3 | GNOME Project | CC BY-SA 4.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Gdm_greeter.jpg) |
+| GDM3 | Paowee (Debian GNOME) | GPL-2.0-or-later | [Fichier](https://commons.wikimedia.org/wiki/File:GNOME_Display_Manager_on_Debian_12.png) |
+| Ly | Fairyglade & Nullgemm (Ly Project) | CC0 / Unlicense | [Dépôt Officiel](https://github.com/fairyglade/ly) |
+| COSMIC Greeter | System76 (Pop!_OS / COSMIC Project) | GPL-3.0 | [Dépôt Officiel](https://github.com/pop-os/cosmic-greeter) |
+| DDM (Deepin) | Gabee143 (Deepin Technology) | CC0 | [Fichier](https://commons.wikimedia.org/wiki/File:Deepin_9.12_Login_Screen.png) |
+| Console TTY (None) | Grant Handy (Debian Linux TTY Console) | CC BY-SA 4.0 | [Fichier](https://commons.wikimedia.org/wiki/File:Debian10-console-login.png) |
 
 Toutes les images ont été redimensionnées (960 px de large) et réencodées en WebP
 pour réduire leur poids ; le contenu visuel n'a pas été modifié.
+

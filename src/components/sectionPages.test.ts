@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { StudioSectionId } from './ExpertProStudio';
-import { OSRecipe } from '../types/os';
+import { OSRecipe, DisplayManagerId } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
+import { DISPLAY_MANAGERS } from '../data/displayManagers';
+import { DM_SCREENSHOTS } from '../data/screenshots';
 import { getDesktopSessionName, dmAutologinCmd } from '../services/generators/helpers';
 
 describe('Navigation Studio Expert — Isolation stricte de chaque section sur sa propre page', () => {
@@ -159,5 +161,27 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
       expect(dmAutologinCmd(rSddm, 'debian')).toContain('/etc/sddm.conf.d/autologin.conf');
       expect(dmAutologinCmd(rLight, 'debian')).toContain('/etc/lightdm/lightdm.conf.d/50-autologin.conf');
     });
+
+    it('couvre l’intégralité des 7 gestionnaires de sessions avec de vraies captures vérifiées et métadonnées', () => {
+      const dmIds: DisplayManagerId[] = ['sddm', 'gdm3', 'lightdm', 'ly', 'cosmic-greeter', 'ddm', 'none'];
+      
+      expect(DISPLAY_MANAGERS).toHaveLength(7);
+      
+      dmIds.forEach((id) => {
+        const dm = DISPLAY_MANAGERS.find(d => d.id === id);
+        expect(dm, `Display Manager ${id} doit exister dans DISPLAY_MANAGERS`).toBeDefined();
+        expect(dm?.serviceUnit).toBeTruthy();
+        expect(dm?.framework).toBeTruthy();
+        expect(dm?.protocols.length).toBeGreaterThan(0);
+
+        const shot = DM_SCREENSHOTS[id];
+        expect(shot, `Capture réelle obligatoire pour le greeter ${id}`).toBeDefined();
+        expect(shot?.src).toMatch(/^\/screenshots\/desktops\/.*\.webp$/);
+        expect(shot?.author).toBeTruthy();
+        expect(shot?.source).toMatch(/^https?:\/\//);
+        expect(shot?.license).toBeTruthy();
+      });
+    });
   });
 });
+

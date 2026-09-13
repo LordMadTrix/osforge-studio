@@ -229,11 +229,11 @@ export const DESKTOP_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
   },
 };
 
-export const DM_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
+export const DM_SCREENSHOTS: Record<string, ScreenshotAsset> = {
   sddm: {
     src: '/screenshots/desktops/sddm.webp',
-    author: 'Lubuntu Team / SDDM developers',
-    source: 'https://commons.wikimedia.org/wiki/File:Lubuntu_25.04_sddm-ocean_wallpaper_-_English.jpg',
+    author: 'Filip Fila & Krešimir Čohar (KDE Community)',
+    source: 'https://commons.wikimedia.org/wiki/File:Simple-desktop-display-manager-kde.png',
     license: 'GPL-2.0-or-later',
   },
   lightdm: {
@@ -244,8 +244,33 @@ export const DM_SCREENSHOTS: Partial<Record<string, ScreenshotAsset>> = {
   },
   gdm3: {
     src: '/screenshots/desktops/gdm3.webp',
-    author: 'GNOME Project',
-    source: 'https://commons.wikimedia.org/wiki/File:Gdm_greeter.jpg',
+    author: 'Paowee (Debian GNOME)',
+    source: 'https://commons.wikimedia.org/wiki/File:GNOME_Display_Manager_on_Debian_12.png',
+    license: 'GPL-2.0-or-later',
+  },
+  ly: {
+    src: '/screenshots/desktops/ly.webp',
+    author: 'Fairyglade & Nullgemm (Ly Project)',
+    source: 'https://github.com/fairyglade/ly',
+    license: 'CC0 / Unlicense',
+  },
+  'cosmic-greeter': {
+    src: '/screenshots/desktops/cosmic-greeter.webp',
+    author: 'System76 (Pop!_OS / COSMIC Greeter)',
+    source: 'https://github.com/pop-os/cosmic-greeter',
+    license: 'GPL-3.0',
+  },
+  ddm: {
+    src: '/screenshots/desktops/ddm.webp',
+    author: 'Gabee143 (Deepin Technology)',
+    source: 'https://commons.wikimedia.org/wiki/File:Deepin_9.12_Login_Screen.png',
+    license: 'CC0',
+  },
+  none: {
+    src: '/screenshots/desktops/console-tty.webp',
+    author: 'Grant Handy (Debian Linux TTY Console)',
+    source: 'https://commons.wikimedia.org/wiki/File:Debian10-console-login.png',
     license: 'CC BY-SA 4.0',
   },
 };
+

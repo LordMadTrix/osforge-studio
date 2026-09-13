@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { DistroInfo, DesktopInfo, OSRecipe } from '../types/os';
+import { DistroInfo, DesktopInfo, OSRecipe, DisplayManagerId } from '../types/os';
 import { DISTROS } from '../data/distros';
 import { DESKTOPS } from '../data/desktopEnvironments';
+import { DISPLAY_MANAGERS } from '../data/displayManagers';
 import { X, Check, Image as ImageIcon, Camera, LayoutGrid, ArrowLeft } from 'lucide-react';
-import { DISTRO_SCREENSHOTS, DESKTOP_SCREENSHOTS } from '../data/screenshots';
+import { DISTRO_SCREENSHOTS, DESKTOP_SCREENSHOTS, DM_SCREENSHOTS } from '../data/screenshots';
 
 interface ScreenshotPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDistro?: DistroInfo;
   selectedDesktop?: DesktopInfo;
+  selectedDM?: DisplayManagerId;
+  initialTab?: 'distro' | 'desktop' | 'dm';
   recipe: OSRecipe;
   onApplyDistro?: (distroId: string) => void;
   onApplyDesktop?: (desktopId: string) => void;
+  onApplyDM?: (dmId: DisplayManagerId) => void;
   lang: 'fr' | 'en';
 }
 
@@ -21,26 +25,38 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
   onClose,
   selectedDistro,
   selectedDesktop,
+  selectedDM,
+  initialTab,
   recipe,
   onApplyDistro,
   onApplyDesktop,
+  onApplyDM,
   lang,
 }) => {
-  const [manualTab, setManualTab] = useState<'distro' | 'desktop' | null>(null);
+  const [manualTab, setManualTab] = useState<'distro' | 'desktop' | 'dm' | null>(null);
   const [manualDistroId, setManualDistroId] = useState<string | null>(null);
   const [manualDesktopId, setManualDesktopId] = useState<string | null>(null);
+  const [manualDMId, setManualDMId] = useState<DisplayManagerId | null>(null);
   const [manualFocus, setManualFocus] = useState<boolean | null>(null);
 
   if (!isOpen) return null;
 
-  const activeTab = manualTab ?? (selectedDesktop ? 'desktop' : 'distro');
+  const defaultTab: 'distro' | 'desktop' | 'dm' = initialTab ?? (selectedDM ? 'dm' : selectedDesktop ? 'desktop' : 'distro');
+  const activeTab = manualTab ?? defaultTab;
   const currentDistroId = manualDistroId ?? (selectedDistro?.id || recipe.distro);
   const currentDesktopId = manualDesktopId ?? (selectedDesktop?.id || recipe.desktop);
-  const isDirectFocus = manualFocus ?? Boolean(selectedDesktop || selectedDistro);
+  const currentDMId: DisplayManagerId = manualDMId ?? (selectedDM || recipe.displayManager || 'sddm');
+  const isDirectFocus = manualFocus ?? Boolean(selectedDesktop || selectedDistro || selectedDM);
 
   const currentDistro = DISTROS.find(d => d.id === currentDistroId) || DISTROS[0];
   const currentDesktop = DESKTOPS.find(d => d.id === currentDesktopId) || DESKTOPS[1];
-  const currentScreenshot = activeTab === 'distro' ? DISTRO_SCREENSHOTS[currentDistroId] : DESKTOP_SCREENSHOTS[currentDesktopId];
+  const currentDM = DISPLAY_MANAGERS.find(d => d.id === currentDMId) || DISPLAY_MANAGERS[0];
+
+  const currentScreenshot = activeTab === 'distro'
+    ? DISTRO_SCREENSHOTS[currentDistroId]
+    : activeTab === 'desktop'
+      ? DESKTOP_SCREENSHOTS[currentDesktopId]
+      : DM_SCREENSHOTS[currentDMId];
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
@@ -94,6 +110,13 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                         {currentDesktop.type}
                       </span>
                     </>
+                  ) : activeTab === 'dm' ? (
+                    <>
+                      <span>{currentDM.fullName}</span>
+                      <span style={{ fontSize: '0.7rem', color: currentDM.accentColor, fontWeight: 500, padding: '1px 6px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px' }}>
+                        {currentDM.badge}
+                      </span>
+                    </>
                   ) : (
                     <>
                       <span>{currentDistro.name}</span>
@@ -110,9 +133,11 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                 {isDirectFocus ? (
                   activeTab === 'desktop'
                     ? (lang === 'fr' ? `Aperçu direct du bureau · RAM requise : ~${currentDesktop.ramUsageMB} Mo · Wayland : ${currentDesktop.wayland ? 'Oui' : 'Non'}` : `Direct desktop preview · RAM: ~${currentDesktop.ramUsageMB} MB · Wayland: ${currentDesktop.wayland ? 'Yes' : 'No'}`)
-                    : (lang === 'fr' ? `Aperçu direct de la distribution · Base RAM : ~${currentDistro.baseRamMB} Mo` : `Direct distro preview · Base RAM: ~${currentDistro.baseRamMB} MB`)
+                    : activeTab === 'dm'
+                      ? (lang === 'fr' ? `Greeter / Display Manager · RAM : ~${currentDM.ramMB} Mo · Framework : ${currentDM.framework} · Unité : ${currentDM.serviceUnit}` : `Greeter / Display Manager · RAM: ~${currentDM.ramMB} MB · Framework: ${currentDM.framework} · Unit: ${currentDM.serviceUnit}`)
+                      : (lang === 'fr' ? `Aperçu direct de la distribution · Base RAM : ~${currentDistro.baseRamMB} Mo` : `Direct distro preview · Base RAM: ~${currentDistro.baseRamMB} MB`)
                 ) : (
-                  lang === 'fr' ? 'Parcourez les captures d’écran officielles des distributions et bureaux Linux' : 'Browse official screenshots of Linux distros and desktops'
+                  lang === 'fr' ? 'Parcourez les captures d’écran officielles des distributions, bureaux et greeters Linux' : 'Browse official screenshots of Linux distros, desktops, and greeters'
                 )}
               </p>
             </div>
@@ -137,10 +162,10 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                 }}
               >
                 <LayoutGrid size={13} />
-                <span>{lang === 'fr' ? 'Voir tous les bureaux' : 'View all desktops'}</span>
+                <span>{lang === 'fr' ? 'Voir toute la galerie' : 'View all screenshots'}</span>
               </button>
             ) : (
-              /* Onglets Distros / Bureaux si en mode galerie */
+              /* Onglets Distros / Bureaux / Sessions si en mode galerie */
               <div style={{
                 display: 'flex',
                 background: 'rgba(26, 22, 19, 0.8)',
@@ -177,6 +202,21 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                   }}
                 >
                   🖥️ {lang === 'fr' ? 'Bureaux & WM' : 'Desktops & WMs'}
+                </button>
+                <button
+                  onClick={() => setManualTab('dm')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: activeTab === 'dm' ? 'var(--cyan)' : 'transparent',
+                    color: activeTab === 'dm' ? '#ffffff' : 'var(--text-muted)',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔐 {lang === 'fr' ? 'Sessions & Greeters' : 'Display Managers'}
                 </button>
               </div>
             )}
@@ -241,7 +281,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                     )}
                   </button>
                 ))
-              ) : (
+              ) : activeTab === 'desktop' ? (
                 DESKTOPS.map(de => (
                   <button
                     key={de.id}
@@ -270,6 +310,34 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                     )}
                   </button>
                 ))
+              ) : (
+                DISPLAY_MANAGERS.map(dm => (
+                  <button
+                    key={dm.id}
+                    onClick={() => setManualDMId(dm.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 10px',
+                      borderRadius: '5px',
+                      border: currentDMId === dm.id ? `1px solid ${dm.accentColor}` : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: currentDMId === dm.id ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.5)',
+                      color: currentDMId === dm.id ? 'var(--text-main)' : 'var(--text-muted)',
+                      fontSize: '0.74rem',
+                      fontWeight: currentDMId === dm.id ? 600 : 400,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: dm.accentColor }} />
+                    <span>{dm.name}</span>
+                    {DM_SCREENSHOTS[dm.id] && <Camera size={10} color="#38bdf8" />}
+                    <span style={{ fontSize: '0.62rem', color: 'var(--text-dim)' }}>
+                      ~{dm.ramMB} Mo
+                    </span>
+                  </button>
+                ))
               )}
             </div>
           )}
@@ -290,7 +358,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
             }}>
               <img
                 src={`${import.meta.env.BASE_URL}${currentScreenshot.src.replace(/^\//, '')}`}
-                alt={activeTab === 'distro' ? currentDistro.name : currentDesktop.name}
+                alt={activeTab === 'distro' ? currentDistro.name : activeTab === 'desktop' ? currentDesktop.name : currentDM.name}
                 style={{
                   width: '100%',
                   height: 'auto',
@@ -444,13 +512,17 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
           }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>{activeTab === 'distro' ? currentDistro.name : currentDesktop.name}</span>
+                <span>{activeTab === 'distro' ? currentDistro.name : activeTab === 'desktop' ? currentDesktop.name : currentDM.fullName}</span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  ({activeTab === 'distro' ? currentDistro.version : currentDesktop.type})
+                  ({activeTab === 'distro' ? currentDistro.version : activeTab === 'desktop' ? currentDesktop.type : currentDM.framework})
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {activeTab === 'distro' ? currentDistro.popularFor : `RAM minimale : ~${currentDesktop.ramUsageMB} Mo · Disque : ~${currentDesktop.diskUsageMB} Mo`}
+                {activeTab === 'distro'
+                  ? currentDistro.popularFor
+                  : activeTab === 'desktop'
+                    ? `RAM minimale : ~${currentDesktop.ramUsageMB} Mo · Disque : ~${currentDesktop.diskUsageMB} Mo`
+                    : `RAM : ~${currentDM.ramMB} Mo · Service : ${currentDM.serviceUnit} · ${lang === 'fr' ? currentDM.descFr : currentDM.descEn}`}
               </div>
             </div>
 
@@ -478,7 +550,7 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                   <Check size={14} />
                   <span>{lang === 'fr' ? `Choisir ${currentDistro.name}` : `Select ${currentDistro.name}`}</span>
                 </button>
-              ) : (
+              ) : activeTab === 'desktop' ? (
                 <button
                   onClick={() => {
                     if (onApplyDesktop) onApplyDesktop(currentDesktop.id);
@@ -489,6 +561,18 @@ export const ScreenshotPreviewModal: React.FC<ScreenshotPreviewModalProps> = ({
                 >
                   <Check size={14} />
                   <span>{lang === 'fr' ? `Choisir ${currentDesktop.name.split(' ')[0]}` : `Select ${currentDesktop.name.split(' ')[0]}`}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (onApplyDM) onApplyDM(currentDM.id);
+                    onClose();
+                  }}
+                  className="btn btn-primary"
+                  style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                >
+                  <Check size={14} />
+                  <span>{lang === 'fr' ? `Choisir ${currentDM.name}` : `Select ${currentDM.name}`}</span>
                 </button>
               )}
             </div>
