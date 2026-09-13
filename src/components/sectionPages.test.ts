@@ -226,6 +226,34 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
       });
     });
   });
+
+  describe('Sous-section Applications & Outils d’Administration Système (ui_default_apps)', () => {
+    it('supporte la configuration complète des applications par défaut et des outils sysadmin', () => {
+      const adminRecipe: OSRecipe = {
+        ...sampleRecipe,
+        defaultApps: {
+          browser: 'brave',
+          terminal: 'kitty',
+          textEditor: 'vscodium',
+          diskManager: 'gparted',
+          systemMonitor: 'btop',
+          packageManagerGui: 'synaptic',
+          enableTimeshift: true,
+          enableGufw: true,
+          enableInxi: true,
+          enableCockpitWebAdmin: true,
+        },
+      };
+
+      expect(adminRecipe.defaultApps?.diskManager).toBe('gparted');
+      expect(adminRecipe.defaultApps?.systemMonitor).toBe('btop');
+      expect(adminRecipe.defaultApps?.packageManagerGui).toBe('synaptic');
+      expect(adminRecipe.defaultApps?.enableTimeshift).toBe(true);
+      expect(adminRecipe.defaultApps?.enableGufw).toBe(true);
+      expect(adminRecipe.defaultApps?.enableInxi).toBe(true);
+      expect(adminRecipe.defaultApps?.enableCockpitWebAdmin).toBe(true);
+    });
+  });
 });
 
 

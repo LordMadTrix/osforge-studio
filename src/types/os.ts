@@ -324,8 +324,15 @@ export interface OSRecipe {
 
 export interface DefaultApplicationsConfig {
   browser?: 'firefox' | 'google_chrome' | 'chromium' | 'brave' | 'librewolf';
-  terminal?: 'default' | 'kitty' | 'alacritty';
+  terminal?: 'default' | 'kitty' | 'alacritty' | 'ghostty' | 'foot' | 'gnome-terminal';
   textEditor?: 'default' | 'vscodium' | 'nano' | 'micro';
+  diskManager?: 'default' | 'gnome-disks' | 'gparted' | 'partitionmanager' | 'cli';
+  systemMonitor?: 'default' | 'gui' | 'btop' | 'htop';
+  packageManagerGui?: 'default' | 'synaptic' | 'software_center' | 'none';
+  enableTimeshift?: boolean;
+  enableGufw?: boolean;
+  enableInxi?: boolean;
+  enableCockpitWebAdmin?: boolean;
 }
 
 export interface DistroPreset {

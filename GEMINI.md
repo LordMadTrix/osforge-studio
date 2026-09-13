@@ -146,7 +146,38 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **929 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 123 fichiers.
+- Suite de tests : **946 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 123 fichiers.
+- **51. 💽 Applications & Utilitaires Fondamentaux d’Administration Système (CLI, GUI & Studio) (`packages.ts`, `DesktopSelector.tsx`, `ExpertProStudio.tsx`, `os.ts`, `scriptGenerators.test.ts`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « dans les distribution il y a pas les aplication de base pour administresr le systeme » (intégrer tous les utilitaires et applications fondamentales pour administrer le système sur toutes les distros en mode CLI comme graphique).
+  - *Socle Universel d’Administration CLI (Toutes les Distributions)* :
+    - Ajout dans `resolvePackageList` pour Debian, Ubuntu, Mint, Kali, Arch, CachyOS, EndeavourOS, Fedora, Rocky, AlmaLinux, openSUSE, Alpine et Void des utilitaires de gestion système indispensables :
+      - Surveillance & Processus : `htop`, `procps` / `procps-ng`, `psmisc` (`killall`), `lsof`
+      - Gestion disques & partitions : `parted`, `fdisk`, `e2fsprogs`, `dosfstools`
+      - Édition & Maintenance de secours : `nano`, `less`
+      - Compression & Archives : `tar`, `gzip`, `unzip`
+      - Diagnostic réseau : `iputils-ping` (ou `iputils`), `dnsutils` (ou `bind-utils`/`bind-tools`/`bind`)
+      - Synchronisation & Ergonomie : `rsync`, `bash-completion`
+  - *Outils d’Administration Graphique par Environnement de Bureau* :
+    - GNOME / Budgie / Cinnamon : `gnome-system-monitor`, `gnome-disk-utility`, `gnome-logs`
+    - KDE Plasma : `plasma-systemmonitor`, `partitionmanager`
+    - XFCE : `xfce4-taskmanager`, `gnome-disk-utility`
+    - MATE : `mate-system-monitor`, `gnome-disk-utility`
+    - LXQt / LXDE : `lxtask` / `htop`, `gnome-disk-utility`
+    - Tiling WMs & Légers (Hyprland, Sway, i3, etc.) : `btop`, `gnome-disk-utility`
+  - *6 Nouveaux Paquets d’Administration Réels dans le Catalogue `SOFTWARE_PACKAGES`* :
+    - `gparted` (Éditeur de partitions graphique)
+    - `gnome_disk_utility` (GNOME Disques & gestionnaire SMART)
+    - `timeshift` (Sauvegardes et instantanés système Btrfs/RSync)
+    - `synaptic` (Gestionnaire de paquets graphique GTK APT)
+    - `inxi_hw` (Diagnostic matériel et information système avancée)
+    - `gufw` (Interface graphique du pare-feu UFW)
+  - *Centre d’Administration UI Dédié (`DesktopSelector.tsx` & `ExpertProStudio.tsx`)* :
+    - Refonte complète de la sous-section `ui_default_apps` en un panneau riche « Applications & Outils d’Administration Système ».
+    - Sélecteur de Gestionnaire de disques (`gnome-disks`, `gparted`, `partitionmanager`, `cli`).
+    - Sélecteur de Moniteur système (`gui`, `btop`, `htop`).
+    - Sélecteur de Logithèque graphique (`synaptic`, `software_center`, `none`).
+    - Toggles 1-clic pour Timeshift, Gufw Firewall, Inxi Hwinfo et Cockpit Web Admin.
+  - *Tests & Qualité* : 17 nouveaux tests unitaires vérifiant les packages CLI et GUI par distro et les options d'administration (**946 tests Vitest 100% verts**). 0 warning / 0 erreur oxlint sur 123 fichiers. Build de production propre.
 - **50. 🎨 Éditeur de Thème en Direct & Live Theme Studio (`ThemeEditorPanel.tsx`, `SimulatorsView.tsx`, `sectionPages.test.ts`)** :
   - *Exigence Utilisateur* : « pour la un editeur de theme » (intégrer un studio interactif d'édition de thème en direct directement au-dessus des simulateurs de démarrage Plymouth et du bureau interactif).
   - *Composant Dédié `ThemeEditorPanel.tsx`* :

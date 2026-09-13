@@ -20,6 +20,7 @@ import {
   resolveDebianTarget,
 } from './scriptGenerators';
 import { DISTROS } from '../data/distros';
+import { SOFTWARE_PACKAGES } from '../data/packages';
 import { OSRecipe, DistroId, OutputFormat } from '../types/os';
 
 // Recette minimale valide, réutilisée et surchargée par les tests. Les valeurs n'ont pas
@@ -4547,6 +4548,174 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       const script = generateBuildScript(recipe);
 
       expect(script).toContain('fastfetch-linux-riscv64.deb');
+    });
+  });
+});
+
+describe('Applications & Utilitaires de base pour administrer le système (CLI & GUI)', () => {
+  describe('Utilitaires CLI fondamentaux d’administration système universels (htop, parted, nano, etc.)', () => {
+    it('Debian-like : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('fdisk');
+      expect(pkgs).toContain('e2fsprogs');
+      expect(pkgs).toContain('dosfstools');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('less');
+      expect(pkgs).toContain('tar');
+      expect(pkgs).toContain('gzip');
+      expect(pkgs).toContain('unzip');
+      expect(pkgs).toContain('lsof');
+      expect(pkgs).toContain('procps');
+      expect(pkgs).toContain('psmisc');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+
+    it('Arch-like : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('e2fsprogs');
+      expect(pkgs).toContain('dosfstools');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('procps-ng');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+
+    it('Fedora-like : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'fedora', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('e2fsprogs');
+      expect(pkgs).toContain('dosfstools');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('procps-ng');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+
+    it('openSUSE : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'opensuse', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+
+    it('Alpine : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'alpine', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+
+    it('Void : intègre les utilitaires d’administration système de base', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'void', desktop: 'none', selectedPackages: [] }));
+      expect(pkgs).toContain('htop');
+      expect(pkgs).toContain('parted');
+      expect(pkgs).toContain('nano');
+      expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('bash-completion');
+    });
+  });
+
+  describe('Outils graphiques d’administration par environnement de bureau', () => {
+    it('GNOME : installe gnome-system-monitor, gnome-disk-utility et gnome-logs', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'gnome', selectedPackages: [] }));
+      expect(pkgs).toContain('gnome-system-monitor');
+      expect(pkgs).toContain('gnome-disk-utility');
+      expect(pkgs).toContain('gnome-logs');
+    });
+
+    it('KDE Plasma : installe plasma-systemmonitor et partitionmanager', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'kde', selectedPackages: [] }));
+      expect(pkgs).toContain('plasma-systemmonitor');
+      expect(pkgs).toContain('partitionmanager');
+    });
+
+    it('XFCE : installe xfce4-taskmanager et gnome-disk-utility', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'xfce', selectedPackages: [] }));
+      expect(pkgs).toContain('xfce4-taskmanager');
+      expect(pkgs).toContain('gnome-disk-utility');
+    });
+
+    it('MATE : installe mate-system-monitor et gnome-disk-utility', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'mate', selectedPackages: [] }));
+      expect(pkgs).toContain('mate-system-monitor');
+      expect(pkgs).toContain('gnome-disk-utility');
+    });
+
+    it('Hyprland / Tiling WMs : installe btop et gnome-disk-utility pour administrer le système', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'hyprland', selectedPackages: [] }));
+      expect(pkgs).toContain('btop');
+      expect(pkgs).toContain('gnome-disk-utility');
+    });
+  });
+
+  describe('Options d’administration personnalisées dans recipe.defaultApps', () => {
+    it('gparted sélectionné comme diskManager : installe le paquet gparted', () => {
+      const pkgs = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        desktop: 'xfce',
+        selectedPackages: [],
+        defaultApps: { diskManager: 'gparted' },
+      }));
+      expect(pkgs).toContain('gparted');
+    });
+
+    it('btop sélectionné comme systemMonitor : installe le paquet btop', () => {
+      const pkgs = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        desktop: 'gnome',
+        selectedPackages: [],
+        defaultApps: { systemMonitor: 'btop' },
+      }));
+      expect(pkgs).toContain('btop');
+    });
+
+    it('synaptic sélectionné comme packageManagerGui sur Debian : installe synaptic', () => {
+      const pkgs = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        desktop: 'xfce',
+        selectedPackages: [],
+        defaultApps: { packageManagerGui: 'synaptic' },
+      }));
+      expect(pkgs).toContain('synaptic');
+    });
+
+    it('toggles d’administration Timeshift, Gufw et Inxi : installent leurs paquets respectifs', () => {
+      const pkgs = resolvePackageList(makeRecipe({
+        distro: 'ubuntu',
+        desktop: 'gnome',
+        selectedPackages: [],
+        defaultApps: {
+          enableTimeshift: true,
+          enableGufw: true,
+          enableInxi: true,
+        },
+      }));
+      expect(pkgs).toContain('timeshift');
+      expect(pkgs).toContain('gufw');
+      expect(pkgs).toContain('inxi');
+    });
+  });
+
+  describe('Présence des nouveaux paquets d’administration dans le catalogue SOFTWARE_PACKAGES', () => {
+    it('contient les 6 paquets d’administration système avec métadonnées valides', () => {
+      const adminPkgIds = ['gparted', 'gnome_disk_utility', 'timeshift', 'synaptic', 'inxi_hw', 'gufw'];
+      for (const id of adminPkgIds) {
+        const pkg = SOFTWARE_PACKAGES.find(p => p.id === id);
+        expect(pkg, `Paquet ${id} manquant`).toBeDefined();
+        expect(pkg?.category).toBeDefined();
+        expect(pkg?.pkgNames).toBeDefined();
+        expect(Object.keys(pkg!.pkgNames).length).toBeGreaterThan(0);
+      }
     });
   });
 });

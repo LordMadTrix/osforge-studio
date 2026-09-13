@@ -3,7 +3,10 @@ import { OSRecipe } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { Monitor, CheckCircle2, Globe, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
+import {
+  Monitor, CheckCircle2, Globe, Image as ImageIcon, Rss, Search, X,
+  HardDrive, Wrench
+} from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
@@ -481,147 +484,399 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
         />
       )}
 
-      {/* 3. Applications de Bureau par Défaut */}
+      {/* 3. Applications de Bureau & Outils d'Administration Système */}
       {(subSection === 'all' || subSection === 'default_apps') && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Globe size={18} color="#a855f7" />
-            {lang === 'fr' ? 'Applications de Bureau par Défaut' : 'Default Desktop Applications'}
-            <InfoTooltip
-              text={lang === 'fr'
-                ? 'Choisissez le navigateur web, le terminal et l’éditeur de texte configurés par défaut dans les associations XDG MIME et alternatives système.'
-                : 'Select the default web browser, terminal emulator, and code editor configured in XDG MIME associations.'}
-            />
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* 1. Navigateur Web */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-                🌐 {lang === 'fr' ? 'Navigateur Web par Défaut :' : 'Default Web Browser:'}
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {[
-                  { id: 'firefox', name: 'Mozilla Firefox', desc: 'Standard / ESR open-source', badge: 'Recommandé' },
-                  { id: 'google_chrome', name: 'Google Chrome', desc: 'Dépôt officiel Google Linux (x86_64)', badge: 'Officiel' },
-                  { id: 'chromium', name: 'Chromium', desc: 'Moteur open-source pur sans télémétrie', badge: 'Open-Source' },
-                  { id: 'brave', name: 'Brave Browser', desc: 'Protection vie privée & adblocker natif', badge: 'Privacy' },
-                  { id: 'librewolf', name: 'LibreWolf', desc: 'Fork Firefox durci anti-tracking', badge: 'Hardened' },
-                ].map((b) => {
-                  const currentBrowser = recipe.defaultApps?.browser || 'firefox';
-                  const isSelected = currentBrowser === b.id;
-                  return (
-                    <div
-                      key={b.id}
-                      onClick={() => onChange({
-                        defaultApps: { ...recipe.defaultApps, browser: b.id as any }
-                      })}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                        border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
-                            {b.name}
-                          </span>
-                          <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
-                            {b.badge}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {b.desc}
-                        </div>
-                      </div>
-                      {isSelected && <CheckCircle2 size={14} color="var(--cyan)" />}
-                    </div>
-                  );
-                })}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Bannière d'en-tête de la suite d'administration */}
+          <div style={{
+            padding: '16px 20px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%)',
+            border: '1px solid rgba(168, 85, 247, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '8px',
+                background: 'rgba(168, 85, 247, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#c084fc',
+              }}>
+                <Wrench size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '0.98rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
+                  {lang === 'fr' ? 'Applications & Outils d’Administration Système' : 'Applications & System Administration Suite'}
+                </h3>
+                <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: 0 }}>
+                  {lang === 'fr'
+                    ? 'Applications par défaut, gestionnaires de disques, moniteurs de processus et utilitaires d’administration pour piloter votre OS.'
+                    : 'Default user apps, partition managers, process monitors, and administration utilities for your OS.'}
+                </p>
               </div>
             </div>
 
-            {/* 2. Émulateur de Terminal */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-                💻 {lang === 'fr' ? 'Émulateur de Terminal par Défaut :' : 'Default Terminal Emulator:'}
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {[
-                  { id: 'alacritty', name: 'Alacritty', desc: 'Accéléré GPU en Rust, ultra-rapide & minimaliste', badge: 'GPU Rust' },
-                  { id: 'kitty', name: 'Kitty', desc: 'Rendu GPU avec support images terminal & fenêtrage', badge: 'Feature-Rich' },
-                  { id: 'ghostty', name: 'Ghostty', desc: 'Terminal natif moderne écrit en Zig', badge: 'Zig Fast' },
-                  { id: 'foot', name: 'Foot', desc: 'Terminal Wayland natif ultra-léger et économe', badge: 'Wayland Native' },
-                  { id: 'gnome-terminal', name: 'GNOME Terminal / Konsole', desc: 'Standard complet de l’environnement', badge: 'Desktop Default' },
-                ].map((t) => {
-                  const currentTerm = recipe.defaultApps?.terminal || 'alacritty';
-                  const isSelected = currentTerm === t.id;
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => onChange({
-                        defaultApps: { ...recipe.defaultApps, terminal: t.id as any }
-                      })}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: isSelected ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
-                        border: isSelected ? '1px solid var(--violet)' : '1px solid var(--border-subtle)',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
-                            {t.name}
-                          </span>
-                          <span className="badge badge-violet" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
-                            {t.badge}
-                          </span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="badge badge-cyan" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+                {recipe.defaultApps?.browser || 'firefox'}
+              </span>
+              <span className="badge badge-violet" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+                {recipe.defaultApps?.terminal || 'alacritty'}
+              </span>
+              <span className="badge badge-emerald" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+                {recipe.defaultApps?.diskManager || 'gnome-disks'}
+              </span>
+            </div>
+          </div>
+
+          {/* Grille : Applications Usuelles & Outils Sysadmin */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+            gap: '20px',
+          }}>
+            {/* Volet 1 : Applications de Bureau Principales */}
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={16} color="#38bdf8" />
+                {lang === 'fr' ? '1. Applications de Bureau Utilisateur' : '1. Default User Applications'}
+              </h4>
+
+              {/* 1.1 Navigateur Web */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  🌐 {lang === 'fr' ? 'Navigateur Web par Défaut :' : 'Default Web Browser:'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    { id: 'firefox', name: 'Mozilla Firefox', desc: 'Standard / ESR open-source', badge: 'Recommandé' },
+                    { id: 'google_chrome', name: 'Google Chrome', desc: 'Dépôt officiel Google Linux (x86_64)', badge: 'Officiel' },
+                    { id: 'chromium', name: 'Chromium', desc: 'Moteur open-source pur sans télémétrie', badge: 'Open-Source' },
+                    { id: 'brave', name: 'Brave Browser', desc: 'Protection vie privée & adblocker natif', badge: 'Privacy' },
+                    { id: 'librewolf', name: 'LibreWolf', desc: 'Fork Firefox durci anti-tracking', badge: 'Hardened' },
+                  ].map((b) => {
+                    const currentBrowser = recipe.defaultApps?.browser || 'firefox';
+                    const isSelected = currentBrowser === b.id;
+                    return (
+                      <div
+                        key={b.id}
+                        onClick={() => onChange({
+                          defaultApps: { ...recipe.defaultApps, browser: b.id as any }
+                        })}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                          border: isSelected ? '1px solid var(--cyan)' : '1px solid var(--border-subtle)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                              {b.name}
+                            </span>
+                            <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                              {b.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {b.desc}
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {t.desc}
-                        </div>
+                        {isSelected && <CheckCircle2 size={14} color="var(--cyan)" />}
                       </div>
-                      {isSelected && <CheckCircle2 size={14} color="var(--violet)" />}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 1.2 Émulateur de Terminal */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  💻 {lang === 'fr' ? 'Émulateur de Terminal par Défaut :' : 'Default Terminal Emulator:'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    { id: 'alacritty', name: 'Alacritty', desc: 'Accéléré GPU en Rust, ultra-rapide & minimaliste', badge: 'GPU Rust' },
+                    { id: 'kitty', name: 'Kitty', desc: 'Rendu GPU avec support images terminal & fenêtrage', badge: 'Feature-Rich' },
+                    { id: 'ghostty', name: 'Ghostty', desc: 'Terminal natif moderne écrit en Zig', badge: 'Zig Fast' },
+                    { id: 'foot', name: 'Foot', desc: 'Terminal Wayland natif ultra-léger et économe', badge: 'Wayland Native' },
+                    { id: 'gnome-terminal', name: 'GNOME Terminal / Konsole', desc: 'Standard complet de l’environnement', badge: 'Desktop Default' },
+                  ].map((t) => {
+                    const currentTerm = recipe.defaultApps?.terminal || 'alacritty';
+                    const isSelected = currentTerm === t.id;
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => onChange({
+                          defaultApps: { ...recipe.defaultApps, terminal: t.id as any }
+                        })}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isSelected ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                          border: isSelected ? '1px solid var(--violet)' : '1px solid var(--border-subtle)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                              {t.name}
+                            </span>
+                            <span className="badge badge-violet" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                              {t.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {t.desc}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={14} color="var(--violet)" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 1.3 Éditeur de Code & Fichiers Système */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  📝 {lang === 'fr' ? 'Éditeur de Code & Fichiers de Configuration :' : 'Code & Config Files Editor:'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.defaultApps?.textEditor || 'default'}
+                  onChange={(e) => onChange({
+                    defaultApps: { ...recipe.defaultApps, textEditor: e.target.value as any }
+                  })}
+                >
+                  <option value="default">{lang === 'fr' ? 'Natif du bureau (Kate, Gedit, Mousepad)' : 'Native Desktop Editor'}</option>
+                  <option value="vscodium">VSCodium (VS Code 100% open-source & telemetry-free)</option>
+                  <option value="micro">Micro (Éditeur terminal moderne avec raccourcis Ctrl+C/Ctrl+V)</option>
+                  <option value="nano">GNU Nano (Classique sysadmin universel)</option>
+                </select>
               </div>
             </div>
 
-            {/* 3. Éditeur de Texte / Code */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-                📝 {lang === 'fr' ? 'Éditeur de Code / Texte :' : 'Code & Text Editor:'}
-              </label>
-              <select
-                className="input-select"
-                value={recipe.defaultApps?.textEditor || 'default'}
-                onChange={(e) => onChange({
-                  defaultApps: { ...recipe.defaultApps, textEditor: e.target.value as any }
-                })}
-              >
-                <option value="default">{lang === 'fr' ? 'Natif du bureau (Kate, Gedit, Mousepad)' : 'Native Desktop Editor'}</option>
-                <option value="vscodium">VSCodium (VS Code 100% open-source & telemetry-free)</option>
-                <option value="micro">Micro (Éditeur terminal moderne avec raccourcis Ctrl+C/Ctrl+V)</option>
-                <option value="nano">GNU Nano (Classique sysadmin)</option>
-              </select>
+            {/* Volet 2 : Outils d'Administration Système & Maintenance */}
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HardDrive size={16} color="#10b981" />
+                {lang === 'fr' ? '2. Outils d’Administration Système' : '2. System Administration Tools'}
+              </h4>
+
+              {/* 2.1 Gestionnaire de Disques & Partitions */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  💽 {lang === 'fr' ? 'Gestionnaire de Disques & Partitions :' : 'Disk & Partition Manager:'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    { id: 'default', name: lang === 'fr' ? 'Natif / GNOME Disques' : 'Native / GNOME Disks', desc: 'Gestionnaire graphique standard avec santé SMART et ISO', badge: 'Standard' },
+                    { id: 'gparted', name: 'GParted Partition Editor', desc: 'Outil de partitionnement avancé (ext4, btrfs, NTFS, FAT32)', badge: 'Pro Sysadmin' },
+                    { id: 'partitionmanager', name: 'KDE Partition Manager', desc: 'Interface Qt complète pour disques et systèmes de fichiers', badge: 'KDE / Qt' },
+                    { id: 'cli', name: 'CLI Uniquement (parted, fdisk)', desc: 'Mode minimal sans outil graphique additionnel', badge: 'Minimal' },
+                  ].map((d) => {
+                    const currentDisk = recipe.defaultApps?.diskManager || 'default';
+                    const isSelected = currentDisk === d.id;
+                    return (
+                      <div
+                        key={d.id}
+                        onClick={() => onChange({
+                          defaultApps: { ...recipe.defaultApps, diskManager: d.id as any }
+                        })}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isSelected ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                          border: isSelected ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                              {d.name}
+                            </span>
+                            <span className="badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                              {d.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {d.desc}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={14} color="#10b981" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2.2 Moniteur Système & Processus */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  📊 {lang === 'fr' ? 'Moniteur Système & Gestionnaire de Tâches :' : 'System Monitor & Task Manager:'}
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {[
+                    { id: 'default', name: lang === 'fr' ? 'Moniteur Graphique du Bureau' : 'Desktop GUI Monitor', desc: 'GNOME System Monitor, Plasma Systemmonitor ou XFCE Taskmanager', badge: 'Bureau' },
+                    { id: 'btop', name: 'Btop++ TUI (Graphique Terminal)', desc: 'Visualisation moderne CPU, GPU, RAM, réseau et disques', badge: 'TUI Moderne' },
+                    { id: 'htop', name: 'Htop CLI Interactif', desc: 'Classique universel ultra-léger et rapide', badge: 'CLI Rapide' },
+                  ].map((m) => {
+                    const currentMon = recipe.defaultApps?.systemMonitor || 'default';
+                    const isSelected = currentMon === m.id;
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => onChange({
+                          defaultApps: { ...recipe.defaultApps, systemMonitor: m.id as any }
+                        })}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          background: isSelected ? 'rgba(245, 158, 11, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                          border: isSelected ? '1px solid #f59e0b' : '1px solid var(--border-subtle)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
+                              {m.name}
+                            </span>
+                            <span className="badge badge-amber" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                              {m.badge}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {m.desc}
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 size={14} color="#f59e0b" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2.3 Logithèque & Gestionnaire de Paquets Graphique */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
+                  📦 {lang === 'fr' ? 'Gestionnaire de Paquets Graphique / Logithèque :' : 'GUI Package Manager / Software Center:'}
+                </label>
+                <select
+                  className="input-select"
+                  value={recipe.defaultApps?.packageManagerGui || 'default'}
+                  onChange={(e) => onChange({
+                    defaultApps: { ...recipe.defaultApps, packageManagerGui: e.target.value as any }
+                  })}
+                >
+                  <option value="default">{lang === 'fr' ? 'Par défaut du bureau (GNOME Software / Discover)' : 'Default (GNOME Software / Discover)'}</option>
+                  <option value="synaptic">Synaptic Package Manager (Gestionnaire APT graphique expert)</option>
+                  <option value="none">{lang === 'fr' ? 'Aucun (Gestion en ligne de commande uniquement)' : 'None (CLI only)'}</option>
+                </select>
+              </div>
+
+              {/* 2.4 Utilitaires & Toggles Avancés d'Administration */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px' }}>
+                  🛡️ {lang === 'fr' ? 'Modules d’Administration Système Avancés :' : 'Advanced System Administration Modules:'}
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
+                  {[
+                    {
+                      key: 'enableTimeshift',
+                      label: 'Timeshift',
+                      sub: lang === 'fr' ? 'Instantanés & Restauration' : 'Snapshots & Restore',
+                      checked: !!recipe.defaultApps?.enableTimeshift,
+                    },
+                    {
+                      key: 'enableGufw',
+                      label: 'Gufw Firewall',
+                      sub: lang === 'fr' ? 'Pare-feu UFW graphique' : 'UFW GUI Firewall',
+                      checked: !!recipe.defaultApps?.enableGufw,
+                    },
+                    {
+                      key: 'enableInxi',
+                      label: 'Inxi / Hwinfo',
+                      sub: lang === 'fr' ? 'Diagnostic matériel complet' : 'Full Hardware Diagnostics',
+                      checked: !!recipe.defaultApps?.enableInxi,
+                    },
+                    {
+                      key: 'enableCockpitWebAdmin',
+                      label: 'Cockpit Web',
+                      sub: lang === 'fr' ? 'Admin distante (port 9090)' : 'Remote Web Admin (9090)',
+                      checked: !!recipe.defaultApps?.enableCockpitWebAdmin,
+                    },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        background: item.checked ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                        border: item.checked ? '1px solid var(--violet)' : '1px solid var(--border-subtle)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={(e) => onChange({
+                          defaultApps: {
+                            ...recipe.defaultApps,
+                            [item.key]: e.target.checked,
+                          },
+                        })}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: item.checked ? '#ffffff' : 'var(--text-main)' }}>
+                          {item.label}
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                          {item.sub}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        )}
+      )}
     </div>
   );
 };

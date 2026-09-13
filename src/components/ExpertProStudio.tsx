@@ -422,12 +422,12 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
         },
         {
           id: 'ui_default_apps',
-          labelFr: 'Applications par Défaut',
-          labelEn: 'Default Applications',
+          labelFr: 'Applications & Administration',
+          labelEn: 'Default Apps & Sysadmin',
           icon: <Sliders size={14} />,
-          descriptionFr: 'Navigateur Web, émulateur de terminal et éditeur de texte système par défaut.',
-          descriptionEn: 'Default web browser, terminal emulator, and code editor.',
-          currentValue: recipe.defaultApps?.browser || 'Firefox',
+          descriptionFr: 'Navigateur, terminal, éditeur, gestionnaire de disques, moniteur système et logithèque.',
+          descriptionEn: 'Web browser, terminal, editor, disk manager, system monitor, and software center.',
+          currentValue: `${recipe.defaultApps?.browser || 'Firefox'} • ${recipe.defaultApps?.diskManager || 'Disques'}`,
         },
         {
           id: 'ui_simulators',
@@ -1214,7 +1214,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 {/* 2. Bureau & Interface */}
                 {activeSection === 'ui_desktop' && (lang === 'fr' ? 'Environnement de Bureau & Gestionnaire de Fenêtres' : 'Desktop Environment & Window Manager')}
                 {activeSection === 'ui_display_manager' && (lang === 'fr' ? 'Gestionnaire de Session & Authentification (Display Manager)' : 'Display Manager & Session Login Greeter')}
-                {activeSection === 'ui_default_apps' && (lang === 'fr' ? 'Applications de Bureau par Défaut (Navigateur, Terminal, Code)' : 'Default Desktop Applications (Browser, Terminal, Code)')}
+                {activeSection === 'ui_default_apps' && (lang === 'fr' ? 'Applications & Outils d\'Administration Système' : 'Applications & System Administration Suite')}
                 {activeSection === 'ui_simulators' && (lang === 'fr' ? 'Simulateurs Interactifs (Bureau Live & Séquence Plymouth)' : 'Interactive Simulators (Live Desktop & Plymouth Boot)')}
 
                 {/* 3. Design System & Branding */}

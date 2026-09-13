@@ -291,22 +291,70 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
   }
 
-  // Base utilities & hardware drivers
+  // Base utilities & hardware drivers (avec utilitaires d'administration système CLI universels)
   if (isDebianLike) {
     pkgs.push(
       'sudo', 'curl', 'wget', 'locales', 'ca-certificates', 'systemd-sysv', 'initramfs-tools',
-      'firmware-linux-free', 'pciutils', 'usbutils', 'iproute2', 'net-tools'
+      'firmware-linux-free', 'pciutils', 'usbutils', 'iproute2', 'net-tools',
+      'htop', 'parted', 'fdisk', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils-ping', 'dnsutils', 'bash-completion'
     );
   } else if (isArchLike) {
-    pkgs.push('base', 'linux', 'linux-firmware', 'sudo', 'curl', 'wget', 'pciutils', 'usbutils');
+    pkgs.push(
+      'base', 'linux', 'linux-firmware', 'sudo', 'curl', 'wget', 'pciutils', 'usbutils',
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind', 'bash-completion'
+    );
   } else if (distroId === 'alpine') {
-    pkgs.push('alpine-base', 'linux-lts', 'shadow', 'sudo', 'curl', 'ca-certificates');
+    pkgs.push(
+      'alpine-base', 'linux-lts', 'shadow', 'sudo', 'curl', 'ca-certificates',
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils', 'bind-tools', 'bash-completion'
+    );
   } else if (isFedoraLike) {
-    pkgs.push('kernel', 'shadow-utils', 'sudo', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager');
+    pkgs.push(
+      'kernel', 'shadow-utils', 'sudo', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager',
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+    );
   } else if (distroId === 'opensuse') {
-    pkgs.push('kernel-default', 'sudo', 'shadow', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager');
+    pkgs.push(
+      'kernel-default', 'sudo', 'shadow', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager',
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+    );
   } else if (distroId === 'void') {
-    pkgs.push('linux', 'linux-firmware', 'shadow', 'sudo', 'curl', 'wget', 'ca-certificates', 'dhcpcd');
+    pkgs.push(
+      'linux', 'linux-firmware', 'shadow', 'sudo', 'curl', 'wget', 'ca-certificates', 'dhcpcd',
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+    );
+  }
+
+  // Outils d'administration graphique natifs par environnement de bureau
+  if (recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk') {
+    if (recipe.desktop === 'gnome' || recipe.desktop === 'cinnamon' || (recipe.desktop === 'budgie' && distroId !== 'alpine' && distroId !== 'rocky' && distroId !== 'almalinux')) {
+      if (isDebianLike || isArchLike || isFedoraLike || distroId === 'opensuse' || distroId === 'void' || distroId === 'alpine') {
+        pkgs.push('gnome-system-monitor', 'gnome-disk-utility');
+        if (recipe.desktop === 'gnome' && (isDebianLike || isArchLike || isFedoraLike)) {
+          pkgs.push('gnome-logs');
+        }
+      }
+    } else if (recipe.desktop === 'kde') {
+      if (isArchLike || isDebianLike || isFedoraLike || distroId === 'opensuse') {
+        pkgs.push('plasma-systemmonitor', 'partitionmanager');
+      } else {
+        pkgs.push('htop');
+      }
+    } else if (recipe.desktop === 'xfce') {
+      pkgs.push('xfce4-taskmanager', 'gnome-disk-utility');
+    } else if (recipe.desktop === 'mate') {
+      if (distroId !== 'alpine') {
+        pkgs.push('mate-system-monitor', 'gnome-disk-utility');
+      }
+    } else if (recipe.desktop === 'lxqt' || recipe.desktop === 'lxde') {
+      if (isDebianLike) pkgs.push('lxtask', 'gnome-disk-utility');
+      else pkgs.push('htop', 'gnome-disk-utility');
+    } else if (recipe.desktop === 'deepin') {
+      if (isArchLike) pkgs.push('gnome-disk-utility');
+    } else {
+      // Tiling WMs / Légers (Hyprland, Sway, i3, Openbox, BSPWM, Niri, Wayfire, Qtile)
+      pkgs.push('btop', 'gnome-disk-utility');
+    }
   }
 
   // SSH Server
@@ -619,6 +667,54 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
       pkgs.push('micro');
     } else if (ed === 'nano') {
       pkgs.push('nano');
+    }
+
+    // Gestionnaire de Disques & Partitions
+    const diskMgr = recipe.defaultApps.diskManager;
+    if (diskMgr === 'gparted') {
+      pkgs.push('gparted');
+    } else if (diskMgr === 'gnome-disks') {
+      pkgs.push('gnome-disk-utility');
+    } else if (diskMgr === 'partitionmanager') {
+      pkgs.push('partitionmanager');
+    }
+
+    // Moniteur Système & Tâches
+    const sysMon = recipe.defaultApps.systemMonitor;
+    if (sysMon === 'btop') {
+      pkgs.push('btop');
+    } else if (sysMon === 'htop') {
+      pkgs.push('htop');
+    } else if (sysMon === 'gui') {
+      if (recipe.desktop === 'kde') pkgs.push('plasma-systemmonitor');
+      else if (recipe.desktop === 'xfce') pkgs.push('xfce4-taskmanager');
+      else if (recipe.desktop === 'mate') pkgs.push('mate-system-monitor');
+      else pkgs.push('gnome-system-monitor');
+    }
+
+    // Gestionnaire de Paquets Graphique / Logithèque
+    const pkgMgrGui = recipe.defaultApps.packageManagerGui;
+    if (pkgMgrGui === 'synaptic' && isDebianLike) {
+      pkgs.push('synaptic');
+    } else if (pkgMgrGui === 'software_center') {
+      if (recipe.desktop === 'kde') pkgs.push('discover');
+      else pkgs.push('gnome-software');
+    }
+
+    // Utilitaires et Outils d'Administration Système
+    if (recipe.defaultApps.enableTimeshift) {
+      if (isDebianLike || isArchLike || isFedoraLike || distroId === 'opensuse') {
+        pkgs.push('timeshift', 'rsync');
+      }
+    }
+    if (recipe.defaultApps.enableGufw) {
+      if (distroId !== 'opensuse') pkgs.push('gufw', 'ufw');
+    }
+    if (recipe.defaultApps.enableInxi) {
+      pkgs.push('inxi');
+    }
+    if (recipe.defaultApps.enableCockpitWebAdmin) {
+      pkgs.push('cockpit');
     }
   }
 
