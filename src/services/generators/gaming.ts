@@ -153,7 +153,9 @@ context.properties = {
  * Génère l'ensemble des commandes chroot pour appliquer la stack Gaming & Performance
  */
 export function generateGamingChrootCommands(recipe: OSRecipe): string {
-  if (!recipe.enableGamingOptimizations && !recipe.gamingConfig?.enableMangoHud && !recipe.gamingConfig?.enableProtonGE) {
+  const cpuGovernor = recipe.gamingConfig?.cpuGovernor || (recipe.enableGamingOptimizations ? 'performance' : undefined);
+
+  if (!recipe.enableGamingOptimizations && !recipe.gamingConfig?.enableMangoHud && !recipe.gamingConfig?.enableProtonGE && !cpuGovernor) {
     return '';
   }
 
@@ -161,7 +163,8 @@ export function generateGamingChrootCommands(recipe: OSRecipe): string {
   const mangoHudConfig = generateMangoHudConfig(preset);
   const lowLatencyQuantum = recipe.gamingConfig?.pipewireQuantumLatency || 128;
   const pipewireConfig = generatePipewireLowLatencyConfig(lowLatencyQuantum);
-  const polkitCoreCtrl = generateCoreCtrlPolkitRules();
+  const shouldEnableCoreCtrl = recipe.gamingConfig?.enableCoreCtrlProfiles !== false;
+  const polkitCoreCtrl = shouldEnableCoreCtrl ? generateCoreCtrlPolkitRules() : '';
 
   return `
 # ==============================================================================
@@ -185,18 +188,43 @@ fi
 mkdir -p /etc/pipewire/pipewire.conf.d
 cat << 'PIPEWIRE_LL_EOF' > /etc/pipewire/pipewire.conf.d/10-lowlatency.conf
 ${pipewireConfig}PIPEWIRE_LL_EOF
-
+${shouldEnableCoreCtrl ? `
 # 3. Règles Polkit CoreCtrl (GPU Undervolt/Overclock sans prompt)
 mkdir -p /etc/polkit-1/rules.d
 cat << 'CORECTRL_POLKIT_EOF' > /etc/polkit-1/rules.d/90-corectrl.rules
 ${polkitCoreCtrl}CORECTRL_POLKIT_EOF
-
+` : ''}${recipe.gamingConfig?.enableProtonGE ? `
 # 4. Script d'installation automatisée Proton-GE (Steam GloriousEggroll)
-${recipe.gamingConfig?.enableProtonGE ? `
 mkdir -p /usr/local/bin
 cat << 'PROTONGE_INSTALLER_EOF' > /usr/local/bin/osforge-install-proton-ge
 ${generateProtonGEInstallerScript()}PROTONGE_INSTALLER_EOF
 chmod +x /usr/local/bin/osforge-install-proton-ge
+` : ''}${cpuGovernor ? `
+# 5. Profil Gouverneur CPU (${cpuGovernor})
+if command -v systemctl &>/dev/null; then
+    cat << 'CPU_GOV_EOF' > /etc/systemd/system/osforge-cpu-governor.service
+[Unit]
+Description=OSForge Studio - CPU Scaling Governor (${cpuGovernor})
+After=sysinit.target local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f "$g" ] && echo "${cpuGovernor}" > "$g" || true; done'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+CPU_GOV_EOF
+    systemctl enable osforge-cpu-governor.service 2>/dev/null || true
+fi
+
+# Fallback OpenRC / init local pour distributions non-systemd
+mkdir -p /etc/local.d 2>/dev/null || true
+cat << 'CPU_GOV_LOCAL_EOF' > /etc/local.d/osforge-cpu-governor.start
+#!/bin/sh
+for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f "$g" ] && echo "${cpuGovernor}" > "$g" || true; done
+CPU_GOV_LOCAL_EOF
+chmod +x /etc/local.d/osforge-cpu-governor.start 2>/dev/null || true
 ` : ''}
 `;
 }

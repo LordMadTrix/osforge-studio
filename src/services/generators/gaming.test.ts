@@ -95,5 +95,32 @@ describe('Chantier 46 : Studio d’Optimisation Gaming & Audio (MangoHUD, Proton
     expect(commands).toContain('/etc/pipewire/pipewire.conf.d/10-lowlatency.conf');
     expect(commands).toContain('/etc/polkit-1/rules.d/90-corectrl.rules');
     expect(commands).toContain('/usr/local/bin/osforge-install-proton-ge');
+    expect(commands).toContain('osforge-cpu-governor.service');
+    expect(commands).toContain('scaling_governor; do [ -f "$g" ] && echo "performance" > "$g"');
+  });
+
+  it('génère le service de gouverneur CPU selon le réglage choisi (schedutil)', () => {
+    const recipeSchedutil: OSRecipe = {
+      ...mockRecipe,
+      gamingConfig: {
+        ...mockRecipe.gamingConfig,
+        cpuGovernor: 'schedutil',
+      },
+    };
+    const commands = generateGamingChrootCommands(recipeSchedutil);
+    expect(commands).toContain('CPU Scaling Governor (schedutil)');
+    expect(commands).toContain('echo "schedutil" > "$g"');
+  });
+
+  it('omet les règles Polkit CoreCtrl si enableCoreCtrlProfiles est faux', () => {
+    const recipeNoCoreCtrl: OSRecipe = {
+      ...mockRecipe,
+      gamingConfig: {
+        ...mockRecipe.gamingConfig,
+        enableCoreCtrlProfiles: false,
+      },
+    };
+    const commands = generateGamingChrootCommands(recipeNoCoreCtrl);
+    expect(commands).not.toContain('/etc/polkit-1/rules.d/90-corectrl.rules');
   });
 });

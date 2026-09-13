@@ -1579,6 +1579,8 @@ CHROME_EOF`);
 export function networkSecurityGatewayCmd(recipe: OSRecipe, _family: 'debian' | NonDebianFamily): string {
   if (!recipe.enableNetworkSecurityGateway) return '';
 
+  const aghArch = recipe.arch === 'aarch64' ? 'arm64' : recipe.arch === 'riscv64' ? 'riscv64' : 'amd64';
+
   return `# ==============================================================================
 # Profil Passerelle Réseau & Sécurité Domestique OOB (AdGuard Home + VPN + Cockpit)
 # ==============================================================================
@@ -1594,7 +1596,7 @@ sysctl -p /etc/sysctl.d/99-gateway.conf 2>/dev/null || true
 
 # 2. Installation binaire officielle AdGuard Home (port DNS 53 + web 3000)
 mkdir -p /opt/AdGuardHome
-curl -sSL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz -o /tmp/agh.tar.gz 2>/dev/null \\
+curl -sSL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${aghArch}.tar.gz -o /tmp/agh.tar.gz 2>/dev/null \\
   && tar -xzf /tmp/agh.tar.gz -C /tmp/ 2>/dev/null \\
   && cp -rf /tmp/AdGuardHome/* /opt/AdGuardHome/ 2>/dev/null \\
   && rm -rf /tmp/agh.tar.gz /tmp/AdGuardHome 2>/dev/null \\

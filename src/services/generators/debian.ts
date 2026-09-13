@@ -527,7 +527,7 @@ fi
 if command -v curl &>/dev/null; then
     # Fastfetch
     if ! command -v fastfetch &>/dev/null; then
-        curl -sSL https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb -o /tmp/ff.deb 2>/dev/null && dpkg -i /tmp/ff.deb 2>/dev/null || true
+        curl -sSL "https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${recipe.arch === 'aarch64' ? 'aarch64' : recipe.arch === 'riscv64' ? 'riscv64' : recipe.arch === 'i686' ? 'i686' : 'amd64'}.deb" -o /tmp/ff.deb 2>/dev/null && dpkg -i /tmp/ff.deb 2>/dev/null || true
         rm -f /tmp/ff.deb
     fi
     # Starship
@@ -536,7 +536,7 @@ if command -v curl &>/dev/null; then
     fi
     # LazyGit
     if ! command -v lazygit &>/dev/null; then
-        curl -sSL https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_0.44.1_Linux_x86_64.tar.gz -o /tmp/lg.tar.gz 2>/dev/null && tar -xzf /tmp/lg.tar.gz -C /usr/local/bin lazygit 2>/dev/null || true
+        curl -sSL "https://github.com/jesseduffield/lazygit/releases/download/v0.44.1/lazygit_0.44.1_Linux_${recipe.arch === 'aarch64' ? 'arm64' : recipe.arch === 'i686' ? '32-bit' : 'x86_64'}.tar.gz" -o /tmp/lg.tar.gz 2>/dev/null && tar -xzf /tmp/lg.tar.gz -C /usr/local/bin lazygit 2>/dev/null || true
         rm -f /tmp/lg.tar.gz
     fi
 fi

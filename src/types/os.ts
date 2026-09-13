@@ -254,7 +254,6 @@ export interface BrandingConfig {
   enableGrubTheme?: boolean;
   enableFastfetchMotd?: boolean;
   enableCustomOsRelease?: boolean;
-  enableCustomAudioChime?: boolean;
   enableStartupSound?: boolean;
   enableProAliases?: boolean;
 }

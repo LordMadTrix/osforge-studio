@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **891 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 111 fichiers.
+- Suite de tests : **897 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 111 fichiers.
+- **42. 🎯 Audit Général du Projet & Résolution des Écarts Zéro-Cosmétique** :
+  - **Axe 1 — Moteur Gaming & CPU Governor (`gaming.ts`)** :
+    - *Gouverneur CPU (`cpuGovernor`)* : L'option dans `GamingTuningModal.tsx` et les presets n'était pas injectée dans le script. Corrigé → création du service systemd `osforge-cpu-governor.service` appliquant dynamiquement le gouverneur sur `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor` + fallback OpenRC `/etc/local.d/osforge-cpu-governor.start`.
+    - *Règles Polkit CoreCtrl (`enableCoreCtrlProfiles`)* : Conditionnement effectif au booléen pour ne pas injecter inconditionnellement la règle polkit.
+  - **Axe 2 — Multi-Architecture AdGuard Home & Utilitaires CLI (`helpers.ts`, `debian.ts`)** :
+    - *AdGuard Home* : Téléchargement `AdGuardHome_linux_amd64.tar.gz` codé en dur qui provoquait une erreur d'exécution sur ARM64/RISC-V. Corrigé → résolution dynamique `arm64`, `riscv64`, `amd64` (URLs testées et vérifiées 200 OK en direct).
+    - *Fastfetch & Lazygit Debian* : Téléchargement direct résolu dynamiquement selon l'architecture cible (`fastfetch-linux-aarch64.deb` / `fastfetch-linux-riscv64.deb` et `lazygit_0.44.1_Linux_arm64.tar.gz`).
+  - **Axe 3 — Nettoyage Typage (`types/os.ts`)** :
+    - Retrait du champ obsolète orphelin `enableCustomAudioChime` dans `BrandingConfig` (doublon de `enableStartupSound`).
+  - **Résultat** : 6 nouveaux tests unitaires dans `gaming.test.ts`, `advancedFeatures.test.ts` et `scriptGenerators.test.ts` (**897 tests au total, 100% au vert**). 0 warning et 0 erreur oxlint sur 111 fichiers.
 - **41. ⚒️ Écran de Démarrage (SplashScreen), Logo Animé & Jingle Audio Web Audio API** :
   - **Axe 1 — Fond d'écran Forge & SplashScreen (`SplashScreen.tsx`, `splash-bg.jpg`, `index.css`)** :
     - Intégration d'un écran de bienvenue immersif plein écran affiché au chargement (auto-dismiss après 2.8s ou clic/touche immédiate).

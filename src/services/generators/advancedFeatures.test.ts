@@ -226,7 +226,7 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
   });
 
   describe('10. Profil Passerelle Réseau & Sécurité Domestique OOB (AdGuard Home + VPN + Cockpit)', () => {
-    it('installe AdGuard Home, active WireGuard et configure le routage IP', () => {
+    it('installe AdGuard Home, active WireGuard et configure le routage IP (x86_64)', () => {
       const recipe: OSRecipe = {
         ...baseMockRecipe,
         enableNetworkSecurityGateway: true,
@@ -238,6 +238,24 @@ describe('Nouvelles fonctionnalités système & Partage Web (Zéro Cosmétique)'
       expect(script).toContain('/opt/AdGuardHome/AdGuardHome -s install');
       expect(script).toContain('systemctl enable cockpit.socket');
       expect(script).toContain('systemctl enable fail2ban');
+    });
+
+    it('télécharge le binaire AdGuard Home officiel pour aarch64 et riscv64', () => {
+      const recipeArm: OSRecipe = {
+        ...baseMockRecipe,
+        arch: 'aarch64',
+        enableNetworkSecurityGateway: true,
+      };
+      const scriptArm = generateBuildScript(recipeArm);
+      expect(scriptArm).toContain('AdGuardHome_linux_arm64.tar.gz');
+
+      const recipeRiscv: OSRecipe = {
+        ...baseMockRecipe,
+        arch: 'riscv64',
+        enableNetworkSecurityGateway: true,
+      };
+      const scriptRiscv = generateBuildScript(recipeRiscv);
+      expect(scriptRiscv).toContain('AdGuardHome_linux_riscv64.tar.gz');
     });
   });
 

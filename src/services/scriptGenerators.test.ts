@@ -4512,6 +4512,43 @@ describe('7 Fonctionnalités Majeures — Zéro Cosmétique & Intégration Compl
       expect(script).not.toMatch(/\[org\/cinnamon\/desktop\/interface\][^[]*monospace-font-name/);
     });
   });
+
+  describe('42. 🚀 Utilitaires CLI Modernes Multi-Architecture (Fastfetch & Lazygit Debian)', () => {
+    it('Debian x86_64 : télécharge fastfetch-linux-amd64.deb et lazygit Linux_x86_64', () => {
+      const recipe = makeRecipe({
+        distro: 'debian',
+        arch: 'x86_64',
+        outputFormat: 'iso_hybrid',
+      });
+      const script = generateBuildScript(recipe);
+
+      expect(script).toContain('fastfetch-linux-amd64.deb');
+      expect(script).toContain('lazygit_0.44.1_Linux_x86_64.tar.gz');
+    });
+
+    it('Debian aarch64 : télécharge fastfetch-linux-aarch64.deb et lazygit Linux_arm64', () => {
+      const recipe = makeRecipe({
+        distro: 'debian',
+        arch: 'aarch64',
+        outputFormat: 'iso_hybrid',
+      });
+      const script = generateBuildScript(recipe);
+
+      expect(script).toContain('fastfetch-linux-aarch64.deb');
+      expect(script).toContain('lazygit_0.44.1_Linux_arm64.tar.gz');
+    });
+
+    it('Debian riscv64 : résout fastfetch-linux-riscv64.deb', () => {
+      const recipe = makeRecipe({
+        distro: 'debian',
+        arch: 'riscv64',
+        outputFormat: 'iso_hybrid',
+      });
+      const script = generateBuildScript(recipe);
+
+      expect(script).toContain('fastfetch-linux-riscv64.deb');
+    });
+  });
 });
 
 
