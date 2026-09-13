@@ -337,35 +337,43 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     );
   }
 
-  // Outils d'administration graphique natifs par environnement de bureau
+  // Outils d'administration graphique & configuration natifs par environnement de bureau
   if (recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk') {
     if (recipe.desktop === 'gnome' || recipe.desktop === 'cinnamon' || (recipe.desktop === 'budgie' && distroId !== 'alpine' && distroId !== 'rocky' && distroId !== 'almalinux')) {
       if (isDebianLike || isArchLike || isFedoraLike || distroId === 'opensuse' || distroId === 'void' || distroId === 'alpine') {
         pkgs.push('gnome-system-monitor', 'gnome-disk-utility');
-        if (recipe.desktop === 'gnome' && (isDebianLike || isArchLike || isFedoraLike)) {
-          pkgs.push('gnome-logs');
+        if (recipe.desktop === 'gnome') {
+          if (isDebianLike || isArchLike || isFedoraLike) {
+            pkgs.push('gnome-logs', 'gnome-control-center');
+          }
+        } else if (recipe.desktop === 'cinnamon' && (isDebianLike || isArchLike || isFedoraLike || distroId === 'opensuse')) {
+          pkgs.push('cinnamon-control-center');
         }
       }
     } else if (recipe.desktop === 'kde') {
       if (isArchLike || isDebianLike || isFedoraLike || distroId === 'opensuse') {
-        pkgs.push('plasma-systemmonitor', 'partitionmanager');
+        pkgs.push('plasma-systemmonitor', 'partitionmanager', 'systemsettings');
       } else {
         pkgs.push('htop');
       }
     } else if (recipe.desktop === 'xfce') {
-      pkgs.push('xfce4-taskmanager', 'gnome-disk-utility');
+      pkgs.push('xfce4-taskmanager', 'gnome-disk-utility', 'xfce4-settings', 'pavucontrol');
     } else if (recipe.desktop === 'mate') {
       if (distroId !== 'alpine') {
-        pkgs.push('mate-system-monitor', 'gnome-disk-utility');
+        pkgs.push('mate-system-monitor', 'gnome-disk-utility', 'mate-control-center');
       }
     } else if (recipe.desktop === 'lxqt' || recipe.desktop === 'lxde') {
-      if (isDebianLike) pkgs.push('lxtask', 'gnome-disk-utility');
-      else pkgs.push('htop', 'gnome-disk-utility');
+      if (isDebianLike) pkgs.push('lxtask', 'gnome-disk-utility', 'lxappearance', 'pavucontrol');
+      else pkgs.push('htop', 'gnome-disk-utility', 'lxappearance', 'pavucontrol');
     } else if (recipe.desktop === 'deepin') {
       if (isArchLike) pkgs.push('gnome-disk-utility');
     } else {
       // Tiling WMs / Légers (Hyprland, Sway, i3, Openbox, BSPWM, Niri, Wayfire, Qtile)
-      pkgs.push('btop', 'gnome-disk-utility');
+      // Outils indispensables pour configurer thèmes, son et multi-écrans
+      pkgs.push('btop', 'gnome-disk-utility', 'lxappearance', 'pavucontrol');
+      if (recipe.desktop === 'i3wm' || recipe.desktop === 'openbox' || recipe.desktop === 'bspwm' || recipe.desktop === 'qtile') {
+        pkgs.push('arandr');
+      }
     }
   }
 
@@ -727,6 +735,29 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     }
     if (recipe.defaultApps.enableCockpitWebAdmin) {
       pkgs.push('cockpit');
+    }
+
+    // Outils de Configuration et Personnalisation du Bureau (Tweaks & GUI Controls)
+    if (recipe.defaultApps.enableDesktopTweaks) {
+      if (recipe.desktop === 'gnome' || recipe.desktop === 'cinnamon' || recipe.desktop === 'budgie') {
+        pkgs.push('gnome-tweaks', 'dconf-editor');
+      } else if (recipe.desktop === 'kde') {
+        pkgs.push('dconf-editor');
+      } else if (recipe.desktop === 'mate') {
+        pkgs.push('dconf-editor');
+      } else {
+        // Tiling WMs, XFCE, LXQt, LXDE, etc.
+        pkgs.push('lxappearance', 'dconf-editor');
+      }
+    }
+    if (recipe.defaultApps.enableDisplayConfigGui) {
+      pkgs.push('arandr');
+    }
+    if (recipe.defaultApps.enableAudioControlGui) {
+      pkgs.push('pavucontrol');
+    }
+    if (recipe.defaultApps.enableBluetoothGui) {
+      pkgs.push('blueman', 'bluez');
     }
   }
 

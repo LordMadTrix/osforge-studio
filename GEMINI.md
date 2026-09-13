@@ -146,7 +146,36 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **946 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 123 fichiers.
+- Suite de tests : **953 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 123 fichiers.
+- **52. 🎛️ Applications & Outils Fondamentaux de Configuration de Bureau (Desktop Settings, Tweaks, Multi-écrans & Audio) (`packages.ts`, `DesktopSelector.tsx`, `os.ts`, `scriptGenerators.test.ts`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « et les aplication pour configurer les desktop » (fournir et câbler l'ensemble des centres de contrôle, panneaux de paramètres, ajustements fins/tweaks, gestionnaires d'écrans et audio sous Linux).
+  - *Socle Natif de Configuration par Environnement de Bureau* :
+    - GNOME : `gnome-control-center`, `gnome-logs`
+    - KDE Plasma : `systemsettings`, `kinfocenter`, `plasma-systemmonitor`
+    - XFCE : `xfce4-settings`, `pavucontrol`
+    - Cinnamon : `cinnamon-control-center`
+    - MATE : `mate-control-center`
+    - LXQt / LXDE : `lxqt-config`, `lxappearance`, `pavucontrol`
+    - Tiling WMs & Légers (Hyprland, Sway, i3wm, Openbox, BSPWM, Wayfire, Niri, Qtile) :
+      - `lxappearance` (Sélecteur universel de thèmes GTK, curseurs, icônes et polices)
+      - `pavucontrol` (Mixeur et gestionnaire de périphériques audio PipeWire/PulseAudio)
+      - `arandr` (Gestionnaire d'affichage multi-moniteurs et résolutions visuel pour X11/XWayland)
+  - *4 Nouveaux Toggles de Configuration dans `DefaultApplicationsConfig` (`os.ts` & `DesktopSelector.tsx`)* :
+    - `enableDesktopTweaks` : Installe GNOME Tweaks & Dconf-Editor pour GNOME/Cinnamon/Budgie, ou LXAppearance & Dconf-Editor pour les WMs.
+    - `enableDisplayConfigGui` : Installe ARandR.
+    - `enableAudioControlGui` : Installe Pavucontrol.
+    - `enableBluetoothGui` : Installe Blueman et Bluez.
+  - *6 Nouveaux Paquets Réels dans le Catalogue `SOFTWARE_PACKAGES` (`packages.ts`)* :
+    - `gnome_tweaks` (Ajustements fins et personnalisation GNOME)
+    - `dconf_editor` (Éditeur graphique de registre GSettings)
+    - `lxappearance` (Sélecteur universel de thèmes GTK)
+    - `arandr` (Gestionnaire d'affichage multi-écrans XRandR)
+    - `pavucontrol` (Contrôleur de volume et mixeur audio PipeWire/PulseAudio)
+    - `blueman` (Gestionnaire Bluetooth GTK et applet système)
+  - *Interface UI Dédiée (`DesktopSelector.tsx`)* :
+    - Ajout de la sous-section `2.5 🎛️ Configuration & Personnalisation du Bureau (Desktop Tweaks & GUI)`.
+    - Toggles avec adaptation dynamique des libellés selon le bureau sélectionné.
+  - *Tests & Qualité* : 7 nouveaux tests unitaires vérifiant les outils de paramétrage natifs par bureau et les options defaultApps (**953 tests Vitest 100% verts**). 0 warning / 0 erreur oxlint sur 123 fichiers. Build de production propre.
 - **51. 💽 Applications & Utilitaires Fondamentaux d’Administration Système (CLI, GUI & Studio) (`packages.ts`, `DesktopSelector.tsx`, `ExpertProStudio.tsx`, `os.ts`, `scriptGenerators.test.ts`, `sectionPages.test.ts`)** :
   - *Exigence Utilisateur* : « dans les distribution il y a pas les aplication de base pour administresr le systeme » (intégrer tous les utilitaires et applications fondamentales pour administrer le système sur toutes les distros en mode CLI comme graphique).
   - *Socle Universel d’Administration CLI (Toutes les Distributions)* :

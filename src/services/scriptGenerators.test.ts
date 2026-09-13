@@ -4728,6 +4728,89 @@ describe('Applications & Utilitaires de base pour administrer le système (CLI &
         expect(Object.keys(pkg!.pkgNames).length).toBeGreaterThan(0);
       }
     });
+
+    it('contient les 6 paquets de configuration et personnalisation de bureau avec métadonnées valides', () => {
+      const desktopConfigPkgIds = ['gnome_tweaks', 'dconf_editor', 'lxappearance', 'arandr', 'pavucontrol', 'blueman'];
+      for (const id of desktopConfigPkgIds) {
+        const pkg = SOFTWARE_PACKAGES.find(p => p.id === id);
+        expect(pkg, `Paquet ${id} manquant`).toBeDefined();
+        expect(pkg?.category).toBeDefined();
+        expect(pkg?.pkgNames).toBeDefined();
+        expect(Object.keys(pkg!.pkgNames).length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe('Applications et utilitaires fondamentaux de configuration de bureau (Desktop Settings, Tweaks, Écrans & Audio)', () => {
+    it('GNOME sous Debian/Arch/Fedora : installe gnome-control-center', () => {
+      const pkgsDebian = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'gnome', selectedPackages: [] }));
+      expect(pkgsDebian).toContain('gnome-control-center');
+
+      const pkgsArch = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'gnome', selectedPackages: [] }));
+      expect(pkgsArch).toContain('gnome-control-center');
+    });
+
+    it('KDE Plasma : installe systemsettings', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'kde', selectedPackages: [] }));
+      expect(pkgs).toContain('systemsettings');
+    });
+
+    it('XFCE : installe xfce4-settings et pavucontrol', () => {
+      const pkgs = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'xfce', selectedPackages: [] }));
+      expect(pkgs).toContain('xfce4-settings');
+      expect(pkgs).toContain('pavucontrol');
+    });
+
+    it('Cinnamon & MATE : installent leurs centres de contrôle respectifs', () => {
+      const pkgsCinnamon = resolvePackageList(makeRecipe({ distro: 'linuxmint', desktop: 'cinnamon', selectedPackages: [] }));
+      expect(pkgsCinnamon).toContain('cinnamon-control-center');
+
+      const pkgsMate = resolvePackageList(makeRecipe({ distro: 'ubuntu', desktop: 'mate', selectedPackages: [] }));
+      expect(pkgsMate).toContain('mate-control-center');
+    });
+
+    it('Tiling WMs et légers (i3wm, sway, hyprland, openbox) : installent lxappearance et pavucontrol', () => {
+      const pkgsI3 = resolvePackageList(makeRecipe({ distro: 'arch', desktop: 'i3wm', selectedPackages: [] }));
+      expect(pkgsI3).toContain('lxappearance');
+      expect(pkgsI3).toContain('pavucontrol');
+      expect(pkgsI3).toContain('arandr');
+
+      const pkgsSway = resolvePackageList(makeRecipe({ distro: 'debian', desktop: 'sway', selectedPackages: [] }));
+      expect(pkgsSway).toContain('lxappearance');
+      expect(pkgsSway).toContain('pavucontrol');
+    });
+
+    it('Toggles defaultApps de configuration du bureau : installent les outils de personnalisation demandés', () => {
+      // GNOME avec Tweaks, Pavucontrol, ARandR et Blueman
+      const pkgsGnome = resolvePackageList(makeRecipe({
+        distro: 'ubuntu',
+        desktop: 'gnome',
+        selectedPackages: [],
+        defaultApps: {
+          enableDesktopTweaks: true,
+          enableAudioControlGui: true,
+          enableDisplayConfigGui: true,
+          enableBluetoothGui: true,
+        },
+      }));
+      expect(pkgsGnome).toContain('gnome-tweaks');
+      expect(pkgsGnome).toContain('dconf-editor');
+      expect(pkgsGnome).toContain('pavucontrol');
+      expect(pkgsGnome).toContain('arandr');
+      expect(pkgsGnome).toContain('blueman');
+
+      // i3wm avec Tweaks (LXAppearance & Dconf)
+      const pkgsI3 = resolvePackageList(makeRecipe({
+        distro: 'debian',
+        desktop: 'i3wm',
+        selectedPackages: [],
+        defaultApps: {
+          enableDesktopTweaks: true,
+        },
+      }));
+      expect(pkgsI3).toContain('lxappearance');
+      expect(pkgsI3).toContain('dconf-editor');
+    });
   });
 });
 

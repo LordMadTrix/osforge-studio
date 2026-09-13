@@ -242,6 +242,10 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
           enableGufw: true,
           enableInxi: true,
           enableCockpitWebAdmin: true,
+          enableDesktopTweaks: true,
+          enableDisplayConfigGui: true,
+          enableAudioControlGui: true,
+          enableBluetoothGui: true,
         },
       };
 
@@ -252,6 +256,10 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
       expect(adminRecipe.defaultApps?.enableGufw).toBe(true);
       expect(adminRecipe.defaultApps?.enableInxi).toBe(true);
       expect(adminRecipe.defaultApps?.enableCockpitWebAdmin).toBe(true);
+      expect(adminRecipe.defaultApps?.enableDesktopTweaks).toBe(true);
+      expect(adminRecipe.defaultApps?.enableDisplayConfigGui).toBe(true);
+      expect(adminRecipe.defaultApps?.enableAudioControlGui).toBe(true);
+      expect(adminRecipe.defaultApps?.enableBluetoothGui).toBe(true);
     });
   });
 });

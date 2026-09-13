@@ -873,6 +873,84 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* 2.5 Configuration & Personnalisation du Bureau (Tweaks & GUI Controls) */}
+              {recipe.desktop !== 'none' && recipe.desktop !== 'web_kiosk' && (
+                <div style={{ borderTop: '1px dashed var(--border-subtle)', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', margin: 0 }}>
+                      🎛️ {lang === 'fr' ? 'Configuration & Personnalisation du Bureau (Desktop Tweaks & GUI) :' : 'Desktop Configuration & Tweaks (GUI Controls):'}
+                    </label>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--primary)', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>
+                      {recipe.desktop.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
+                    {[
+                      {
+                        key: 'enableDesktopTweaks',
+                        label: recipe.desktop === 'gnome' ? 'GNOME Tweaks' : (recipe.desktop === 'kde' ? 'Dconf Tweaks' : 'LXAppearance / Tweaks'),
+                        sub: lang === 'fr' ? 'Ajustements thèmes, curseurs & polices' : 'Theme, cursor & font tweaker',
+                        checked: !!recipe.defaultApps?.enableDesktopTweaks,
+                      },
+                      {
+                        key: 'enableAudioControlGui',
+                        label: 'Pavucontrol Audio',
+                        sub: lang === 'fr' ? 'Mixeur son PipeWire / PulseAudio' : 'PipeWire / PulseAudio mixer',
+                        checked: !!recipe.defaultApps?.enableAudioControlGui,
+                      },
+                      {
+                        key: 'enableDisplayConfigGui',
+                        label: 'ARandR Écrans',
+                        sub: lang === 'fr' ? 'Multi-moniteurs & résolutions' : 'Multi-monitor layout editor',
+                        checked: !!recipe.defaultApps?.enableDisplayConfigGui,
+                      },
+                      {
+                        key: 'enableBluetoothGui',
+                        label: 'Blueman Bluetooth',
+                        sub: lang === 'fr' ? 'Appairage & applet sans-fil' : 'Wireless pairing & GTK applet',
+                        checked: !!recipe.defaultApps?.enableBluetoothGui,
+                      },
+                    ].map((item) => (
+                      <label
+                        key={item.key}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          background: item.checked ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                          border: item.checked ? '1px solid var(--primary)' : '1px solid var(--border-subtle)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.checked}
+                          onChange={(e) => onChange({
+                            defaultApps: {
+                              ...recipe.defaultApps,
+                              [item.key]: e.target.checked,
+                            },
+                          })}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: item.checked ? '#ffffff' : 'var(--text-main)' }}>
+                            {item.label}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                            {item.sub}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

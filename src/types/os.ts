@@ -333,6 +333,10 @@ export interface DefaultApplicationsConfig {
   enableGufw?: boolean;
   enableInxi?: boolean;
   enableCockpitWebAdmin?: boolean;
+  enableDesktopTweaks?: boolean;
+  enableDisplayConfigGui?: boolean;
+  enableAudioControlGui?: boolean;
+  enableBluetoothGui?: boolean;
 }
 
 export interface DistroPreset {
