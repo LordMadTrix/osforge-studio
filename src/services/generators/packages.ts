@@ -296,32 +296,44 @@ export function resolvePackageList(recipe: OSRecipe): string[] {
     pkgs.push(
       'sudo', 'curl', 'wget', 'locales', 'ca-certificates', 'systemd-sysv', 'initramfs-tools',
       'firmware-linux-free', 'pciutils', 'usbutils', 'iproute2', 'net-tools',
-      'htop', 'parted', 'fdisk', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils-ping', 'dnsutils', 'bash-completion'
+      'htop', 'parted', 'fdisk', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz-utils', 'zip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync',
+      'iputils-ping', 'dnsutils', 'ethtool', 'lm-sensors', 'bash-completion'
     );
   } else if (isArchLike) {
     pkgs.push(
       'base', 'linux', 'linux-firmware', 'sudo', 'curl', 'wget', 'pciutils', 'usbutils',
-      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind', 'bash-completion'
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz', 'zip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync',
+      'iputils', 'bind', 'ethtool', 'lm_sensors', 'bash-completion'
     );
   } else if (distroId === 'alpine') {
     pkgs.push(
       'alpine-base', 'linux-lts', 'shadow', 'sudo', 'curl', 'ca-certificates',
-      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils', 'bind-tools', 'bash-completion'
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz', 'zip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync',
+      'iputils', 'bind-tools', 'ethtool', 'lm-sensors', 'bash-completion'
     );
   } else if (isFedoraLike) {
     pkgs.push(
       'kernel', 'shadow-utils', 'sudo', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager',
-      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz', 'zip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync',
+      'iputils', 'bind-utils', 'ethtool', 'lm_sensors', 'bash-completion'
     );
   } else if (distroId === 'opensuse') {
     pkgs.push(
       'kernel-default', 'sudo', 'shadow', 'curl', 'wget', 'ca-certificates', 'pciutils', 'usbutils', 'NetworkManager',
-      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz', 'zip', 'unzip', 'lsof', 'procps', 'psmisc', 'rsync',
+      'iputils', 'bind-utils', 'ethtool', 'lm_sensors', 'bash-completion'
     );
   } else if (distroId === 'void') {
     pkgs.push(
       'linux', 'linux-firmware', 'shadow', 'sudo', 'curl', 'wget', 'ca-certificates', 'dhcpcd',
-      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'nano', 'less', 'tar', 'gzip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync', 'iputils', 'bind-utils', 'bash-completion'
+      'htop', 'parted', 'e2fsprogs', 'dosfstools', 'ntfs-3g', 'exfatprogs', 'nano', 'less',
+      'tar', 'gzip', 'bzip2', 'xz', 'zip', 'unzip', 'lsof', 'procps-ng', 'psmisc', 'rsync',
+      'iputils', 'bind-utils', 'ethtool', 'lm_sensors', 'bash-completion'
     );
   }
 

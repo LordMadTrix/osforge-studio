@@ -152,10 +152,10 @@ après.
   - *Socle Universel d’Administration CLI (Toutes les Distributions)* :
     - Ajout dans `resolvePackageList` pour Debian, Ubuntu, Mint, Kali, Arch, CachyOS, EndeavourOS, Fedora, Rocky, AlmaLinux, openSUSE, Alpine et Void des utilitaires de gestion système indispensables :
       - Surveillance & Processus : `htop`, `procps` / `procps-ng`, `psmisc` (`killall`), `lsof`
-      - Gestion disques & partitions : `parted`, `fdisk`, `e2fsprogs`, `dosfstools`
+      - Gestion disques, clés USB & partitions : `parted`, `fdisk`, `e2fsprogs`, `dosfstools`, `ntfs-3g`, `exfatprogs`
       - Édition & Maintenance de secours : `nano`, `less`
-      - Compression & Archives : `tar`, `gzip`, `unzip`
-      - Diagnostic réseau : `iputils-ping` (ou `iputils`), `dnsutils` (ou `bind-utils`/`bind-tools`/`bind`)
+      - Compression & Archives universelles : `tar`, `gzip`, `bzip2`, `xz-utils` / `xz`, `zip`, `unzip`
+      - Diagnostic réseau & matériel : `iputils-ping` (ou `iputils`), `dnsutils` (ou `bind-utils`/`bind`), `ethtool`, `lm-sensors` / `lm_sensors`
       - Synchronisation & Ergonomie : `rsync`, `bash-completion`
   - *Outils d’Administration Graphique par Environnement de Bureau* :
     - GNOME / Budgie / Cinnamon : `gnome-system-monitor`, `gnome-disk-utility`, `gnome-logs`

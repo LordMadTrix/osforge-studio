@@ -4561,15 +4561,22 @@ describe('Applications & Utilitaires de base pour administrer le système (CLI &
       expect(pkgs).toContain('fdisk');
       expect(pkgs).toContain('e2fsprogs');
       expect(pkgs).toContain('dosfstools');
+      expect(pkgs).toContain('ntfs-3g');
+      expect(pkgs).toContain('exfatprogs');
       expect(pkgs).toContain('nano');
       expect(pkgs).toContain('less');
       expect(pkgs).toContain('tar');
       expect(pkgs).toContain('gzip');
+      expect(pkgs).toContain('bzip2');
+      expect(pkgs).toContain('xz-utils');
+      expect(pkgs).toContain('zip');
       expect(pkgs).toContain('unzip');
       expect(pkgs).toContain('lsof');
       expect(pkgs).toContain('procps');
       expect(pkgs).toContain('psmisc');
       expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('ethtool');
+      expect(pkgs).toContain('lm-sensors');
       expect(pkgs).toContain('bash-completion');
     });
 
@@ -4579,9 +4586,13 @@ describe('Applications & Utilitaires de base pour administrer le système (CLI &
       expect(pkgs).toContain('parted');
       expect(pkgs).toContain('e2fsprogs');
       expect(pkgs).toContain('dosfstools');
+      expect(pkgs).toContain('ntfs-3g');
+      expect(pkgs).toContain('exfatprogs');
       expect(pkgs).toContain('nano');
       expect(pkgs).toContain('procps-ng');
       expect(pkgs).toContain('rsync');
+      expect(pkgs).toContain('ethtool');
+      expect(pkgs).toContain('lm_sensors');
       expect(pkgs).toContain('bash-completion');
     });
 
