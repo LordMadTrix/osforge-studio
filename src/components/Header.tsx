@@ -17,6 +17,7 @@ interface HeaderProps {
   onOpenScreenshots: () => void;
   onOpenVersionChecker: () => void;
   onOpenPresentation?: () => void;
+  onOpenSplash?: () => void;
   onOpenAudit?: () => void;
   onOpenProfiles?: () => void;
   onOpenDesktopDownload?: () => void;
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenScreenshots,
   onOpenVersionChecker,
   onOpenPresentation,
+  onOpenSplash,
   onOpenAudit,
   onOpenProfiles,
   onOpenDesktopDownload,
@@ -498,6 +500,30 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     <BookOpen size={14} color="#38bdf8" />
                     <span>{lang === 'fr' ? 'Présentation du Projet' : 'Project Showcase'}</span>
+                  </button>
+                )}
+
+                {onOpenSplash && (
+                  <button
+                    onClick={() => { onOpenSplash(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Sparkles size={14} color="#f97316" />
+                    <span>{lang === 'fr' ? 'Écran de Démarrage (Splash)' : 'Startup Splash Screen'}</span>
                   </button>
                 )}
 

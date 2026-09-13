@@ -426,3 +426,41 @@ input:checked + .toggle-slider:before {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* ==============================================================================
+   OSForge Studio — Splash Screen Animations
+   ============================================================================== */
+.forge-halo-pulse {
+  animation: forgeHalo 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes forgeHalo {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0.9;
+  }
+}
+
+.forge-blink-cursor {
+  animation: forgeBlink 0.9s step-end infinite;
+}
+
+@keyframes forgeBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.forge-progress-sweep {
+  width: 0%;
+  animation: forgeSweep 2.8s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes forgeSweep {
+  0% { width: 0%; }
+  60% { width: 75%; }
+  100% { width: 100%; }
+}
+

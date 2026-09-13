@@ -146,7 +146,18 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **888 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 108 fichiers.
+- Suite de tests : **891 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 111 fichiers.
+- **41. ⚒️ Écran de Démarrage (SplashScreen), Logo Animé & Jingle Audio Web Audio API** :
+  - **Axe 1 — Fond d'écran Forge & SplashScreen (`SplashScreen.tsx`, `splash-bg.jpg`, `index.css`)** :
+    - Intégration d'un écran de bienvenue immersif plein écran affiché au chargement (auto-dismiss après 2.8s ou clic/touche immédiate).
+    - Fond forge en circuit imprimé (`splash-bg.jpg`) avec vignette radiale sombre et balayage de progression ember (`forge-progress-sweep`).
+    - Emblème enclume forgée `⚒` avec pulsation lumineuse (`forge-halo-pulse`) et tagline terminal (`// Build real Linux systems_`).
+    - Option "Écran de Démarrage (Splash)" ajoutée dans le menu Outils du Header pour rejouer l'animation à la demande.
+  - **Axe 2 — Synthèse Audio Web Audio API (`useForgeSound.ts`)** :
+    - Synthèse audio 100% procédurale en JavaScript sans aucun fichier .mp3/.ogg externe.
+    - Progression sonore : sweep ember chaud (Eb4→G4), accord Em harmonique (E4/B4/E5), résonance sub-bass rumble et sparkle final (1.8s).
+    - Gestion de l'état `suspended` de l'AudioContext pour conformité avec les politiques d'autoplay des navigateurs modernes et fallback silencieux si indisponible.
+  - **Résultat** : 3 nouveaux tests unitaires dans `useForgeSound.test.ts` (891 tests au total, 100% au vert). 0 warning et 0 erreur oxlint sur 111 fichiers.
 - **40. 🛜 Drivers Wi-Fi MediaTek/Atheros + lacunes Intel/Broadcom + Ollama Arch/Fedora + Open WebUI Type=simple** :
   - **Axe 1 — Wi-Fi (`hardwareDriverResolver.ts`, `HardwareAuditModal.tsx`)** :
     - *WifiVendor étendu* : ajout de `mediatek_wifi` (MediaTek MT7xxx Wi-Fi 6/6E) et `atheros_wifi` (Qualcomm Atheros ath10k/ath11k/ath12k). Paquets vérifiés en direct le 2026-09-12 : `firmware-mediatek` v20250410-2 et `firmware-atheros` v20250410-2 tous deux confirmés réels sur Debian Trixie via `packages.debian.org/trixie/<pkg>`. Pour Arch/Fedora/Alpine/Void : `linux-firmware` (contient `mediatek/*` et `ath10k/ath11k/*`). Pour openSUSE : `kernel-firmware-mediatek` et `kernel-firmware-ath10k`.

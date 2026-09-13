@@ -8,6 +8,7 @@ import { Lightbulb, Sparkles, Wand2, Download, Search, Image as ImageIcon, Zap, 
 
 import { extractRecipeFromUrl } from './services/recipeSharing';
 import { saveCurrentAutosave, loadCurrentAutosave } from './services/configStorage';
+import { SplashScreen } from './components/SplashScreen';
 
 // Code-split heavy, non-first-paint views and modals to shrink the initial bundle.
 const BuildPipelineModal = lazy(() => import('./components/BuildPipelineModal').then(m => ({ default: m.BuildPipelineModal })));
@@ -107,6 +108,7 @@ export const App: React.FC = () => {
   const [officialReleasesDistro, setOfficialReleasesDistro] = useState<DistroId | undefined>(undefined);
   const [isUsbFlasherOpen, setIsUsbFlasherOpen] = useState<boolean>(false);
   const [isBuildSimulatorOpen, setIsBuildSimulatorOpen] = useState<boolean>(false);
+  const [showSplash, setShowSplash] = useState<boolean>(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [previewDistroId, setPreviewDistroId] = useState<string | undefined>(undefined);
@@ -178,7 +180,9 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
+    <>
+      {showSplash && <SplashScreen onDone={() => setShowSplash(false)} />}
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-main)' }}>
       {/* Header Bar */}
       <Header
         recipe={recipe}
@@ -190,6 +194,7 @@ export const App: React.FC = () => {
         onOpenScreenshots={() => handleOpenScreenshots()}
         onOpenVersionChecker={() => setIsVersionCheckerOpen(true)}
         onOpenPresentation={() => setIsPresentationOpen(true)}
+        onOpenSplash={() => setShowSplash(true)}
         onOpenAudit={() => setIsAuditOpen(true)}
         onOpenProfiles={() => setIsProfilesOpen(true)}
         onOpenDesktopDownload={() => setIsDesktopDownloadOpen(true)}
@@ -514,6 +519,7 @@ export const App: React.FC = () => {
         />
       </Suspense>
     </div>
+    </>
   );
 };
 
