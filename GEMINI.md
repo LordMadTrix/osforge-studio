@@ -146,7 +146,17 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **923 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 120 fichiers.
+- Suite de tests : **926 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 121 fichiers.
+- **47. 🖥️ Hub Gestionnaire de Sessions & Greeter Interactif Dédié (`SessionManagerView.tsx`, `DesktopSelector.tsx`, `ExpertProStudio.tsx`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « ameliore la szction gestion des sesion » (transformer la sous-section `ui_display_manager` en un hub moderne, visuel et 100% câblé).
+  - *Composant Dédié `SessionManagerView.tsx`* :
+    - Fiche d'en-tête dynamique avec statut temps réel (Gestionnaire actif, état Auto-login, session cible Wayland/X11, unité systemd).
+    - Bannière de recommandation intelligente reliant `recipe.desktop` à `recommendedDM` avec bouton d'application en 1-clic.
+    - Grille riche des 7 Display Managers (SDDM, GDM3, LightDM, Ly, COSMIC Greeter, DDM, Aucun/Console) avec empreinte RAM (15MB à 140MB), frameworks (Qt6, GTK4, Rust, C/Ncurses), protocoles (Wayland/X11), et unités de service.
+    - Contrôleur complet d'Auto-Login câblé sur `recipe.user.autologin`, affichant l'utilisateur cible `recipe.user.username`, la session `plasmawayland`/`gnome`/`cinnamon`/etc., et le code bash exact généré dans `/etc`.
+    - Simulateur Greeter Interactif en direct (Live Preview) avec fond d'écran synchronisé sur `recipe.branding.wallpaperPreset`, horloge temps réel, skins personnalisés (GDM3, SDDM Breeze, LightDM, Ly ASCII Matrix CRT, COSMIC Rust, Console TTY) et simulation d'authentification interactive.
+    - Avertissements stricts Zéro Cosmétique pour Ly sur Debian/Alpine et mode None sur bureau graphique.
+  - *Tests & Qualité* : 3 nouveaux tests unitaires dans `sectionPages.test.ts` (**926 tests unitaires Vitest, 100% verts**). 0 warning et 0 erreur oxlint sur 121 fichiers. Build de production propre.
 - **46. 🗂️ Structuration Hiérarchique du Menu à Gauche & Hubs de Sections (`ExpertProStudio.tsx`, `sectionPages.test.ts`)** :
   - *Exigence Utilisateur* : « je veux chaque section a sa place dans le menu a gauche » (donner une identité de premier plan à chaque section principale avec ses sous-sections en arborescence indentée).
   - *Sidebar Hiérarchique Cliquable* :

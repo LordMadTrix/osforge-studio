@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { StudioSectionId } from './ExpertProStudio';
 import { OSRecipe } from '../types/os';
+import { DESKTOPS } from '../data/desktopEnvironments';
+import { getDesktopSessionName, dmAutologinCmd } from '../services/generators/helpers';
 
 describe('Navigation Studio Expert — Isolation stricte de chaque section sur sa propre page', () => {
   const expectedSections: StudioSectionId[] = [
@@ -124,5 +126,38 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
     ];
     expect(mainSections).toHaveLength(8);
     expect(new Set(mainSections).size).toBe(8);
+  });
+
+  describe('Session Management Hub (ui_display_manager) — Recommandations et Autologin', () => {
+    it('garantit la correspondance exacte des gestionnaires recommandés pour les bureaux majeurs', () => {
+      const desktopMap = new Map(DESKTOPS.map(d => [d.id, d.recommendedDM]));
+      expect(desktopMap.get('kde')).toBe('sddm');
+      expect(desktopMap.get('gnome')).toBe('gdm3');
+      expect(desktopMap.get('xfce')).toBe('lightdm');
+      expect(desktopMap.get('hyprland')).toBe('ly');
+      expect(desktopMap.get('cosmic')).toBe('cosmic-greeter');
+      expect(desktopMap.get('deepin')).toBe('ddm');
+      expect(desktopMap.get('none')).toBe('none');
+      expect(desktopMap.get('web_kiosk')).toBe('none');
+    });
+
+    it('résout correctement les noms de session Wayland / X11 via getDesktopSessionName', () => {
+      expect(getDesktopSessionName('kde')).toEqual({ session: 'plasma', isWaylandNative: true });
+      expect(getDesktopSessionName('gnome')).toEqual({ session: 'gnome', isWaylandNative: true });
+      expect(getDesktopSessionName('cosmic')).toEqual({ session: 'cosmic', isWaylandNative: true });
+      expect(getDesktopSessionName('sway')).toEqual({ session: 'sway', isWaylandNative: true });
+      expect(getDesktopSessionName('xfce')).toEqual({ session: 'xfce', isWaylandNative: false });
+      expect(getDesktopSessionName('cinnamon')).toEqual({ session: 'cinnamon', isWaylandNative: false });
+    });
+
+    it('génère les fichiers réels de configuration autologin pour GDM, SDDM, LightDM et Kiosk', () => {
+      const rGdm = { ...sampleRecipe, displayManager: 'gdm3' as const, user: { ...sampleRecipe.user, autologin: true } };
+      const rSddm = { ...sampleRecipe, displayManager: 'sddm' as const, user: { ...sampleRecipe.user, autologin: true } };
+      const rLight = { ...sampleRecipe, displayManager: 'lightdm' as const, user: { ...sampleRecipe.user, autologin: true } };
+
+      expect(dmAutologinCmd(rGdm, 'debian')).toContain('/etc/gdm3/custom.conf');
+      expect(dmAutologinCmd(rSddm, 'debian')).toContain('/etc/sddm.conf.d/autologin.conf');
+      expect(dmAutologinCmd(rLight, 'debian')).toContain('/etc/lightdm/lightdm.conf.d/50-autologin.conf');
+    });
   });
 });

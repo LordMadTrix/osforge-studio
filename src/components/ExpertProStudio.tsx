@@ -8,6 +8,7 @@ import {
 import { OSRecipe, DistroId } from '../types/os';
 import { DistroSelector } from './DistroSelector';
 import { DesktopSelector } from './DesktopSelector';
+import { SessionManagerView } from './SessionManagerView';
 import { SimulatorsView } from './SimulatorsView';
 import { BrandingDesignView } from './BrandingDesignView';
 import { PackageCatalog } from './PackageCatalog';
@@ -1391,13 +1392,11 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
             {activeSection === 'ui_display_manager' && (
-              <DesktopSelector
+              <SessionManagerView
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
-                onOpenScreenshots={onOpenScreenshots}
-                subSection="display_manager"
               />
             )}
             {activeSection === 'ui_default_apps' && (

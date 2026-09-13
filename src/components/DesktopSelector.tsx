@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { OSRecipe, DisplayManagerId } from '../types/os';
+import { OSRecipe } from '../types/os';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { ContextTip } from './ContextTip';
 import { InfoTooltip } from './InfoTooltip';
-import { Monitor, CheckCircle2, Globe, Sliders, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
+import { Monitor, CheckCircle2, Globe, Image as ImageIcon, Rss, Search, X } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DESKTOP_LOGOS } from '../data/logos';
 import { useLiveVersions } from '../hooks/useLiveVersions';
+import { SessionManagerView } from './SessionManagerView';
 
 interface DesktopSelectorProps {
   recipe: OSRecipe;
@@ -70,57 +71,6 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
       return true;
     });
   }, [desktopCategory, protocolFilter, desktopSearch]);
-  const displayManagers: { id: DisplayManagerId; name: string; desc: string; tipFr: string; tipEn: string }[] = [
-    {
-      id: 'gdm3',
-      name: 'GDM (GNOME Display Manager)',
-      desc: 'Recommandé pour GNOME, Wayland natif',
-      tipFr: 'Gestionnaire de connexion officiel du projet GNOME avec prise en charge complète de Wayland.',
-      tipEn: 'Official GNOME display manager with native Wayland session support.',
-    },
-    {
-      id: 'sddm',
-      name: 'SDDM (Simple Desktop DM)',
-      desc: 'Recommandé pour KDE Plasma & Qt6',
-      tipFr: 'Gestionnaire moderne basé sur Qt et QML, standard de KDE Plasma 6.',
-      tipEn: 'Modern Qt and QML based display manager, standard on KDE Plasma.',
-    },
-    {
-      id: 'cosmic-greeter',
-      name: 'COSMIC Greeter (Rust Display Manager)',
-      desc: 'Recommandé pour COSMIC Desktop Beta',
-      tipFr: 'Gestionnaire de connexion moderne développé en Rust pour COSMIC Desktop.',
-      tipEn: 'Modern memory-safe display manager written in Rust for COSMIC.',
-    },
-    {
-      id: 'ddm',
-      name: 'DDM (Deepin Display Manager)',
-      desc: 'Recommandé pour Deepin (DDE)',
-      tipFr: 'Gestionnaire de connexion natif de Deepin, basé sur Qt6 et le compositeur Wayland treeland.',
-      tipEn: 'Deepin\'s native display manager, built on Qt6 and the treeland Wayland compositor.',
-    },
-    {
-      id: 'lightdm',
-      name: 'LightDM (Léger & GTK)',
-      desc: 'Recommandé pour XFCE, i3wm, Cinnamon',
-      tipFr: 'Ultra-rapide, faible empreinte RAM et hautement personnalisable avec slick-greeter.',
-      tipEn: 'Fast, lightweight and highly customizable with GTK/slick greeters.',
-    },
-    {
-      id: 'ly',
-      name: 'Ly (TUI Console Display Manager)',
-      desc: 'Ultra-léger en mode texte pour Hyprland & Sway',
-      tipFr: 'Écran de login en mode texte console avec animations ASCII. Démarre en 10ms.',
-      tipEn: 'Text-mode console login with ASCII matrix animations. Starts in 10ms.',
-    },
-    {
-      id: 'none',
-      name: 'Aucun (Auto-login / Console directe)',
-      desc: 'Pour les serveurs headless ou bornes kiosk',
-      tipFr: 'Démarre directement dans le shell console ou lance immédiatement l’application kiosk.',
-      tipEn: 'Boots directly into the text console or immediately launches kiosk browser.',
-    },
-  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -521,65 +471,18 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
       </>
       )}
 
-      {/* 2. Gestionnaire de Connexion & Applications par Défaut */}
-      {(subSection === 'all' || subSection === 'display_manager' || subSection === 'default_apps') && (
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: subSection === 'all' ? 'repeat(auto-fit, minmax(420px, 1fr))' : '1fr',
-        gap: '18px'
-      }}>
-        {/* Display Manager */}
-        {(subSection === 'all' || subSection === 'display_manager') && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sliders size={18} color="var(--cyan)" />
-            {lang === 'fr' ? 'Gestionnaire de Connexion (Display Manager)' : 'Display Manager'}
-            <InfoTooltip
-              text={lang === 'fr'
-                ? 'L’écran d’authentification au démarrage. Ly est ultra-léger, LightDM est universel, GDM est conçu pour GNOME, SDDM pour KDE, COSMIC Greeter pour COSMIC.'
-                : 'The graphical login greeter. Ly is ultra-fast TUI, LightDM is universal, GDM is for GNOME, SDDM for KDE.'}
-            />
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {displayManagers.map(dm => {
-              const isSelected = recipe.displayManager === dm.id;
-              return (
-                <div
-                  key={dm.id}
-                  onClick={() => onChange({ displayManager: dm.id })}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '6px',
-                    background: isSelected ? 'rgba(56, 189, 248, 0.12)' : 'rgba(10, 15, 28, 0.4)',
-                    border: `1px solid ${isSelected ? 'var(--cyan)' : 'var(--border-subtle)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: isSelected ? '#ffffff' : 'var(--text-main)' }}>
-                        {dm.name}
-                      </span>
-                      <InfoTooltip text={lang === 'fr' ? dm.tipFr : dm.tipEn} />
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {dm.desc}
-                    </div>
-                  </div>
-                  {isSelected && <CheckCircle2 size={16} color="var(--cyan)" />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        )}
+      {/* 2. Gestionnaire de Connexion (Display Manager) Dédié */}
+      {(subSection === 'all' || subSection === 'display_manager') && (
+        <SessionManagerView
+          recipe={recipe}
+          onChange={onChange}
+          lang={lang}
+          onOpenTips={onOpenTips}
+        />
+      )}
 
-        {/* Applications de Bureau par Défaut */}
-        {(subSection === 'all' || subSection === 'default_apps') && (
+      {/* 3. Applications de Bureau par Défaut */}
+      {(subSection === 'all' || subSection === 'default_apps') && (
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Globe size={18} color="#a855f7" />
@@ -719,8 +622,6 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
           </div>
         </div>
         )}
-      </div>
-      )}
     </div>
   );
 };
