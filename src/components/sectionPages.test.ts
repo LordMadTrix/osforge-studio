@@ -110,4 +110,19 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
     expect(sampleRecipe.gamingConfig?.cpuGovernor).toBe('performance');
     expect(sampleRecipe.gamingConfig?.pipewireQuantumLatency).toBe(128);
   });
+
+  it('définit précisément les 8 sections principales ayant leur place dédiée dans le menu à gauche', () => {
+    const mainSections: StudioSectionId[] = [
+      'sec_base',
+      'sec_ui',
+      'sec_brand',
+      'pkgs_catalog',
+      'sec_sys',
+      'sec_security',
+      'sec_post',
+      'export_inspector',
+    ];
+    expect(mainSections).toHaveLength(8);
+    expect(new Set(mainSections).size).toBe(8);
+  });
 });

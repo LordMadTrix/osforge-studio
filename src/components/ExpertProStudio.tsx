@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { 
   Server, Monitor, Palette, Package, Cpu, Shield, FileCode, Search, 
-  ChevronRight, Sliders, Terminal, Zap, Eye, Flame, Check, ArrowRight, ArrowLeft, 
-  PanelRightClose, PanelRightOpen, Sparkles, Layers, Download
+  ChevronRight, ChevronDown, Sliders, Terminal, Zap, Eye, Flame, Check, ArrowRight, ArrowLeft, 
+  PanelRightClose, PanelRightOpen, Sparkles, Layers, Download,
+  HardDrive, Lock, Gamepad2, FolderGit2, Wifi, Clock, User, Key, ShieldCheck, AppWindow, CheckCircle2
 } from 'lucide-react';
 import { OSRecipe, DistroId } from '../types/os';
 import { DistroSelector } from './DistroSelector';
@@ -20,15 +21,18 @@ import { sanitizeHexColor } from '../services/generators/branding';
 
 export type StudioSectionId = 
   // Base Système & Cible
+  | 'sec_base'
   | 'base_distro'
   | 'base_kernel'
   | 'base_output'
   // Bureau & Interface
+  | 'sec_ui'
   | 'ui_desktop'
   | 'ui_display_manager'
   | 'ui_default_apps'
   | 'ui_simulators'
   // Design System & Branding
+  | 'sec_brand'
   | 'brand_theme'
   | 'brand_appearance'
   | 'brand_terminal_plymouth'
@@ -36,6 +40,7 @@ export type StudioSectionId =
   // Logiciels & Dépôts
   | 'pkgs_catalog'
   // Système & Matériel
+  | 'sec_sys'
   | 'sys_identity'
   | 'sys_user'
   | 'sys_ssh'
@@ -44,16 +49,22 @@ export type StudioSectionId =
   | 'sys_storage'
   | 'sys_gaming'
   // Sécurité & Durcissement
+  | 'sec_security'
   | 'sec_benchmark'
   | 'sec_firewall'
   | 'sec_luks'
   | 'sec_hardening'
   // Post-Install & Automatisation
+  | 'sec_post'
   | 'post_firstboot'
   | 'post_dotfiles'
   | 'post_services'
   // Code & Manifestes
-  | 'export_inspector';
+  | 'export_inspector'
+  // Compatibilité
+  | 'sys_config'
+  | 'post_scripts'
+  | 'brand_design';
 
 interface ExpertProStudioProps {
   recipe: OSRecipe;
@@ -69,18 +80,241 @@ interface ExpertProStudioProps {
   initialSection?: StudioSectionId;
 }
 
+interface NavSectionItem {
+  id: StudioSectionId;
+  labelFr: string;
+  labelEn: string;
+  icon: React.ReactNode;
+  badge?: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  currentValue?: string;
+}
+
 interface NavCategory {
   id: string;
+  sectionId: StudioSectionId;
   titleFr: string;
   titleEn: string;
   icon: React.ReactNode;
-  items: {
-    id: StudioSectionId;
-    labelFr: string;
-    labelEn: string;
-    badge?: string;
-  }[];
+  color: string;
+  badge?: string;
+  descriptionFr: string;
+  descriptionEn: string;
+  items: NavSectionItem[];
 }
+
+interface SectionOverviewViewProps {
+  category: NavCategory;
+  recipe: OSRecipe;
+  lang: 'fr' | 'en';
+  accentColor: string;
+  onNavigate: (sectionId: StudioSectionId) => void;
+}
+
+const SectionOverviewView: React.FC<SectionOverviewViewProps> = ({
+  category,
+  lang,
+  accentColor,
+  onNavigate,
+}) => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Hero Banner de la Section */}
+      <div style={{
+        padding: '24px',
+        borderRadius: '12px',
+        background: `linear-gradient(135deg, ${category.color}18 0%, rgba(13, 19, 31, 0.9) 100%)`,
+        border: `1px solid ${category.color}40`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px',
+        boxShadow: `0 8px 30px ${category.color}12`,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '54px',
+            height: '54px',
+            borderRadius: '12px',
+            background: `${category.color}25`,
+            border: `1px solid ${category.color}50`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: `0 0 20px ${category.color}30`,
+          }}>
+            {React.cloneElement(category.icon as React.ReactElement<{ size?: number; color?: string }>, { size: 28, color: category.color })}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: category.color }}>
+                {lang === 'fr' ? 'Section Principale' : 'Main Section'}
+              </span>
+              {category.badge && (
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  background: `${category.color}25`,
+                  color: category.color,
+                  fontWeight: 700,
+                  border: `1px solid ${category.color}40`,
+                }}>
+                  {category.badge}
+                </span>
+              )}
+            </div>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+              {lang === 'fr' ? category.titleFr : category.titleEn}
+            </h1>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '6px 0 0 0', maxWidth: '650px', lineHeight: 1.5 }}>
+              {lang === 'fr' ? category.descriptionFr : category.descriptionEn}
+            </p>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(0, 0, 0, 0.35)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '8px',
+          padding: '10px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: category.color }}>
+            {category.items.length}
+          </span>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {lang === 'fr' ? 'Sous-pages dédiées' : 'Dedicated sub-pages'}
+          </span>
+        </div>
+      </div>
+
+      {/* Grille des Cartes de Sous-Sections Dédiées */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+        gap: '16px',
+      }}>
+        {category.items.map((item, idx) => (
+          <div
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            style={{
+              background: 'rgba(13, 19, 31, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '10px',
+              padding: '18px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '14px',
+              cursor: 'pointer',
+              transition: 'all 0.18s ease',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = category.color;
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = `0 6px 20px ${category.color}20`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '7px',
+                    background: `${category.color}15`,
+                    color: category.color,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {item.icon}
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      {lang === 'fr' ? `Sous-section ${idx + 1}` : `Sub-section ${idx + 1}`}
+                    </span>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
+                      {lang === 'fr' ? item.labelFr : item.labelEn}
+                    </h3>
+                  </div>
+                </div>
+
+                {item.badge && (
+                  <span style={{
+                    fontSize: '0.68rem',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-main)',
+                    fontWeight: 700,
+                  }}>
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                {lang === 'fr' ? item.descriptionFr : item.descriptionEn}
+              </p>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              paddingTop: '12px',
+            }}>
+              {item.currentValue ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {lang === 'fr' ? 'Actuel :' : 'Current:'}
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: category.color, fontWeight: 700 }}>
+                    {item.currentValue}
+                  </span>
+                </div>
+              ) : <div />}
+
+              <button
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: accentColor,
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                }}
+              >
+                <span>{lang === 'fr' ? 'Configurer' : 'Configure'}</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
   recipe,
@@ -99,228 +333,381 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isHudCollapsed, setIsHudCollapsed] = useState(false);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+
+  const toggleCategory = (catId: string) => {
+    setCollapsedCategories(prev => ({ ...prev, [catId]: !prev[catId] }));
+  };
 
   // Estimation des ressources
   const estimate = useMemo(() => calculateResourceEstimate(recipe), [recipe]);
   const accentColor = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
 
-  // Arborescence de navigation structurée et granulaire
+  // Arborescence de navigation structurée et granulaire avec chaque section et sous-section
   const categories: NavCategory[] = useMemo(() => [
     {
       id: 'cat_base',
+      sectionId: 'sec_base',
       titleFr: 'Base Système & Cible',
       titleEn: 'System Base & Target',
       icon: <Server size={17} color="#38bdf8" />,
+      color: '#38bdf8',
+      badge: `${recipe.distro.toUpperCase()} • ${recipe.arch}`,
+      descriptionFr: 'Distribution Linux racine, version de publication, noyau et format d\'image amorçable cible.',
+      descriptionEn: 'Root Linux distribution, release version, kernel optimizations, and target bootable image formats.',
       items: [
         {
           id: 'base_distro',
           labelFr: 'Distribution Linux',
           labelEn: 'Linux Distribution',
+          icon: <Server size={14} />,
           badge: recipe.distro.toUpperCase(),
+          descriptionFr: 'Choix de la distribution parmi Debian, Ubuntu, Kali, Mint, Arch, Fedora, Alpine, etc.',
+          descriptionEn: 'Distribution selection among Debian, Ubuntu, Kali, Mint, Arch, Fedora, Alpine, etc.',
+          currentValue: `${recipe.distro} ${recipe.distroVersion || ''}`,
         },
         {
           id: 'base_kernel',
-          labelFr: 'Noyau Linux & Tunning',
+          labelFr: 'Noyau Linux & Tuning',
           labelEn: 'Linux Kernel & Tuning',
+          icon: <Zap size={14} />,
           badge: recipe.kernel,
+          descriptionFr: 'Optimisations de scheduling du noyau (Standard, Zen, Liquorix 1000 Hz, Hardened, RT).',
+          descriptionEn: 'Kernel scheduler optimizations (Standard, Zen, Liquorix 1000 Hz, Hardened, RT).',
+          currentValue: `Noyau ${recipe.kernel}`,
         },
         {
           id: 'base_output',
           labelFr: 'Architecture & Formats',
           labelEn: 'Architecture & Output',
+          icon: <HardDrive size={14} />,
           badge: `${recipe.arch}`,
+          descriptionFr: 'Format de sortie : ISO Live Hybride, Image Disque QCOW2/VMDK/RAW, RootFS WSL2 ou SD Pi.',
+          descriptionEn: 'Output format: Hybrid Live ISO, QCOW2/VMDK/RAW Disk Image, WSL2 RootFS, or SD Card.',
+          currentValue: `${recipe.outputFormat} (${recipe.arch})`,
         },
       ],
     },
     {
       id: 'cat_ui',
+      sectionId: 'sec_ui',
       titleFr: 'Bureau & Interface',
       titleEn: 'Desktop & Interface',
       icon: <Monitor size={17} color="#a855f7" />,
+      color: '#a855f7',
+      badge: recipe.desktop ? recipe.desktop.toUpperCase() : 'HEADLESS',
+      descriptionFr: 'Environnement de bureau, gestionnaire de fenêtres, session de connexion et applications par défaut.',
+      descriptionEn: 'Desktop environment, window managers, display greeters, and default desktop applications.',
       items: [
         {
           id: 'ui_desktop',
           labelFr: 'Environnement de Bureau',
           labelEn: 'Desktop Environment',
+          icon: <Monitor size={14} />,
           badge: recipe.desktop,
+          descriptionFr: '18 bureaux et fenêtres (KDE Plasma, GNOME, XFCE, Hyprland, Sway, Kiosk, etc.).',
+          descriptionEn: '18 desktop environments & WMs (KDE Plasma, GNOME, XFCE, Hyprland, Sway, Kiosk, etc.).',
+          currentValue: recipe.desktop,
         },
         {
           id: 'ui_display_manager',
           labelFr: 'Gestionnaire de Session',
           labelEn: 'Display Manager',
+          icon: <AppWindow size={14} />,
           badge: recipe.displayManager,
+          descriptionFr: 'Gestionnaire de connexion graphique (LightDM, GDM3, SDDM, ou console pure).',
+          descriptionEn: 'Graphical display manager & greeter (LightDM, GDM3, SDDM, or pure console).',
+          currentValue: recipe.displayManager,
         },
         {
           id: 'ui_default_apps',
           labelFr: 'Applications par Défaut',
           labelEn: 'Default Applications',
+          icon: <Sliders size={14} />,
+          descriptionFr: 'Navigateur Web, émulateur de terminal et éditeur de texte système par défaut.',
+          descriptionEn: 'Default web browser, terminal emulator, and code editor.',
+          currentValue: recipe.defaultApps?.browser || 'Firefox',
         },
         {
           id: 'ui_simulators',
           labelFr: 'Simulateurs Bureau & Boot',
           labelEn: 'Desktop & Boot Simulators',
+          icon: <Eye size={14} />,
+          descriptionFr: 'Simulateur interactif temps réel du boot Plymouth et du bureau graphique en direct.',
+          descriptionEn: 'Real-time interactive preview of Plymouth boot sequence and live desktop.',
+          currentValue: 'Plymouth & Live',
         },
       ],
     },
     {
       id: 'cat_brand',
+      sectionId: 'sec_brand',
       titleFr: 'Design System & Branding',
       titleEn: 'Design System & Branding',
       icon: <Palette size={17} color="#ec4899" />,
+      color: '#ec4899',
+      badge: recipe.branding.accentColor,
+      descriptionFr: 'Identité visuelle de votre distribution, fonds d\'écran, thèmes d\'icônes, Plymouth et polices.',
+      descriptionEn: 'Visual branding of your Linux distribution: wallpapers, icons, cursors, Plymouth and fonts.',
       items: [
         {
           id: 'brand_theme',
           labelFr: 'Couleurs & Fonds d\'Écran',
           labelEn: 'Colors & Wallpapers',
+          icon: <Palette size={14} />,
           badge: recipe.branding.wallpaperPreset || 'minimal',
+          descriptionFr: 'Couleur d\'accentuation HSL et sélection parmi 11 fonds d\'écran HD vectoriels intégrés.',
+          descriptionEn: 'Accent color picker and curated collection of 11 vector HD system wallpapers.',
+          currentValue: recipe.branding.wallpaperPreset || 'Par défaut',
         },
         {
           id: 'brand_appearance',
           labelFr: 'Icônes, Curseurs & Polices',
           labelEn: 'Icons, Cursors & Fonts',
+          icon: <Sparkles size={14} />,
           badge: recipe.branding.iconTheme,
+          descriptionFr: 'Packs d\'icônes Papirus/Nordic, thèmes de curseurs et typographies modernes UI et code.',
+          descriptionEn: 'Papirus/Nordic icon themes, cursor packs, and modern UI and monospace coding fonts.',
+          currentValue: `${recipe.branding.iconTheme || 'Papirus'} • ${recipe.branding.fontFamily || 'Inter'}`,
         },
         {
           id: 'brand_terminal_plymouth',
           labelFr: 'Terminal & Boot Plymouth',
           labelEn: 'Terminal & Boot Plymouth',
+          icon: <Terminal size={14} />,
+          descriptionFr: 'Palettes terminal (Catppuccin, Tokyo Night, Dracula) et thèmes Plymouth animés.',
+          descriptionEn: 'Terminal color schemes (Catppuccin, Tokyo Night, Dracula) and animated Plymouth themes.',
+          currentValue: recipe.branding.bootSplashTheme || 'osforge-custom',
         },
         {
           id: 'brand_identity',
           labelFr: 'Identité Système & Fastfetch',
           labelEn: 'System Identity & Fastfetch',
+          icon: <CheckCircle2 size={14} />,
+          descriptionFr: 'Nom d\'édition dans /etc/os-release, bannière Fastfetch, thème GRUB 2 et disposition boutons.',
+          descriptionEn: '/etc/os-release branding, Fastfetch MOTD banner, GRUB 2 theme, and window buttons layout.',
+          currentValue: recipe.branding.osName,
         },
       ],
     },
     {
       id: 'cat_pkgs',
+      sectionId: 'pkgs_catalog',
       titleFr: 'Logiciels & Dépôts',
       titleEn: 'Software & Repositories',
       icon: <Package size={17} color="#10b981" />,
+      color: '#10b981',
+      badge: `${recipe.selectedPackages.length + (recipe.customPackages?.length || 0)} paquets`,
+      descriptionFr: 'Catalogue interactif de logiciels, paquets CLI, suites pro, utilitaires et dépôts tiers.',
+      descriptionEn: 'Interactive software catalog, CLI tools, developer suites, utilities, and extra repositories.',
       items: [
         {
           id: 'pkgs_catalog',
           labelFr: 'Catalogue des Paquets',
           labelEn: 'Package Catalog',
+          icon: <Package size={14} />,
           badge: `${recipe.selectedPackages.length + (recipe.customPackages?.length || 0)}`,
+          descriptionFr: 'Sélectionnez des logiciels organisés par catégories avec vérification automatique de compatibilité.',
+          descriptionEn: 'Select software organized by categories with live repository compatibility checks.',
+          currentValue: `${recipe.selectedPackages.length} sélectionnés`,
         },
       ],
     },
     {
       id: 'cat_sys',
+      sectionId: 'sec_sys',
       titleFr: 'Système & Matériel',
       titleEn: 'System & Hardware',
       icon: <Cpu size={17} color="#f59e0b" />,
+      color: '#f59e0b',
+      badge: recipe.hostname,
+      descriptionFr: 'Configuration de la machine, utilisateur, réseau OOB, stockage, profils d\'énergie et gaming ROG.',
+      descriptionEn: 'Machine identity, user accounts, headless network, storage, power profiles, and ROG gaming.',
       items: [
         {
           id: 'sys_identity',
           labelFr: 'Identité & Nom d\'Hôte',
           labelEn: 'Identity & Hostname',
+          icon: <Cpu size={14} />,
           badge: recipe.hostname,
+          descriptionFr: 'Nom d\'hôte (hostname), description de la machine et informations système.',
+          descriptionEn: 'Hostname, machine description, and system information.',
+          currentValue: recipe.hostname,
         },
         {
           id: 'sys_user',
           labelFr: 'Compte Utilisateur',
           labelEn: 'User Account',
+          icon: <User size={14} />,
           badge: recipe.user.username,
+          descriptionFr: 'Identifiant, mot de passe chiffré, shell par défaut et privilèges sudoers.',
+          descriptionEn: 'Username, hashed password, default login shell, and sudo privileges.',
+          currentValue: recipe.user.username,
         },
         {
           id: 'sys_ssh',
           labelFr: 'Accès Distant SSH',
           labelEn: 'Remote SSH Access',
-          badge: recipe.enableSSH ? 'SSH' : undefined,
+          icon: <Key size={14} />,
+          badge: recipe.enableSSH ? 'SSH Actif' : undefined,
+          descriptionFr: 'Activation du serveur OpenSSH et importation de clés publiques autorisées.',
+          descriptionEn: 'OpenSSH server activation and authorized public keys management.',
+          currentValue: recipe.enableSSH ? 'Activé' : 'Désactivé',
         },
         {
           id: 'sys_network',
           labelFr: 'Réseau Headless & VPN',
           labelEn: 'Headless Network & VPN',
+          icon: <Wifi size={14} />,
           badge: recipe.network?.enableWifi ? 'Wi-Fi' : undefined,
+          descriptionFr: 'Pré-configuration Wi-Fi WPA2/WPA3, VPN WireGuard, mesh Tailscale et IP fixe/DHCP.',
+          descriptionEn: 'Headless Wi-Fi WPA2/WPA3, WireGuard VPN, Tailscale mesh, and static/DHCP IP.',
+          currentValue: recipe.network?.enableWifi ? 'Wi-Fi configuré' : 'Ethernet / DHCP',
         },
         {
           id: 'sys_locale_power',
           labelFr: 'Clavier, Locale & Profils',
           labelEn: 'Keyboard, Locale & Profiles',
+          icon: <Clock size={14} />,
+          descriptionFr: 'Disposition de clavier, locale système, fuseau horaire et profils d\'alimentation.',
+          descriptionEn: 'Keyboard layout, system locale, timezone, and power/audio latency profiles.',
+          currentValue: `${recipe.keyboardLayout} • ${recipe.timezone}`,
         },
         {
           id: 'sys_storage',
           labelFr: 'Stockage & Bootloader',
           labelEn: 'Storage & Bootloader',
+          icon: <HardDrive size={14} />,
           badge: recipe.bootloader || 'grub2',
+          descriptionFr: 'Type de partitionnement (ESP, Root Btrfs/Ext4, Swap) et points de montage.',
+          descriptionEn: 'Partition layout (ESP, Root Btrfs/Ext4, Swap) and custom mount points.',
+          currentValue: `${recipe.filesystem || 'ext4'} • ${recipe.bootloader || 'grub2'}`,
         },
         {
           id: 'sys_gaming',
           labelFr: 'Gaming, ROG & Latence',
           labelEn: 'Gaming, ROG & Latency',
+          icon: <Gamepad2 size={14} />,
           badge: recipe.enableGamingOptimizations ? 'ROG' : undefined,
+          descriptionFr: 'Tuning GameMode, latence audio PipeWire, Hugepages, MangoHud et Proton-GE.',
+          descriptionEn: 'GameMode tuning, PipeWire audio latency, Hugepages, MangoHud, and Proton-GE.',
+          currentValue: recipe.enableGamingOptimizations ? 'Optimisé ROG' : 'Standard',
         },
       ],
     },
     {
       id: 'cat_sec',
+      sectionId: 'sec_security',
       titleFr: 'Sécurité & Durcissement',
       titleEn: 'Security & Hardening',
       icon: <Shield size={17} color="#ef4444" />,
+      color: '#ef4444',
+      badge: recipe.security.firewall !== 'none' ? `${recipe.security.firewall.toUpperCase()}` : 'Standard',
+      descriptionFr: 'Conformité CIS Benchmark / ANSSI, pare-feu réseau, chiffrement LUKS2 et durcissement du noyau.',
+      descriptionEn: 'CIS Benchmark / ANSSI compliance, network firewalls, LUKS2 encryption, and kernel hardening.',
       items: [
         {
           id: 'sec_benchmark',
           labelFr: 'Conformité CIS Benchmark',
           labelEn: 'CIS Benchmark Compliance',
+          icon: <Shield size={14} />,
           badge: recipe.security.cisBenchmarkLevel > 0 ? `CIS L${recipe.security.cisBenchmarkLevel}` : undefined,
+          descriptionFr: 'Référentiels de sécurité d\'entreprise ANSSI et CIS Benchmark Niveau 1 & 2.',
+          descriptionEn: 'Enterprise security standards ANSSI and CIS Benchmark Level 1 & 2.',
+          currentValue: recipe.security.cisBenchmarkLevel > 0 ? `Niveau ${recipe.security.cisBenchmarkLevel}` : 'Standard',
         },
         {
           id: 'sec_firewall',
           labelFr: 'Pare-feu & Filtrage Ports',
           labelEn: 'Firewall & Port Filtering',
+          icon: <Flame size={14} />,
           badge: recipe.security.firewall !== 'none' ? recipe.security.firewall.toUpperCase() : undefined,
+          descriptionFr: 'Pare-feu système (UFW, NFTables, Fail2ban) et politique de filtrage des ports entrants.',
+          descriptionEn: 'System firewall (UFW, NFTables, Fail2ban) and ingress ports filtering policy.',
+          currentValue: recipe.security.firewall !== 'none' ? recipe.security.firewall.toUpperCase() : 'Désactivé',
         },
         {
           id: 'sec_luks',
           labelFr: 'Chiffrement Disque LUKS2',
           labelEn: 'LUKS2 Disk Encryption',
+          icon: <Lock size={14} />,
           badge: recipe.security.luksEncryption ? 'LUKS2' : undefined,
+          descriptionFr: 'Chiffrement intégral de volume avec cryptsetup LUKS2 et clé de secours.',
+          descriptionEn: 'Full partition encryption with cryptsetup LUKS2 and recovery passphrase.',
+          currentValue: recipe.security.luksEncryption ? 'Chiffré LUKS2' : 'Non chiffré',
         },
         {
           id: 'sec_hardening',
           labelFr: 'Durcissement & Défense',
           labelEn: 'Hardening & Defense',
+          icon: <ShieldCheck size={14} />,
           badge: recipe.security.enableCrowdSec ? 'CrowdSec' : undefined,
+          descriptionFr: 'Paramètres sysctl de protection noyau, désactivation de root SSH et CrowdSec.',
+          descriptionEn: 'Sysctl kernel protection tunables, root SSH lockout, and CrowdSec active defense.',
+          currentValue: recipe.security.disableRootSSH ? 'Root SSH bloqué' : 'Standard',
         },
       ],
     },
     {
       id: 'cat_scripts',
+      sectionId: 'sec_post',
       titleFr: 'Post-Install & Automatisation',
       titleEn: 'Post-Install & Automation',
       icon: <FileCode size={17} color="#6366f1" />,
+      color: '#6366f1',
+      badge: recipe.customServices.length > 0 ? `${recipe.customServices.length} services` : undefined,
+      descriptionFr: 'Scripts Bash personnalisés au premier démarrage, dotfiles Git et services systemd personnalisés.',
+      descriptionEn: 'Custom first-boot bash scripts, Git user dotfiles, and custom systemd/OpenRC units.',
       items: [
         {
           id: 'post_firstboot',
           labelFr: 'Script Bash First-Boot',
           labelEn: 'First-Boot Bash Script',
+          icon: <Terminal size={14} />,
+          descriptionFr: 'Script Shell exécuté automatiquement avec les privilèges root au premier boot.',
+          descriptionEn: 'Shell script executed automatically with root privileges upon first boot.',
+          currentValue: recipe.firstBootScript ? 'Script configuré' : 'Aucun',
         },
         {
           id: 'post_dotfiles',
           labelFr: 'Injection Git Dotfiles',
           labelEn: 'Git Dotfiles Injection',
+          icon: <FolderGit2 size={14} />,
+          descriptionFr: 'Clonage automatique d\'un dépôt Git de dotfiles dans le répertoire home de l\'utilisateur.',
+          descriptionEn: 'Automatic clone of user dotfiles Git repository directly into home directory.',
+          currentValue: recipe.dotfilesGitUrl ? 'Dépôt Git configuré' : 'Aucun',
         },
         {
           id: 'post_services',
           labelFr: 'Services Systemd Personnalisés',
           labelEn: 'Custom Systemd Services',
+          icon: <Layers size={14} />,
           badge: recipe.customServices.length > 0 ? `${recipe.customServices.length}` : undefined,
+          descriptionFr: 'Création et activation de démons et services systemd ou OpenRC sur-mesure.',
+          descriptionEn: 'Creation and activation of custom systemd units or OpenRC services.',
+          currentValue: `${recipe.customServices.length} service(s)`,
         },
       ],
     },
     {
       id: 'cat_export',
+      sectionId: 'export_inspector',
       titleFr: 'Code, Recette & Manifestes',
       titleEn: 'Code, Recipe & Manifests',
       icon: <Terminal size={17} color="#14b8a6" />,
+      color: '#14b8a6',
+      badge: 'Code & Manifestes',
+      descriptionFr: 'Inspecteur complet des scripts générés (Bash debootstrap/pacstrap, Cloud-Init, Packer, QEMU).',
+      descriptionEn: 'Complete multi-manifest inspector (debootstrap/pacstrap Bash, Cloud-Init, Packer, QEMU).',
       items: [
         {
           id: 'export_inspector',
           labelFr: 'Inspecteur Multi-Manifestes',
           labelEn: 'Multi-Manifest Inspector',
+          icon: <FileCode size={14} />,
+          descriptionFr: 'Visualisez, copiez et téléchargez les manifestes de construction réels.',
+          descriptionEn: 'View, copy, and download the actual build manifests and bash scripts.',
+          currentValue: 'Scripts & Manifestes',
         },
       ],
     },
@@ -345,7 +732,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
         (lang === 'fr' ? item.labelFr : item.labelEn).toLowerCase().includes(query) ||
         (cat.titleFr.toLowerCase().includes(query) || cat.titleEn.toLowerCase().includes(query))
       )
-    })).filter(cat => cat.items.length > 0);
+    })).filter(cat => cat.items.length > 0 || cat.titleFr.toLowerCase().includes(query) || cat.titleEn.toLowerCase().includes(query));
   }, [categories, searchQuery, lang]);
 
   return (
@@ -362,8 +749,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       {/* 1. SIDEBAR NAVIGATION HIÉRARCHIQUE (MASTER)                              */}
       {/* ========================================================================= */}
       <aside style={{
-        width: isSidebarCollapsed ? '60px' : '270px',
-        minWidth: isSidebarCollapsed ? '60px' : '270px',
+        width: isSidebarCollapsed ? '60px' : '285px',
+        minWidth: isSidebarCollapsed ? '60px' : '285px',
         borderRight: '1px solid rgba(255, 255, 255, 0.07)',
         background: '#0d131f',
         display: 'flex',
@@ -389,15 +776,21 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 background: accentColor,
                 boxShadow: `0 0 8px ${accentColor}`,
               }} />
-              <span style={{
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                letterSpacing: '0.5px',
-                textTransform: 'uppercase',
-                color: 'var(--text-main)',
-              }}>
-                {lang === 'fr' ? 'Studio Expert' : 'Expert Studio'}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  color: 'var(--text-main)',
+                  lineHeight: 1.1,
+                }}>
+                  {lang === 'fr' ? 'Studio Expert' : 'Expert Studio'}
+                </span>
+                <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>
+                  {lang === 'fr' ? '8 Sections • 27 Modules' : '8 Sections • 27 Modules'}
+                </span>
+              </div>
             </div>
           )}
           <button
@@ -436,7 +829,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={lang === 'fr' ? 'Filtrer les menus...' : 'Filter sections...'}
+                placeholder={lang === 'fr' ? 'Filtrer sections & modules...' : 'Filter sections & modules...'}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -450,99 +843,210 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
           </div>
         )}
 
-        {/* Arborescence des Menus & Catégories */}
+        {/* Arborescence des Menus : Chaque Section et Chaque Sous-Section a sa place */}
         <nav style={{
           flex: 1,
           overflowY: 'auto',
           padding: '8px 6px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '8px',
         }}>
-          {filteredCategories.map(cat => (
-            <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              {!isSidebarCollapsed && (
+          {filteredCategories.map((cat, catIdx) => {
+            const isSectionActive = activeSection === cat.sectionId;
+            const hasActiveChild = cat.items.some(item => item.id === activeSection);
+            const isHighlighted = isSectionActive || hasActiveChild;
+            const isExpanded = !collapsedCategories[cat.id];
+
+            return (
+              <div
+                key={cat.id}
+                style={{
+                  borderRadius: '8px',
+                  background: isHighlighted ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+                  border: isHighlighted ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent',
+                  padding: '3px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                {/* 1. Entrée Principale de la SECTION (Cliquable pour ouvrir la vue d'ensemble de la section) */}
                 <div style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.8px',
-                  color: 'var(--text-muted)',
-                  padding: '6px 8px 3px 8px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  justifyContent: 'space-between',
+                  borderRadius: '6px',
+                  background: isSectionActive 
+                    ? `linear-gradient(90deg, ${cat.color}25 0%, transparent 100%)` 
+                    : isHighlighted 
+                      ? 'rgba(255, 255, 255, 0.04)' 
+                      : 'transparent',
+                  borderLeft: isSectionActive ? `3px solid ${cat.color}` : '3px solid transparent',
+                  transition: 'all 0.15s ease',
                 }}>
-                  {cat.icon}
-                  <span>{lang === 'fr' ? cat.titleFr : cat.titleEn}</span>
-                </div>
-              )}
-
-              {cat.items.map(item => {
-                const isActive = activeSection === item.id;
-                return (
                   <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    title={lang === 'fr' ? item.labelFr : item.labelEn}
+                    onClick={() => {
+                      if (cat.items.length === 1) {
+                        setActiveSection(cat.items[0].id);
+                      } else {
+                        setActiveSection(cat.sectionId);
+                      }
+                    }}
+                    title={lang === 'fr' ? `Section ${catIdx + 1} : ${cat.titleFr}` : `Section ${catIdx + 1}: ${cat.titleEn}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: isSidebarCollapsed ? 'center' : 'space-between',
-                      padding: isSidebarCollapsed ? '10px 0' : '7px 10px',
-                      borderRadius: '6px',
-                      background: isActive 
-                        ? `linear-gradient(90deg, rgba(2, 132, 199, 0.18) 0%, rgba(2, 132, 199, 0.05) 100%)` 
-                        : 'transparent',
-                      borderLeft: isActive ? `3px solid ${accentColor}` : '3px solid transparent',
-                      borderTop: 'none',
-                      borderRight: 'none',
-                      borderBottom: 'none',
-                      color: isActive ? '#ffffff' : 'var(--text-muted)',
-                      fontWeight: isActive ? 700 : 500,
+                      gap: '8px',
+                      padding: isSidebarCollapsed ? '8px 0' : '7px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: isSectionActive ? '#ffffff' : isHighlighted ? 'var(--text-main)' : 'var(--text-muted)',
+                      fontWeight: isSectionActive || isHighlighted ? 700 : 600,
                       cursor: 'pointer',
                       fontSize: '0.78rem',
                       textAlign: 'left',
-                      transition: 'all 0.15s ease',
-                      gap: '8px',
+                      flex: 1,
+                      overflow: 'hidden',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                      {isSidebarCollapsed && cat.icon}
-                      {!isSidebarCollapsed && (
-                        <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                          {lang === 'fr' ? item.labelFr : item.labelEn}
-                        </span>
-                      )}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '5px',
+                      background: `${cat.color}18`,
+                      flexShrink: 0,
+                    }}>
+                      {cat.icon}
                     </div>
-
-                    {!isSidebarCollapsed && item.badge && (
-                      <span style={{
-                        fontSize: '0.62rem',
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                        background: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)',
-                        color: isActive ? '#ffffff' : 'var(--text-muted)',
-                        fontWeight: 600,
-                      }}>
-                        {item.badge}
+                    {!isSidebarCollapsed && (
+                      <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        {catIdx + 1}. {lang === 'fr' ? cat.titleFr : cat.titleEn}
                       </span>
                     )}
                   </button>
-                );
-              })}
-            </div>
-          ))}
+
+                  {!isSidebarCollapsed && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', paddingRight: '4px' }}>
+                      {cat.badge && (
+                        <span style={{
+                          fontSize: '0.62rem',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: `${cat.color}20`,
+                          color: cat.color,
+                          fontWeight: 700,
+                        }}>
+                          {cat.badge}
+                        </span>
+                      )}
+                      {cat.items.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCategory(cat.id);
+                          }}
+                          title={isExpanded ? (lang === 'fr' ? 'Replier les sous-sections' : 'Collapse sub-sections') : (lang === 'fr' ? 'Déplier les sous-sections' : 'Expand sub-sections')}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '3px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Liste Arborescente des SOUS-SECTIONS (Chaque sous-section a sa propre place dédiée) */}
+                {!isSidebarCollapsed && isExpanded && cat.items.length > 1 && (
+                  <div style={{
+                    marginLeft: '14px',
+                    paddingLeft: '10px',
+                    borderLeft: `1px solid rgba(255, 255, 255, 0.08)`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px',
+                    marginTop: '2px',
+                    marginBottom: '4px',
+                  }}>
+                    {cat.items.map(item => {
+                      const isItemActive = activeSection === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveSection(item.id)}
+                          title={lang === 'fr' ? item.labelFr : item.labelEn}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 8px',
+                            borderRadius: '5px',
+                            background: isItemActive ? `linear-gradient(90deg, rgba(2, 132, 199, 0.2) 0%, transparent 100%)` : 'transparent',
+                            borderLeft: isItemActive ? `2px solid ${accentColor}` : '2px solid transparent',
+                            borderTop: 'none',
+                            borderRight: 'none',
+                            borderBottom: 'none',
+                            color: isItemActive ? '#ffffff' : 'var(--text-muted)',
+                            fontWeight: isItemActive ? 600 : 500,
+                            cursor: 'pointer',
+                            fontSize: '0.74rem',
+                            textAlign: 'left',
+                            transition: 'all 0.12s ease',
+                            gap: '6px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                            <span style={{ color: isItemActive ? accentColor : 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                              {item.icon}
+                            </span>
+                            <span style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                              {lang === 'fr' ? item.labelFr : item.labelEn}
+                            </span>
+                          </div>
+
+                          {item.badge && (
+                            <span style={{
+                              fontSize: '0.6rem',
+                              padding: '1px 4px',
+                              borderRadius: '3px',
+                              background: isItemActive ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)',
+                              color: isItemActive ? '#ffffff' : 'var(--text-muted)',
+                              fontWeight: 600,
+                            }}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Pied de Sidebar avec Actions Rapides */}
         <div style={{
           padding: '10px 12px',
-          borderTop: '1px solid var(--border-subtle)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.07)',
+          background: 'rgba(0, 0, 0, 0.2)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '6px',
-          background: 'rgba(7, 9, 14, 0.98)',
+          gap: '8px',
         }}>
           {!isSidebarCollapsed ? (
             <>
@@ -690,9 +1194,17 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
           }}>
             <div>
               <div style={{ fontSize: '0.72rem', color: 'var(--cyan)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                {lang === 'fr' ? 'Configuration Ciblée' : 'Focused Section'}
+                {activeSection.startsWith('sec_') ? (lang === 'fr' ? 'Vue d\'Ensemble de Section' : 'Section Overview Hub') : (lang === 'fr' ? 'Configuration Ciblée' : 'Focused Section')}
               </div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0 0' }}>
+                {/* Vues d'Ensemble des Sections Principales */}
+                {activeSection === 'sec_base' && (lang === 'fr' ? 'Base Système & Cible — Hub d\'Architecture' : 'System Base & Target — Architecture Hub')}
+                {activeSection === 'sec_ui' && (lang === 'fr' ? 'Bureau & Interface Graphique — Hub Visuel' : 'Desktop & Graphical Interface — Visual Hub')}
+                {activeSection === 'sec_brand' && (lang === 'fr' ? 'Design System, Thème & Branding — Hub Cosmétique' : 'Design System, Theme & Branding — Aesthetic Hub')}
+                {activeSection === 'sec_sys' && (lang === 'fr' ? 'Système, Matériel & Gaming — Hub Machine' : 'System, Hardware & Gaming — Machine Hub')}
+                {activeSection === 'sec_security' && (lang === 'fr' ? 'Sécurité, Durcissement & Pare-feu — Hub Défense' : 'Security, Hardening & Firewall — Defense Hub')}
+                {activeSection === 'sec_post' && (lang === 'fr' ? 'Post-Installation & Automatisation — Hub Déploiement' : 'Post-Installation & Automation — Deployment Hub')}
+
                 {/* 1. Base Système */}
                 {activeSection === 'base_distro' && (lang === 'fr' ? 'Distribution Linux & Canal de Version' : 'Linux Distribution & Release Channel')}
                 {activeSection === 'base_kernel' && (lang === 'fr' ? 'Noyau Linux & Optimisations (BORE, Liquorix, Zen, Hardened)' : 'Linux Kernel Tuning (BORE, Liquorix, Zen, Hardened)')}
@@ -774,8 +1286,64 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
             </div>
           </div>
 
-          {/* Contenu Découpé par Sous-Section (Chaque sous-section a sa propre page dédiée 1-à-1) */}
+          {/* Contenu Découpé par Section & Sous-Section (Chaque section et sous-section a sa propre page dédiée 1-à-1) */}
           <div style={{ minHeight: '400px' }}>
+            {/* Vues d'Ensemble des Sections Principales (Hubs Dédiés) */}
+            {activeSection === 'sec_base' && (
+              <SectionOverviewView
+                category={categories[0]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+            {activeSection === 'sec_ui' && (
+              <SectionOverviewView
+                category={categories[1]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+            {activeSection === 'sec_brand' && (
+              <SectionOverviewView
+                category={categories[2]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+            {activeSection === 'sec_sys' && (
+              <SectionOverviewView
+                category={categories[4]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+            {activeSection === 'sec_security' && (
+              <SectionOverviewView
+                category={categories[5]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+            {activeSection === 'sec_post' && (
+              <SectionOverviewView
+                category={categories[6]}
+                recipe={recipe}
+                lang={lang}
+                accentColor={accentColor}
+                onNavigate={setActiveSection}
+              />
+            )}
+
             {/* 1. Base Système & Cible */}
             {activeSection === 'base_distro' && (
               <DistroSelector

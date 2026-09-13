@@ -146,7 +146,14 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **922 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 120 fichiers.
+- Suite de tests : **923 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 120 fichiers.
+- **46. 🗂️ Structuration Hiérarchique du Menu à Gauche & Hubs de Sections (`ExpertProStudio.tsx`, `sectionPages.test.ts`)** :
+  - *Exigence Utilisateur* : « je veux chaque section a sa place dans le menu a gauche » (donner une identité de premier plan à chaque section principale avec ses sous-sections en arborescence indentée).
+  - *Sidebar Hiérarchique Cliquable* :
+    - 8 Entrées Principales de Section (numérotées `1.` à `8.`) dotées d'une icône stylisée à fond translucide coloré, d'un titre clair, d'un badge de contexte et d'un bouton chevron pour plier/déplier ses sous-sections.
+    - Clic sur la section principale : ouverture immédiate du **Hub d'Architecture Dédié** (`SectionOverviewView`) avec cartes d'actions directes et état de configuration en temps réel.
+    - Arborescence des 27 sous-sections : indentées sous leur section respective avec une bordure de guide vertical, une icône dédiée de 14px (ex: `HardDrive` pour Formats, `Zap` pour Kernel, `Sliders` pour Apps, `Key` pour SSH, `Gamepad2` pour ROG Gaming, `Flame` pour Pare-feu, etc.), libellé complet et badge dynamique.
+  - *Résultat* : 923 tests unitaires Vitest 100% verts, 0 warning / 0 erreur oxlint sur 120 fichiers, build de production propre.
 - **45. 📑 Découpage Granulaire Total : Chaque Section et Sous-Section sur sa Propre Page Dédiée (`ExpertProStudio.tsx`, `DistroSelector.tsx`, `DesktopSelector.tsx`, `BrandingDesignView.tsx`, `SystemConfig.tsx`, `SecurityConfig.tsx`, `PostInstallScripts.tsx`, `App.tsx`)** :
   - *Exigence Utilisateur* : « je veux que chaque section ait sa propre page, même chose pour les sous-sections pour une meilleure lisibilité » (éliminer l'empilement vertical et le scroll infini).
   - *Architecture 1-à-1 Intégrale (27 sous-sections dédiées isolées)* :
