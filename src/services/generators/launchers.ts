@@ -7,6 +7,8 @@ import {
   yamlDq,
 } from './helpers';
 
+export { generateVirtualBoxTestBat, generateVirtualBoxTestSh } from './testVm';
+
 /**
  * Generates the GitHub Actions workflow (.github/workflows/build-iso.yml)
  * Builds the ISO on GitHub's free runners and uploads the downloadable artifact/release!

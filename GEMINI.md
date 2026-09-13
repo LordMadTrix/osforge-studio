@@ -146,7 +146,29 @@ après.
 
 ## État au moment de la rédaction de ce fichier
 
-- Suite de tests : **897 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 111 fichiers.
+- Suite de tests : **920 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 116 fichiers.
+- **43. 🚀 Les 5 Grandes Extensions d'OSForge Studio (Recipe Doctor, VirtualBox, Netboot PXE, Proxmox/Packer, 4 Nouveaux Presets)** :
+  - **Axe 1 — Recipe Doctor (`recipeDoctor.ts`, `RecipeDoctorModal.tsx`, `Header.tsx`, `StatsBanner.tsx`)** :
+    - *Diagnostic Statique Temps Réel* : Détection proactive des incompatibilités bloquantes (ISO sur familles non-Debian, bootstrap cross-arch non-Debian, bureaux absents d'EPEL9 sur Rocky 9, compte SSH sans mot de passe ni clé, conteneur LUKS sans mot de passe).
+    - *Avertissements et Conseils Système* : Détection du conflit Ollama glibc sur Alpine musl, instabilité Wayland de Cinnamon sous GDM3 en machine virtuelle, choix de noyau standard pour profil Gaming, score de sécurité CIS / ANSSI dynamique (0 à 100%).
+    - *Résolution Automatique (1-Click Auto-Fix)* : Chaque anomalie fournit une action corrective immédiate (`autoFix`) ou un bouton global « Résoudre Tout Automatiquement ».
+    - *UI & Intégration* : Badge santé dynamique dans le `Header.tsx` (indicateur d'état vert/jaune/rouge avec décompte d'erreurs), accès direct dans le menu Outils et dans la `StatsBanner.tsx`.
+  - **Axe 2 — Lanceurs VirtualBox 1-Clic VBoxManage (`testVm.ts`, `launchers.ts`, `BuildPipelineModal.tsx`, `buildExport.ts`)** :
+    - *Windows & Linux / macOS* : `generateVirtualBoxTestBat(recipe)` et `generateVirtualBoxTestSh(recipe)` intégrés dans l'export ZIP et l'inspecteur.
+    - *Gestion VBoxManage* : Détection automatique (`VBOX_MSI_INSTALL_PATH`, `%ProgramFiles%\Oracle\VirtualBox\VBoxManage.exe`, `where VBoxManage`), création VM avec `--ostype` mappé précisément par distribution, allocation RAM/VRAM, contrôleur IntelAHCI SATA, port forwarding SSH 2222, création automatique d'un disque VDI dynamique de 40 Go pour les tests d'installation Calamares/Debian.
+    - *Onglet dédié dans le Studio* : Nouvel onglet « 5. Testeur VirtualBox » dans `BuildPipelineModal.tsx`.
+  - **Axe 3 — Serveur PXE / Netboot Réseau 1-Clic (`ipxe.ts`, `buildExport.ts`, `RecipeInspector.tsx`)** :
+    - *Amorçage Réseau Autonome* : `generatePxeServerBat(recipe)` pour Windows (lanceur 1-clic avec contournement de stratégie d'exécution PowerShell et serveur HTTP Python intégré) et `generatePxeServerSh(recipe)` (alias Linux).
+    - *dnsmasq Proxy-DHCP* : Configuration non intrusive qui ne perturbe pas le routeur/box internet local existant.
+  - **Axe 4 — Templates Proxmox VE & Packer Cloud (`iac.ts`, `buildExport.ts`, `RecipeInspector.tsx`)** :
+    - *Proxmox VE Automation* : `generateProxmoxDeployScript(recipe)` déployant automatiquement via `qm create`, `qm importdisk`, injection de Cloud-Init (`--ide2 ...:cloudinit`) et conversion immédiate en Template Proxmox réutilisable pour clones liés.
+    - *HashiCorp Packer* : `generatePackerHcl(recipe)` fournissant un manifeste HCL (`template.pkr.hcl`) déclaratif pour pipelines CI/CD d'entreprise et virtualisation KVM/QEMU.
+  - **Axe 5 — 4 Nouveaux Presets Spécialisés (`presets.ts`, `presets.test.ts`)** :
+    - 🕹️ *Retro Arcade Cabinet & Kiosk* (`retro_arcade_cabinet`) : Debian 13 + XFCE + RetroArch + noyau Liquorix 1000Hz + Feral GameMode.
+    - 🧠 *AI Deep Learning Studio* (`ai_deeplearning_station`) : Ubuntu 24.04 + Hyprland + PyTorch + Ollama local + conteneurs Docker GPU.
+    - 🕵️ *Tor Amnesic Privacy Node* (`tor_amnesic_privacy`) : Debian 13 + XFCE + routage Tor + randomisation MAC + session 100% RAM (`toram`).
+    - 🗄️ *Home NAS & Private Cloud Server* (`home_nas_cloud_hub`) : Debian 13 + Headless + Cockpit Storage + Btrfs + WireGuard + AdGuard Home.
+  - **Résultat** : 23 nouveaux tests unitaires dans `recipeDoctor.test.ts`, `testVm.test.ts`, `ipxe.test.ts`, `iac.test.ts` et `presets.test.ts` (**920 tests au total, 100% au vert**). 0 warning et 0 erreur oxlint sur 116 fichiers.
 - **42. 🎯 Audit Général du Projet & Résolution des Écarts Zéro-Cosmétique** :
   - **Axe 1 — Moteur Gaming & CPU Governor (`gaming.ts`)** :
     - *Gouverneur CPU (`cpuGovernor`)* : L'option dans `GamingTuningModal.tsx` et les presets n'était pas injectée dans le script. Corrigé → création du service systemd `osforge-cpu-governor.service` appliquant dynamiquement le gouverneur sur `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor` + fallback OpenRC `/etc/local.d/osforge-cpu-governor.start`.

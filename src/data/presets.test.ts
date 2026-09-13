@@ -239,5 +239,65 @@ describe('DISTRO_PRESETS — Nouveaux Presets Spécialisés V2 (Handheld Deck, C
     expect(script).toContain('testdisk');
     expect(script).toContain('gddrescue');
   });
+
+  it('retro_arcade_cabinet : présent dans le catalogue, configure RetroArch, Liquorix et optimisations gaming', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'retro_arcade_cabinet');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.kernel).toBe('liquorix');
+    expect(preset!.recipe.selectedPackages).toContain('retroarch_gaming');
+    expect(preset!.recipe.selectedPackages).toContain('gamepad_drivers');
+    expect(preset!.recipe.enableGamingOptimizations).toBe(true);
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('retroarch');
+    expect(script).toContain('gamemode');
+  });
+
+  it('ai_deeplearning_station : présent dans le catalogue, configure Ubuntu, Ollama, Python AI et Docker', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'ai_deeplearning_station');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('ubuntu');
+    expect(preset!.recipe.desktop).toBe('hyprland');
+    expect(preset!.recipe.selectedPackages).toContain('ollama_ai');
+    expect(preset!.recipe.selectedPackages).toContain('python_ai_stack');
+    expect(preset!.recipe.selectedPackages).toContain('docker');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('ollama');
+    expect(script).toContain('docker');
+  });
+
+  it('tor_amnesic_privacy : présent dans le catalogue, configure Tor, KeePassXC, MAC randomization et toram', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'tor_amnesic_privacy');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.enableLiveRescue).toBe(true);
+    expect(preset!.recipe.kernelCmdline).toContain('toram');
+    expect(preset!.recipe.selectedPackages).toContain('tor_privoxy');
+    expect(preset!.recipe.selectedPackages).toContain('keepassxc');
+    expect(preset!.recipe.customPackages).toContain('macchanger');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('tor');
+    expect(script).toContain('macchanger');
+  });
+
+  it('home_nas_cloud_hub : présent dans le catalogue, configure Cockpit, WireGuard, Btrfs et AdGuard', () => {
+    const preset = DISTRO_PRESETS.find((p) => p.id === 'home_nas_cloud_hub');
+    expect(preset).toBeDefined();
+    expect(preset!.recipe.distro).toBe('debian');
+    expect(preset!.recipe.desktop).toBe('none');
+    expect(preset!.recipe.selectedPackages).toContain('cockpit');
+    expect(preset!.recipe.selectedPackages).toContain('wireguard');
+    expect(preset!.recipe.customPackages).toContain('samba');
+    expect(preset!.recipe.enableHomelabStack).toBe(true);
+    expect(preset!.recipe.homelabServices).toContain('adguard');
+
+    const script = generateBuildScript(recipeFromPreset(preset!.recipe));
+    expect(script).toContain('cockpit');
+    expect(script).toContain('samba');
+  });
 });
+
 

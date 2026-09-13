@@ -2,6 +2,8 @@ import { OSRecipe } from '../types/os';
 import {
   generateBuildScript,
   generateDockerfile,
+  generateProxmoxDeployScript,
+  generatePackerHcl,
   generateGitHubWorkflow,
   generateCloudInitYaml,
   generateRecipeJson,
@@ -15,9 +17,12 @@ import {
   generateIpxeScript,
   generatePxeServerScript,
   generatePxeServerPowershell,
+  generatePxeServerBat,
   generateVentoyJson,
   generateQemuTestBat,
-  generateQemuTestSh
+  generateQemuTestSh,
+  generateVirtualBoxTestBat,
+  generateVirtualBoxTestSh
 } from './scriptGenerators';
 import JSZip from 'jszip';
 import { triggerFileDownload } from '../utils/downloadHelper';
@@ -39,9 +44,14 @@ export async function createDownloadableZip(recipe: OSRecipe): Promise<Blob> {
   const autoBuildSh = generateAutoBuildSh(recipe);
   const testVmBat = generateQemuTestBat(recipe);
   const testVmSh = generateQemuTestSh(recipe);
+  const testVBoxBat = generateVirtualBoxTestBat(recipe);
+  const testVBoxSh = generateVirtualBoxTestSh(recipe);
   const ipxeScript = generateIpxeScript(recipe);
   const pxeServerScript = generatePxeServerScript(recipe);
   const pxeServerPs = generatePxeServerPowershell(recipe);
+  const pxeServerBat = generatePxeServerBat(recipe);
+  const proxmoxDeployScript = generateProxmoxDeployScript(recipe);
+  const packerHcl = generatePackerHcl(recipe);
   const ventoyJson = generateVentoyJson(recipe);
 
   // Readme instructions
@@ -85,6 +95,8 @@ Généré par **OSForge Studio** (compatible OpenFactory).
 
   zip.file('tester-en-vm.bat', testVmBat);
   zip.file('tester-en-vm.sh', testVmSh);
+  zip.file('tester-en-virtualbox.bat', testVBoxBat);
+  zip.file('tester-en-virtualbox.sh', testVBoxSh);
   zip.file('launch.bat', launchBat);
   zip.file('launch.sh', launchSh);
   zip.file('auto-build.bat', autoBuildBat);
@@ -96,7 +108,10 @@ Généré par **OSForge Studio** (compatible OpenFactory).
   zip.file('Dockerfile', dockerfile);
   zip.file('boot.ipxe', ipxeScript);
   zip.file('setup-pxe-server.sh', pxeServerScript);
+  zip.file('setup-pxe-server.bat', pxeServerBat);
   zip.file('Setup-Netboot.ps1', pxeServerPs);
+  zip.file('proxmox-deploy.sh', proxmoxDeployScript);
+  zip.file('template.pkr.hcl', packerHcl);
   zip.file('ventoy.json', ventoyJson);
   zip.file('cloud-init.yaml', cloudInit);
   zip.file('recipe.json', recipeJson);

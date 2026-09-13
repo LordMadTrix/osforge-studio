@@ -4,6 +4,10 @@ import { calculateEstimatedSizeAndRam } from '../services/buildSimulator';
 import { downloadBuildPackage } from '../services/buildExport';
 import { resolvePackageList, generateBuildScript, generateDockerfile } from '../services/scriptGenerators';
 import { X, Download, Terminal, GitBranch, Cloud, HardDrive, Play, Box, Monitor } from 'lucide-react';
+import {
+  generateVirtualBoxTestBat,
+  generateVirtualBoxTestSh,
+} from '../services/scriptGenerators';
 import { triggerFileDownload } from '../utils/downloadHelper';
 
 interface BuildPipelineModalProps {
@@ -15,7 +19,7 @@ interface BuildPipelineModalProps {
 
 export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, isOpen, onClose, lang }) => {
   const [buildMode, setBuildMode] = useState<'choice' | 'github' | 'local'>('choice');
-  const [localSubTab, setLocalSubTab] = useState<'bash' | 'docker' | 'wsl' | 'qemu'>('bash');
+  const [localSubTab, setLocalSubTab] = useState<'bash' | 'docker' | 'wsl' | 'qemu' | 'virtualbox'>('bash');
 
   // Simulation state for local build
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
@@ -25,28 +29,27 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
   const [logs, setLogs] = useState<string[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  const metrics = calculateEstimatedSizeAndRam(recipe);
   const pkgs = resolvePackageList(recipe);
+  const metrics = calculateEstimatedSizeAndRam(recipe);
   const isoFileName = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${recipe.branding.version}-${recipe.arch}.iso`;
   const repoSlug = `${recipe.branding.osName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-os`;
   const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
   const stages = [
-    { title: 'Validation de la recette', desc: 'Vérification des dépendances et de l’architecture' },
-    { title: 'Miroir & Bootstrap Rootfs', desc: `Téléchargement du socle de base ${recipe.distro}` },
-    { title: 'Installation des Paquets', desc: `Injection de ${pkgs.length} paquets logiciels sélectionnés` },
-    { title: 'Configuration & Utilisateurs', desc: `Création de ${recipe.user.username}, SSH et sécurité CIS` },
-    { title: 'Compression SquashFS', desc: 'Compression XZ du système de fichiers live' },
-    { title: 'Génération GRUB2 & EFI', desc: 'Intégration du chargeur de démarrage hybride' },
-    { title: 'Assemblage ISO Xorriso', desc: 'Création du fichier ISO bootable final' },
+    { title: 'Validation de la recette', desc: 'Vérification de la compatibilité des paquets et dépendances' },
+    { title: 'Création du système de base', desc: 'Bootstrap de la distribution cible avec debootstrap' },
+    { title: 'Installation des logiciels', desc: 'Configuration du bureau, pilotes et paquets applicatifs' },
+    { title: 'Personnalisation & Sécurité', desc: 'Utilisateurs, sudoers, polkit, durcissement et branding' },
+    { title: 'Compression de l’OS', desc: 'Création de l’image SquashFS avec compression XZ maximale' },
+    { title: 'Amorçage & Noyau', desc: 'Génération de l’initramfs et configuration GRUB2 EFI + BIOS' },
+    { title: 'Finalisation de l’ISO', desc: 'Création de l’ISO hybride bootable avec xorriso' },
   ];
 
   const handleClose = () => {
-    setBuildMode('choice');
     setIsSimulating(false);
-    setCurrentStep(0);
-    setProgress(0);
     setIsDone(false);
+    setProgress(0);
+    setCurrentStep(0);
     setLogs([]);
     onClose();
   };
@@ -75,8 +78,9 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
       } else if (step === 2) {
         setLogs(prev => [
           ...prev,
-          `[ETAPE 2/7] 📦 Début du bootstrap ${recipe.distro}...`,
-          `[DEBOOTSTRAP] Téléchargement des paquets système indispensables...`,
+          `[ETAPE 2/7] 📦 Début du bootstrap ${recipe.distro} (${recipe.arch})...`,
+          `[DEBOOTSTRAP] Téléchargement et extraction du système racine minimal...`,
+          `[DEBOOTSTRAP] Montage des systèmes de fichiers virtuels (/dev, /proc, /sys)...`,
         ]);
       } else if (step === 3) {
         setLogs(prev => [
@@ -133,6 +137,18 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
     const content = generateDockerfile(recipe);
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     triggerFileDownload(blob, 'Dockerfile');
+  };
+
+  const downloadStandaloneVBoxBat = () => {
+    const content = generateVirtualBoxTestBat(recipe);
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    triggerFileDownload(blob, 'tester-en-virtualbox.bat');
+  };
+
+  const downloadStandaloneVBoxSh = () => {
+    const content = generateVirtualBoxTestSh(recipe);
+    const blob = new Blob([content], { type: 'text/x-sh;charset=utf-8' });
+    triggerFileDownload(blob, 'tester-en-virtualbox.sh');
   };
 
   if (!isOpen) return null;
@@ -417,6 +433,7 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                   { id: 'docker', label: '2. Docker Isolé', icon: Box },
                   { id: 'wsl', label: '3. Windows WSL2', icon: Monitor },
                   { id: 'qemu', label: '4. Testeur QEMU', icon: Play },
+                  { id: 'virtualbox', label: '5. Testeur VirtualBox', icon: Monitor },
                 ].map(tab => {
                   const Icon = tab.icon;
                   const isSel = localSubTab === tab.id;
@@ -524,6 +541,30 @@ export const BuildPipelineModal: React.FC<BuildPipelineModalProps> = ({ recipe, 
                       Cette commande (avec <code style={{ color: '#cbd5e1' }}>-enable-kvm</code>) fonctionne uniquement sous Linux natif.
                       <strong> Sous Windows</strong>, utilisez plutôt <code style={{ color: '#cbd5e1' }}>run-live-windows.bat</code> inclus
                       dans le kit — il détecte et lance QEMU automatiquement, sans KVM.
+                    </p>
+                  </div>
+                )}
+
+                {localSubTab === 'virtualbox' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-main)' }}>
+                        Tester avec Oracle VM VirtualBox (VBoxManage 1-Clic) :
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={downloadStandaloneVBoxBat} className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}>
+                          <Download size={11} /> Windows (.bat)
+                        </button>
+                        <button onClick={downloadStandaloneVBoxSh} className="btn btn-secondary" style={{ padding: '3px 8px', fontSize: '0.72rem' }}>
+                          <Download size={11} /> Linux / macOS (.sh)
+                        </button>
+                      </div>
+                    </div>
+                    <pre style={{ background: '#040711', padding: '10px', borderRadius: '4px', fontSize: '0.78rem', color: '#a3bc7d', overflowX: 'auto' }}>
+                      <code>{lang === 'fr' ? 'Double-clic sur tester-en-virtualbox.bat (Windows)\nou ./tester-en-virtualbox.sh (Linux/macOS)' : 'Double click tester-en-virtualbox.bat (Windows)\nor ./tester-en-virtualbox.sh (Linux/macOS)'}</code>
+                    </pre>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '6px' }}>
+                      Crée automatiquement une machine virtuelle VirtualBox temporaire, alloue la RAM recommandée, monte l'ISO et configure le contrôleur SATA et la redirection SSH sur le port 2222.
                     </p>
                   </div>
                 )}

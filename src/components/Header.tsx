@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { OSRecipe } from '../types/os';
 import { copyShareableLink } from '../services/recipeSharing';
+import { auditRecipe } from '../services/recipeDoctor';
 
 interface HeaderProps {
   recipe?: OSRecipe;
@@ -24,6 +25,7 @@ interface HeaderProps {
   onOpenOfficialReleases?: () => void;
   onOpenUsbFlasher?: () => void;
   onOpenBuildSimulator?: () => void;
+  onOpenDoctor?: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
   uiMode: 'wizard' | 'expert';
@@ -49,6 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOfficialReleases,
   onOpenUsbFlasher,
   onOpenBuildSimulator,
+  onOpenDoctor,
   uiMode,
   setUiMode,
   lang,
@@ -57,6 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [sharedCopied, setSharedCopied] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const doctorReport = recipe ? auditRecipe(recipe) : null;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -283,6 +287,51 @@ export const Header: React.FC<HeaderProps> = ({
         {/* 3. DROITE : Groupe d'Actions Pro & Menu Outils Compact */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           
+          {/* Recipe Doctor Pill */}
+          {onOpenDoctor && doctorReport && (
+            <button
+              onClick={onOpenDoctor}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: doctorReport.errorCount > 0
+                  ? 'rgba(239, 68, 68, 0.15)'
+                  : doctorReport.warningCount > 0
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(16, 185, 129, 0.12)',
+                border: `1px solid ${
+                  doctorReport.errorCount > 0
+                    ? 'rgba(239, 68, 68, 0.35)'
+                    : doctorReport.warningCount > 0
+                      ? 'rgba(245, 158, 11, 0.35)'
+                      : 'rgba(16, 185, 129, 0.3)'
+                }`,
+                color: doctorReport.errorCount > 0
+                  ? '#f87171'
+                  : doctorReport.warningCount > 0
+                    ? '#fbbf24'
+                    : '#34d399',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '0.74rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title={lang === 'fr' ? 'Ouvrir le diagnostic Recipe Doctor' : 'Open Recipe Doctor diagnostics'}
+            >
+              <Activity size={13} />
+              <span>
+                {doctorReport.errorCount > 0
+                  ? `Doctor (${doctorReport.errorCount})`
+                  : doctorReport.warningCount > 0
+                    ? `Doctor (${doctorReport.warningCount})`
+                    : 'Doctor 100%'}
+              </span>
+            </button>
+          )}
+
           {/* Menu Déroulant "Outils" Groupé (Évite d'étaler 10 boutons) */}
           <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button
@@ -321,6 +370,30 @@ export const Header: React.FC<HeaderProps> = ({
                 gap: '2px',
                 zIndex: 110,
               }}>
+                {onOpenDoctor && (
+                  <button
+                    onClick={() => { onOpenDoctor(); setToolsDropdownOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-main)',
+                      fontSize: '0.75rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Activity size={14} color="#10b981" />
+                    <span>{lang === 'fr' ? 'Recipe Doctor (Audit Santé)' : 'Recipe Doctor (Health Audit)'}</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => { onOpenPresets(); setToolsDropdownOpen(false); }}
                   style={{

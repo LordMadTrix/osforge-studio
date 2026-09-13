@@ -4,19 +4,22 @@ import { DISTROS } from '../data/distros';
 import { DESKTOPS } from '../data/desktopEnvironments';
 import { calculateEstimatedSizeAndRam } from '../services/buildSimulator';
 import { InfoTooltip } from './InfoTooltip';
-import { Cpu, Package, Shield, Monitor, Disc, AlertTriangle } from 'lucide-react';
+import { Cpu, Package, Shield, Monitor, Disc, AlertTriangle, Activity } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { DISTRO_LOGOS } from '../data/logos';
+import { auditRecipe } from '../services/recipeDoctor';
 
 interface StatsBannerProps {
   recipe: OSRecipe;
   lang: 'fr' | 'en';
+  onOpenDoctor?: () => void;
 }
 
-export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang }) => {
+export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang, onOpenDoctor }) => {
   const distro = DISTROS.find(d => d.id === recipe.distro) || DISTROS[0];
   const desktop = DESKTOPS.find(d => d.id === recipe.desktop) || DESKTOPS[0];
   const metrics = calculateEstimatedSizeAndRam(recipe);
+  const doctorReport = auditRecipe(recipe);
   const totalPackagesCount = recipe.selectedPackages.length + recipe.customPackages.length;
   // 2048 Mo = limite stricte de GitHub pour un fichier de Release (2 147 483 648 octets)
   const isOverGithubReleaseLimit = metrics.isoSizeMB >= 2048;
@@ -136,6 +139,60 @@ export const StatsBanner: React.FC<StatsBannerProps> = ({ recipe, lang }) => {
                 ? 'Niveau de durcissement de sécurité selon les standards internationaux CIS Benchmark.'
                 : 'Security hardening compliance profile according to CIS Benchmark standards.'}
             />
+          </div>
+
+          {/* Recipe Doctor Health */}
+          <div
+            onClick={onOpenDoctor}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              cursor: onOpenDoctor ? 'pointer' : 'default',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              background: doctorReport.errorCount > 0
+                ? 'rgba(239, 68, 68, 0.15)'
+                : doctorReport.warningCount > 0
+                  ? 'rgba(245, 158, 11, 0.15)'
+                  : 'rgba(16, 185, 129, 0.12)',
+              border: `1px solid ${
+                doctorReport.errorCount > 0
+                  ? 'rgba(239, 68, 68, 0.3)'
+                  : doctorReport.warningCount > 0
+                    ? 'rgba(245, 158, 11, 0.3)'
+                    : 'rgba(16, 185, 129, 0.25)'
+              }`,
+            }}
+            title={lang === 'fr' ? 'Cliquer pour ouvrir le diagnostic Recipe Doctor' : 'Click to open Recipe Doctor diagnostics'}
+          >
+            <Activity
+              size={13}
+              color={
+                doctorReport.errorCount > 0
+                  ? '#f87171'
+                  : doctorReport.warningCount > 0
+                    ? '#fbbf24'
+                    : '#34d399'
+              }
+            />
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              Doctor :
+            </span>
+            <span
+              style={{
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                color:
+                  doctorReport.errorCount > 0
+                    ? '#f87171'
+                    : doctorReport.warningCount > 0
+                      ? '#fbbf24'
+                      : '#34d399',
+              }}
+            >
+              {doctorReport.score}%
+            </span>
           </div>
         </div>
       </div>

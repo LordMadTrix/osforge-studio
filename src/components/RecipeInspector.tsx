@@ -24,6 +24,11 @@ import {
   generateTechnicalManualMarkdown,
   generateQemuTestBat,
   generateQemuTestSh,
+  generateVirtualBoxTestBat,
+  generateVirtualBoxTestSh,
+  generatePxeServerBat,
+  generateProxmoxDeployScript,
+  generatePackerHcl,
   generateMangoHudConfig
 } from '../services/scriptGenerators';
 import { copyShareableLink } from '../services/recipeSharing';
@@ -79,6 +84,20 @@ const FILE_DEFINITIONS: Record<string, FileDef> = {
     descFr: 'Lance un banc d’essai virtuel QEMU sous Linux avec accélération KVM et redirection SSH.',
     descEn: 'Instant local VM test on Linux with KVM acceleration.',
     generate: generateQemuTestSh,
+  },
+  'tester-en-virtualbox.bat': {
+    title: 'tester-en-virtualbox.bat (Banc d’Essai VirtualBox Windows)',
+    lang: 'bat',
+    descFr: 'Configure et démarre automatiquement une machine virtuelle VirtualBox (VBoxManage 1-clic) sous Windows.',
+    descEn: '1-Click VirtualBox VM test script for Windows.',
+    generate: generateVirtualBoxTestBat,
+  },
+  'tester-en-virtualbox.sh': {
+    title: 'tester-en-virtualbox.sh (Banc d’Essai VirtualBox Linux/macOS)',
+    lang: 'bash',
+    descFr: 'Crée et lance une session VirtualBox automatisée avec votre ISO et redirection SSH.',
+    descEn: 'Automated VirtualBox VM test script for Linux/macOS.',
+    generate: generateVirtualBoxTestSh,
   },
   'run-live-windows.bat': {
     title: 'run-live-windows.bat (Live Linux sous Windows)',
@@ -163,6 +182,27 @@ const FILE_DEFINITIONS: Record<string, FileDef> = {
     descFr: 'Script PowerShell pour préparer et servir le boot iPXE en local sous Windows.',
     descEn: 'PowerShell script to prepare and serve iPXE netboot under Windows.',
     generate: generatePxeServerPowershell,
+  },
+  'setup-pxe.bat': {
+    title: 'setup-pxe-server.bat (Lanceur PXE Windows 1-Clic)',
+    lang: 'bat',
+    descFr: 'Lance en 1 double-clic sous Windows le serveur d’amorçage réseau iPXE.',
+    descEn: '1-Click Windows launcher for local iPXE netboot server.',
+    generate: generatePxeServerBat,
+  },
+  'proxmox-deploy.sh': {
+    title: 'proxmox-deploy.sh (Déploiement Automatisé Proxmox VE)',
+    lang: 'bash',
+    descFr: 'Script bash 1-clic pour Proxmox VE : création VM (qm create), import de disque et configuration Cloud-Init.',
+    descEn: 'Automated Proxmox VE deployment script (qm create + importdisk + cloud-init).',
+    generate: generateProxmoxDeployScript,
+  },
+  'template.pkr.hcl': {
+    title: 'template.pkr.hcl (Manifeste HashiCorp Packer Cloud)',
+    lang: 'hcl',
+    descFr: 'Manifeste Packer pour compiler et durcir automatiquement vos images OS dans vos pipelines CI/CD.',
+    descEn: 'HashiCorp Packer manifest for automated cloud OS image builds.',
+    generate: generatePackerHcl,
   },
   'ventoy.json': {
     title: 'ventoy.json (Clé Multi-Boot Ventoy)',

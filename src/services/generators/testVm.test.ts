@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateQemuTestBat, generateQemuTestSh } from './testVm';
+import {
+  generateQemuTestBat,
+  generateQemuTestSh,
+  generateVirtualBoxTestBat,
+  generateVirtualBoxTestSh,
+  getVBoxOsType,
+} from './testVm';
 import { OSRecipe } from '../../types/os';
 
 const mockIsoRecipe: OSRecipe = {
@@ -57,4 +63,35 @@ describe('Chantier 43 : Lanceur Universel de Banc d’Essai VM 1-Clic (tester-en
     expect(sh).toContain('-enable-kvm');
     expect(sh).toContain('hostfwd=tcp::2222-:22');
   });
+
+  it('mappe correctement les OS Types VirtualBox pour les distributions', () => {
+    expect(getVBoxOsType('debian', 'x86_64')).toBe('Debian_64');
+    expect(getVBoxOsType('ubuntu', 'x86_64')).toBe('Ubuntu_64');
+    expect(getVBoxOsType('arch', 'x86_64')).toBe('ArchLinux_64');
+    expect(getVBoxOsType('fedora', 'x86_64')).toBe('Fedora_64');
+    expect(getVBoxOsType('rocky', 'x86_64')).toBe('RedHat_64');
+    expect(getVBoxOsType('opensuse', 'x86_64')).toBe('OpenSUSE_64');
+  });
+
+  it('génère un script VirtualBox Windows fonctionnel avec VBoxManage, SATA et natpf1', () => {
+    const vbat = generateVirtualBoxTestBat(mockIsoRecipe);
+    expect(vbat).toContain('@echo off');
+    expect(vbat).toContain('VBoxManage');
+    expect(vbat).toContain('createvm --name');
+    expect(vbat).toContain('--ostype "Debian_64"');
+    expect(vbat).toContain('--graphicscontroller vboxsvga');
+    expect(vbat).toContain('--natpf1 "ssh,tcp,,2222,,22"');
+    expect(vbat).toContain('--storagectl "SATA"');
+    expect(vbat).toContain('startvm');
+  });
+
+  it('génère un script VirtualBox Linux/macOS avec support ISO et disque virtuel temporaire', () => {
+    const vsh = generateVirtualBoxTestSh(mockIsoRecipe);
+    expect(vsh).toContain('#!/usr/bin/env bash');
+    expect(vsh).toContain('VBoxManage');
+    expect(vsh).toContain('modifyvm "${VM_NAME}" --memory');
+    expect(vsh).toContain('--graphicscontroller vboxsvga');
+    expect(vsh).toContain('storageattach "${VM_NAME}" --storagectl "SATA" --port 0 --device 0 --type dvddrive');
+  });
 });
+

@@ -27,6 +27,7 @@ const ExpertProStudio = lazy(() => import('./components/ExpertProStudio').then(m
 const OfficialReleasesModal = lazy(() => import('./components/OfficialReleasesModal').then(m => ({ default: m.OfficialReleasesModal })));
 const UsbFlasherModal = lazy(() => import('./components/UsbFlasherModal').then(m => ({ default: m.UsbFlasherModal })));
 const BuildSimulatorModal = lazy(() => import('./components/BuildSimulatorModal').then(m => ({ default: m.BuildSimulatorModal })));
+const RecipeDoctorModal = lazy(() => import('./components/RecipeDoctorModal').then(m => ({ default: m.RecipeDoctorModal })));
 
 const DEFAULT_RECIPE: OSRecipe = {
   id: 'custom-os-01',
@@ -108,6 +109,7 @@ export const App: React.FC = () => {
   const [officialReleasesDistro, setOfficialReleasesDistro] = useState<DistroId | undefined>(undefined);
   const [isUsbFlasherOpen, setIsUsbFlasherOpen] = useState<boolean>(false);
   const [isBuildSimulatorOpen, setIsBuildSimulatorOpen] = useState<boolean>(false);
+  const [isDoctorOpen, setIsDoctorOpen] = useState<boolean>(false);
   const [showSplash, setShowSplash] = useState<boolean>(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -201,6 +203,7 @@ export const App: React.FC = () => {
         onOpenOfficialReleases={handleOpenOfficialReleases}
         onOpenUsbFlasher={() => setIsUsbFlasherOpen(true)}
         onOpenBuildSimulator={() => setIsBuildSimulatorOpen(true)}
+        onOpenDoctor={() => setIsDoctorOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         uiMode={uiMode}
@@ -210,7 +213,7 @@ export const App: React.FC = () => {
       />
 
       {/* Real-time Status Banner (Shown in Wizard Mode) */}
-      {uiMode === 'wizard' && <StatsBanner recipe={recipe} lang={lang} />}
+      {uiMode === 'wizard' && <StatsBanner recipe={recipe} lang={lang} onOpenDoctor={() => setIsDoctorOpen(true)} />}
 
       {/* Main Workspace Container */}
       <main style={{
@@ -517,6 +520,15 @@ export const App: React.FC = () => {
           recipe={recipe}
           lang={lang}
         />
+
+        {isDoctorOpen && (
+          <RecipeDoctorModal
+            recipe={recipe}
+            onChangeRecipe={handleUpdateRecipe}
+            onClose={() => setIsDoctorOpen(false)}
+            lang={lang}
+          />
+        )}
       </Suspense>
     </div>
     </>

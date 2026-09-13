@@ -206,3 +206,58 @@ export function generatePxeServerPowershell(recipe: OSRecipe): string {
   return '\ufeff' + scriptLines.join('\r\n');
 }
 
+/**
+ * Alias de compatibilité pour le script serveur PXE Linux (bash)
+ */
+export const generatePxeServerSh = generatePxeServerScript;
+
+/**
+ * Génère le script batch Windows 1-clic pour démarrer le serveur PXE localement
+ */
+export function generatePxeServerBat(recipe: OSRecipe): string {
+  const osName = sanitizeGrubTitle(recipe.branding.osName || 'Custom Linux');
+
+  const script = `@echo off
+chcp 65001 >nul
+title OSForge Studio — Serveur PXE / Netboot Windows (1-Clic)
+color 0b
+
+echo ===============================================================================
+echo   OSFORGE STUDIO — DÉPLOIEMENT SERVEUR PXE / NETBOOT (1-CLIC WINDOWS)
+echo ===============================================================================
+echo   Système d'exploitation : ${osName} (${recipe.distro})
+echo ===============================================================================
+echo.
+
+set "SCRIPT_DIR=%~dp0"
+set "PS_SCRIPT=%SCRIPT_DIR%Setup-Netboot.ps1"
+
+if not exist "%PS_SCRIPT%" (
+    echo [ERREUR] Le fichier Setup-Netboot.ps1 est introuvable dans ce dossier.
+    pause
+    exit /b 1
+)
+
+echo [1/2] Lancement de la configuration réseau via PowerShell (Bypass ExecutionPolicy)...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+
+if %ERRORLEVEL% neq 0 (
+    echo [AVERTISSEMENT] L'initialisation PowerShell s'est terminée avec le code %ERRORLEVEL%.
+)
+
+echo [2/2] Vérification de Python pour hébergement HTTP local...
+where python >nul 2>&1
+if %ERRORLEVEL% equ 0 (
+    echo.
+    echo Un serveur web HTTP local peut être lancé immédiatement avec Python :
+    echo   python -m http.server 80 --directory "%SCRIPT_DIR%netboot"
+    echo.
+)
+
+pause
+`;
+
+  return script.replace(/\r?\n/g, '\r\n');
+}
+
+
