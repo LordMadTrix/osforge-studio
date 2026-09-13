@@ -260,9 +260,9 @@ export const App: React.FC = () => {
               onOpenOfficialReleases={handleOpenOfficialReleases}
               initialSection={
                 activeTab === 'packages' ? 'pkgs_catalog'
-                : activeTab === 'system' ? 'sys_config'
+                : activeTab === 'system' ? 'sys_identity'
                 : activeTab === 'security' ? 'sec_hardening'
-                : activeTab === 'postinstall' ? 'post_scripts'
+                : activeTab === 'postinstall' ? 'post_firstboot'
                 : activeTab === 'inspector' ? 'export_inspector'
                 : 'base_distro'
               }

@@ -10,9 +10,16 @@ interface SystemConfigProps {
   onChange: (updated: Partial<OSRecipe>) => void;
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
+  subSection?: 'identity' | 'user' | 'ssh' | 'network' | 'locale_power' | 'storage' | 'all';
 }
 
-export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, lang, onOpenTips }) => {
+export const SystemConfig: React.FC<SystemConfigProps> = ({
+  recipe,
+  onChange,
+  lang,
+  onOpenTips,
+  subSection = 'all',
+}) => {
   const keyboardLayouts = [
     { id: 'fr', name: 'Français (AZERTY standard)' },
     { id: 'us', name: 'Anglais US (QWERTY standard)' },
@@ -48,6 +55,7 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
       <ContextTip category="system" lang={lang} onOpenAllTips={onOpenTips} />
 
       {/* 1. Hostname & System Identity */}
+      {(subSection === 'all' || subSection === 'identity') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <TerminalSquare size={16} color="var(--cyan)" />
@@ -104,8 +112,10 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </div>
         </div>
       </div>
+      )}
 
       {/* 2. User Accounts & Credentials */}
+      {(subSection === 'all' || subSection === 'user') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={16} color="var(--emerald)" />
@@ -235,8 +245,10 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </label>
         </div>
       </div>
+      )}
 
       {/* 3. SSH & Remote Access */}
+      {(subSection === 'all' || subSection === 'ssh') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -299,8 +311,10 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </div>
         )}
       </div>
+      )}
 
       {/* 4. Headless Network, Wi-Fi & VPN Pre-configuration */}
+      {(subSection === 'all' || subSection === 'network') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Network size={16} color="var(--emerald)" />
@@ -515,8 +529,11 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           </div>
         </div>
       </div>
+      )}
 
       {/* 5. Advanced System Profiles (Rescue, Gaming, Battery, Community Repos) */}
+      {(subSection === 'all' || subSection === 'locale_power') && (
+      <>
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Zap size={16} color="#f59e0b" />
@@ -775,11 +792,139 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Simulateur Visuel de Partitionnement Disque */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <DiskLayoutCalculator recipe={recipe} onChange={onChange} lang={lang} />
+      {/* 6. Timezone, Locale & Keyboard */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Globe size={16} color="#f59e0b" />
+          {lang === 'fr' ? 'Localisation & Disposition Clavier' : 'Localization & Keyboard'}
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+          <div>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Disposition du Clavier (Keymap) :' : 'Keyboard Layout:'}
+            </label>
+            <select
+              className="select-custom"
+              value={recipe.keyboardLayout}
+              onChange={(e) => onChange({ keyboardLayout: e.target.value })}
+            >
+              {keyboardLayouts.map((k) => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </select>
           </div>
+
+          <div>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Fuseau Horaire (Timezone) :' : 'Timezone:'}
+            </label>
+            <select
+              className="select-custom"
+              value={recipe.timezone}
+              onChange={(e) => onChange({ timezone: e.target.value })}
+            >
+              {timezones.map((tz) => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Langue du Système (Locale) :' : 'System Locale:'}
+            </label>
+            <select
+              className="select-custom"
+              value={recipe.locale}
+              onChange={(e) => onChange({ locale: e.target.value })}
+            >
+              <option value="fr_FR">Français (fr_FR.UTF-8)</option>
+              <option value="en_US">English US (en_US.UTF-8)</option>
+              <option value="en_GB">English UK (en_GB.UTF-8)</option>
+              <option value="de_DE">Deutsch (de_DE.UTF-8)</option>
+              <option value="es_ES">Español (es_ES.UTF-8)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 7. Kernel Boot Parameters & Flatpak App Store */}
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <TerminalSquare size={16} color="var(--purple)" />
+          {lang === 'fr' ? 'Ligne de Commande Noyau & Dépôt Flatpak' : 'Kernel Cmdline & Flatpak Store'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Injecte des paramètres au bootloader (GRUB / cmdline.txt) et pré-active le magasin Flathub.'
+              : 'Inject custom kernel boot parameters and enable Flathub app store out of the box.'}
+          />
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div>
+            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+              {lang === 'fr' ? 'Paramètres Noyau Personnalisés (GRUB / cmdline.txt) :' : 'Custom Kernel Cmdline Arguments:'}
+            </label>
+            <input
+              type="text"
+              className="input-text font-mono"
+              value={recipe.kernelCmdline || ''}
+              onChange={(e) => onChange({ kernelCmdline: e.target.value })}
+              placeholder="ex: transparent_hugepage=madvise split_lock_mitigate=0 nomodeset"
+              style={{ fontSize: '0.8rem' }}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+              {lang === 'fr'
+                ? 'Ces arguments seront directement passés à la ligne linux de GRUB (ISO/VM) ou à cmdline.txt (Raspberry Pi).'
+                : 'Appended directly to GRUB linux entry (ISO/Disk) or Raspberry Pi cmdline.txt.'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
+                {lang === 'fr' ? 'Activer Flatpak & Dépôt Flathub OOB' : 'Enable Flatpak & Flathub OOB'}
+                <InfoTooltip text="Installe l’écosystème Flatpak et ajoute automatiquement le dépôt distant Flathub au premier démarrage." />
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                {lang === 'fr' ? 'Accès à des milliers d’applications sandboxées via Flathub' : 'Access thousands of sandboxed applications via Flathub'}
+              </div>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={recipe.enableFlatpak ?? false}
+                onChange={(e) => onChange({ enableFlatpak: e.target.checked })}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      </>
+      )}
+
+      {/* 8. Stockage, Partitionnement Disque & Mode Immuable */}
+      {(subSection === 'all' || subSection === 'storage') && (
+      <>
+      <div className="glass-panel" style={{ padding: '18px' }}>
+        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Disc size={16} color="var(--cyan)" />
+          {lang === 'fr' ? 'Partitionnement Disque, Système de Fichiers & Mode Immuable' : 'Disk Partitioning, Filesystem & Immutable Mode'}
+          <InfoTooltip
+            text={lang === 'fr'
+              ? 'Calculez la répartition des partitions, activez les snapshots Btrfs automatiques ou le mode lecture seule inviolable.'
+              : 'Calculate partition layout, enable Btrfs auto-snapshots or tamper-proof read-only mode.'}
+          />
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Simulateur Visuel de Partitionnement Disque */}
+          <DiskLayoutCalculator recipe={recipe} onChange={onChange} lang={lang} />
 
           {/* Btrfs Filesystem & Snapshots */}
           <div style={{ padding: '14px', background: 'rgba(10, 15, 28, 0.5)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
@@ -925,117 +1070,6 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
         </div>
       </div>
 
-      {/* 6. Timezone, Locale & Keyboard */}
-      <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Globe size={16} color="#f59e0b" />
-          {lang === 'fr' ? 'Localisation & Disposition Clavier' : 'Localization & Keyboard'}
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              {lang === 'fr' ? 'Disposition du Clavier (Keymap) :' : 'Keyboard Layout:'}
-            </label>
-            <select
-              className="select-custom"
-              value={recipe.keyboardLayout}
-              onChange={(e) => onChange({ keyboardLayout: e.target.value })}
-            >
-              {keyboardLayouts.map((k) => (
-                <option key={k.id} value={k.id}>{k.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              {lang === 'fr' ? 'Fuseau Horaire (Timezone) :' : 'Timezone:'}
-            </label>
-            <select
-              className="select-custom"
-              value={recipe.timezone}
-              onChange={(e) => onChange({ timezone: e.target.value })}
-            >
-              {timezones.map((tz) => (
-                <option key={tz} value={tz}>{tz}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              {lang === 'fr' ? 'Langue du Système (Locale) :' : 'System Locale:'}
-            </label>
-            <select
-              className="select-custom"
-              value={recipe.locale}
-              onChange={(e) => onChange({ locale: e.target.value })}
-            >
-              <option value="fr_FR">Français (fr_FR.UTF-8)</option>
-              <option value="en_US">English US (en_US.UTF-8)</option>
-              <option value="en_GB">English UK (en_GB.UTF-8)</option>
-              <option value="de_DE">Deutsch (de_DE.UTF-8)</option>
-              <option value="es_ES">Español (es_ES.UTF-8)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* 7. Kernel Boot Parameters & Flatpak App Store */}
-      <div className="glass-panel" style={{ padding: '18px' }}>
-        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <TerminalSquare size={16} color="var(--purple)" />
-          {lang === 'fr' ? 'Ligne de Commande Noyau & Dépôt Flatpak' : 'Kernel Cmdline & Flatpak Store'}
-          <InfoTooltip
-            text={lang === 'fr'
-              ? 'Injecte des paramètres au bootloader (GRUB / cmdline.txt) et pré-active le magasin Flathub.'
-              : 'Inject custom kernel boot parameters and enable Flathub app store out of the box.'}
-          />
-        </h3>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-              {lang === 'fr' ? 'Paramètres Noyau Personnalisés (GRUB / cmdline.txt) :' : 'Custom Kernel Cmdline Arguments:'}
-            </label>
-            <input
-              type="text"
-              className="input-text font-mono"
-              value={recipe.kernelCmdline || ''}
-              onChange={(e) => onChange({ kernelCmdline: e.target.value })}
-              placeholder="ex: transparent_hugepage=madvise split_lock_mitigate=0 nomodeset"
-              style={{ fontSize: '0.8rem' }}
-            />
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-              {lang === 'fr'
-                ? 'Ces arguments seront directement passés à la ligne linux de GRUB (ISO/VM) ou à cmdline.txt (Raspberry Pi).'
-                : 'Appended directly to GRUB linux entry (ISO/Disk) or Raspberry Pi cmdline.txt.'}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
-                {lang === 'fr' ? 'Activer Flatpak & Dépôt Flathub OOB' : 'Enable Flatpak & Flathub OOB'}
-                <InfoTooltip text="Installe l’écosystème Flatpak et ajoute automatiquement le dépôt distant Flathub au premier démarrage." />
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                {lang === 'fr' ? 'Accès à des milliers d’applications sandboxées via Flathub' : 'Access thousands of sandboxed applications via Flathub'}
-              </div>
-            </div>
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={recipe.enableFlatpak ?? false}
-                onChange={(e) => onChange({ enableFlatpak: e.target.checked })}
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
       {/* 9. Bootloader Selection */}
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1111,6 +1145,8 @@ export const SystemConfig: React.FC<SystemConfigProps> = ({ recipe, onChange, la
           })}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

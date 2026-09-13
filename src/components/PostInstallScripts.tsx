@@ -9,9 +9,16 @@ interface PostInstallScriptsProps {
   onChange: (updated: Partial<OSRecipe>) => void;
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
+  subSection?: 'firstboot' | 'dotfiles' | 'services' | 'all';
 }
 
-export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, onChange, lang, onOpenTips }) => {
+export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({
+  recipe,
+  onChange,
+  lang,
+  onOpenTips,
+  subSection = 'all',
+}) => {
   const [newServiceName, setNewServiceName] = useState('');
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServiceExec, setNewServiceExec] = useState('');
@@ -44,6 +51,7 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
       <ContextTip category="scripts" lang={lang} onOpenAllTips={onOpenTips} />
 
       {/* 1. First Boot Hook Script */}
+      {(subSection === 'all' || subSection === 'firstboot') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -74,8 +82,10 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
           style={{ fontSize: '0.82rem' }}
         />
       </div>
+      )}
 
       {/* 2. Dotfiles Git Repo Injection */}
+      {(subSection === 'all' || subSection === 'dotfiles') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GitBranch size={16} color="var(--violet)" />
@@ -100,8 +110,10 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
           onChange={(e) => onChange({ dotfilesGitUrl: e.target.value })}
         />
       </div>
+      )}
 
       {/* 3. Custom Systemd Units Generator */}
+      {(subSection === 'all' || subSection === 'services') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Server size={16} color="var(--emerald)" />
@@ -184,6 +196,7 @@ export const PostInstallScripts: React.FC<PostInstallScriptsProps> = ({ recipe, 
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

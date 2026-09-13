@@ -14,9 +14,17 @@ interface DesktopSelectorProps {
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
   onOpenScreenshots?: (desktopId?: string) => void;
+  subSection?: 'desktop' | 'display_manager' | 'default_apps' | 'all';
 }
 
-export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots }) => {
+export const DesktopSelector: React.FC<DesktopSelectorProps> = ({
+  recipe,
+  onChange,
+  lang,
+  onOpenTips,
+  onOpenScreenshots,
+  subSection = 'all',
+}) => {
   const { desktops: liveDesktops } = useLiveVersions();
 
   type DesktopFilterCategory = 'all' | 'Full Desktop' | 'Tiling WM' | 'Lightweight' | 'Next-Gen Rust' | 'Specialized';
@@ -120,6 +128,8 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
       <ContextTip category="desktop" lang={lang} onOpenAllTips={onOpenTips} />
 
       {/* 1. Desktop / WM Grid */}
+      {(subSection === 'all' || subSection === 'desktop') && (
+      <>
       <div>
         <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
           <div>
@@ -508,10 +518,18 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
           />
         </div>
       )}
+      </>
+      )}
 
       {/* 2. Gestionnaire de Connexion & Applications par Défaut */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
+      {(subSection === 'all' || subSection === 'display_manager' || subSection === 'default_apps') && (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: subSection === 'all' ? 'repeat(auto-fit, minmax(420px, 1fr))' : '1fr',
+        gap: '18px'
+      }}>
         {/* Display Manager */}
+        {(subSection === 'all' || subSection === 'display_manager') && (
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Sliders size={18} color="var(--cyan)" />
@@ -558,8 +576,10 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
             })}
           </div>
         </div>
+        )}
 
         {/* Applications de Bureau par Défaut */}
+        {(subSection === 'all' || subSection === 'default_apps') && (
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Globe size={18} color="#a855f7" />
@@ -628,16 +648,18 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
             {/* 2. Émulateur de Terminal */}
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px' }}>
-                ⌨️ {lang === 'fr' ? 'Émulateur de Terminal :' : 'Terminal Emulator:'}
+                💻 {lang === 'fr' ? 'Émulateur de Terminal par Défaut :' : 'Default Terminal Emulator:'}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {[
-                  { id: 'default', name: lang === 'fr' ? 'Terminal Natif du Bureau' : 'Native Desktop Terminal', desc: 'Konsole, GNOME Terminal, XFCE Terminal', badge: 'Standard' },
-                  { id: 'kitty', name: 'Kitty Terminal', desc: 'Accélération GPU OpenGL, ligatures, tuilage rapide', badge: 'GPU Pro' },
-                  { id: 'alacritty', name: 'Alacritty', desc: 'Minimaliste, léger et ultra-rapide codé en Rust', badge: 'Rust' },
+                  { id: 'alacritty', name: 'Alacritty', desc: 'Accéléré GPU en Rust, ultra-rapide & minimaliste', badge: 'GPU Rust' },
+                  { id: 'kitty', name: 'Kitty', desc: 'Rendu GPU avec support images terminal & fenêtrage', badge: 'Feature-Rich' },
+                  { id: 'ghostty', name: 'Ghostty', desc: 'Terminal natif moderne écrit en Zig', badge: 'Zig Fast' },
+                  { id: 'foot', name: 'Foot', desc: 'Terminal Wayland natif ultra-léger et économe', badge: 'Wayland Native' },
+                  { id: 'gnome-terminal', name: 'GNOME Terminal / Konsole', desc: 'Standard complet de l’environnement', badge: 'Desktop Default' },
                 ].map((t) => {
-                  const currentTerminal = recipe.defaultApps?.terminal || 'default';
-                  const isSelected = currentTerminal === t.id;
+                  const currentTerm = recipe.defaultApps?.terminal || 'alacritty';
+                  const isSelected = currentTerm === t.id;
                   return (
                     <div
                       key={t.id}
@@ -696,7 +718,9 @@ export const DesktopSelector: React.FC<DesktopSelectorProps> = ({ recipe, onChan
             </div>
           </div>
         </div>
+        )}
       </div>
+      )}
     </div>
   );
 };

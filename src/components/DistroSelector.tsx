@@ -17,9 +17,10 @@ interface DistroSelectorProps {
   onOpenTips?: () => void;
   onOpenScreenshots?: (distroId?: string) => void;
   onOpenOfficialReleases?: (distroId?: DistroId) => void;
+  subSection?: 'distro' | 'kernel' | 'output' | 'all';
 }
 
-export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots, onOpenOfficialReleases }) => {
+export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange, lang, onOpenTips, onOpenScreenshots, onOpenOfficialReleases, subSection = 'all' }) => {
   const { distros: liveDistros } = useLiveVersions();
   const [distroCategory, setDistroCategory] = useState<DistroCategory | 'all'>('all');
   const [distroPkgManager, setDistroPkgManager] = useState<'all' | 'apt' | 'pacman' | 'dnf' | 'other'>('all');
@@ -204,6 +205,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
       <ContextTip category="distro" lang={lang} onOpenAllTips={onOpenTips} />
 
       {/* 1. Base Linux Distribution Selector */}
+      {(subSection === 'all' || subSection === 'distro') && (
       <div className="glass-panel" style={{ padding: '20px' }}>
         <div style={{ marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
           <div>
@@ -689,8 +691,10 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
           );
         })()}
       </div>
+      )}
 
       {/* 2. Architecture & Target Format */}
+      {(subSection === 'all' || subSection === 'output') && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
         {/* Architecture */}
         <div className="glass-panel" style={{ padding: '18px' }}>
@@ -801,8 +805,10 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
           </div>
         </div>
       </div>
+      )}
 
       {/* 3. Kernel Selection */}
+      {(subSection === 'all' || subSection === 'kernel') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ marginBottom: '12px' }}>
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1015,6 +1021,7 @@ export const DistroSelector: React.FC<DistroSelectorProps> = ({ recipe, onChange
         </div>
         )}
       </div>
+      )}
     </div>
   );
 };

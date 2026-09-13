@@ -4,15 +4,40 @@ import { OSRecipe } from '../types/os';
 
 describe('Navigation Studio Expert — Isolation stricte de chaque section sur sa propre page', () => {
   const expectedSections: StudioSectionId[] = [
+    // Base Système & Cible
     'base_distro',
+    'base_kernel',
+    'base_output',
+    // Bureau & Interface
     'ui_desktop',
+    'ui_display_manager',
+    'ui_default_apps',
     'ui_simulators',
-    'brand_design',
+    // Design System & Branding
+    'brand_theme',
+    'brand_appearance',
+    'brand_terminal_plymouth',
+    'brand_identity',
+    // Logiciels & Dépôts
     'pkgs_catalog',
-    'sys_config',
+    // Système & Matériel
+    'sys_identity',
+    'sys_user',
+    'sys_ssh',
+    'sys_network',
+    'sys_locale_power',
+    'sys_storage',
     'sys_gaming',
+    // Sécurité & Durcissement
+    'sec_benchmark',
+    'sec_firewall',
+    'sec_luks',
     'sec_hardening',
-    'post_scripts',
+    // Post-Install & Automatisation
+    'post_firstboot',
+    'post_dotfiles',
+    'post_services',
+    // Code & Manifestes
     'export_inspector',
   ];
 
@@ -71,9 +96,9 @@ describe('Navigation Studio Expert — Isolation stricte de chaque section sur s
     },
   };
 
-  it('définit précisément les 10 sections uniques dans l’arborescence Studio', () => {
-    expect(expectedSections).toHaveLength(10);
-    expect(new Set(expectedSections).size).toBe(10);
+  it('définit précisément les 27 sous-sections granulaires uniques dans l’arborescence Studio', () => {
+    expect(expectedSections).toHaveLength(27);
+    expect(new Set(expectedSections).size).toBe(27);
   });
 
   it('garantit que le recipe est compatible avec toutes les sections dédiées', () => {

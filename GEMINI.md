@@ -147,6 +147,20 @@ après.
 ## État au moment de la rédaction de ce fichier
 
 - Suite de tests : **922 tests**, tous verts (100%). CI + Pages fonctionnels. 0 warning et 0 erreur oxlint sur 120 fichiers.
+- **45. 📑 Découpage Granulaire Total : Chaque Section et Sous-Section sur sa Propre Page Dédiée (`ExpertProStudio.tsx`, `DistroSelector.tsx`, `DesktopSelector.tsx`, `BrandingDesignView.tsx`, `SystemConfig.tsx`, `SecurityConfig.tsx`, `PostInstallScripts.tsx`, `App.tsx`)** :
+  - *Exigence Utilisateur* : « je veux que chaque section ait sa propre page, même chose pour les sous-sections pour une meilleure lisibilité » (éliminer l'empilement vertical et le scroll infini).
+  - *Architecture 1-à-1 Intégrale (27 sous-sections dédiées isolées)* :
+    1. **Base Système & Cible** : `base_distro` (Distribution & Version), `base_kernel` (Noyau Linux & Taux de rafraîchissement), `base_output` (Format de sortie ISO/Disque/RootFS/WSL2).
+    2. **Bureau & Interface** : `ui_desktop` (18 Environnements de bureau & WMs), `ui_display_manager` (Gestionnaire de session LightDM/GDM3/SDDM), `ui_default_apps` (Navigateur, Terminal, Éditeur), `ui_simulators` (Simulateurs Plymouth & Live Desktop).
+    3. **Design System & Branding** : `brand_theme` (Couleur d'accent & Palette thématique), `brand_appearance` (11 Wallpapers HD vectoriels, Icônes, Curseurs, Polices), `brand_terminal_plymouth` (Thèmes Plymouth & Palettes terminal), `brand_identity` (Identité système & Boutons).
+    4. **Logiciels & Dépôts** : `pkgs_catalog` (Catalogue interactif des paquets logiciels).
+    5. **Système & Matériel** : `sys_identity` (Machine & Hostname), `sys_user` (Compte utilisateur & Sudo), `sys_ssh` (Accès SSH & Clés autorisées), `sys_network` (Wi-Fi, WireGuard, Tailscale, IP fixe), `sys_locale_power` (Locale, Clavier, Fuseau horaire & Alimentation), `sys_storage` (Points de montage & Partitions), `sys_gaming` (Tuning ROG Gaming, GameMode, MangoHud, Proton-GE).
+    6. **Sécurité & Durcissement** : `sec_benchmark` (Conformité ANSSI / CIS Benchmark), `sec_firewall` (Pare-feu UFW/NFTables/Fail2ban), `sec_luks` (Chiffrement de disque LUKS2), `sec_hardening` (Durcissement noyau & Root).
+    7. **Post-Installation & Automatisation** : `post_firstboot` (Script bash first-boot), `post_dotfiles` (Dépôt Git Dotfiles utilisateur), `post_services` (Services systemd/OpenRC personnalisés).
+    8. **Code & Manifestes** : `export_inspector` (Inspecteur multi-manifestes et scripts bash).
+  - *Isolation des Composants par prop `subSection`* : Chaque composant enfant (`DistroSelector`, `DesktopSelector`, `BrandingDesignView`, `SystemConfig`, `SecurityConfig`, `PostInstallScripts`) filtre strictement son rendu sur la `subSection` active afin d'éviter tout chevauchement et tout encombrement visuel.
+  - *Navigation Fluide & Fil d'Ariane* : Header de section avec fil d'ariane contextuel, icônes descriptives, tags et boutons de navigation rapide « Étape précédente » / « Étape suivante ».
+  - *Résultat* : 922 tests unitaires passés à 100%, 0 warning et 0 erreur oxlint sur 120 fichiers, build de production impeccable.
 - **44. 🖥️ Découpage Strict en Pages Dédiées & Résolution du Chevauchement Studio Expert (`SimulatorsView.tsx`, `BrandingDesignView.tsx`, `GamingConfigView.tsx`, `DesktopSelector.tsx`, `SystemConfig.tsx`, `ExpertProStudio.tsx`)** :
   - *Problème identifié (Découvert via capture d'écran utilisateur)* : En naviguant dans le Studio Expert, les sous-sections (`ui_desktop`, `ui_simulators`, `brand_design`) et (`sys_config`, `sys_gaming`) étaient arbitrairement fusionnées dans le JSX sous de mêmes composants monolithiques (`DesktopSelector` et `SystemConfig`). De plus, une grille CSS `repeat(auto-fit, minmax(320px, 1fr))` écrasait les blocs en créant un trou noir à gauche et des colonnes de texte compressées.
   - *Architecture Ciblée 1-à-1 Pure (Zéro Cosmétique)* :

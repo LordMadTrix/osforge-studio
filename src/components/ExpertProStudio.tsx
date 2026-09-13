@@ -19,15 +19,40 @@ import { calculateResourceEstimate } from '../services/resourceEstimator';
 import { sanitizeHexColor } from '../services/generators/branding';
 
 export type StudioSectionId = 
+  // Base Système & Cible
   | 'base_distro'
+  | 'base_kernel'
+  | 'base_output'
+  // Bureau & Interface
   | 'ui_desktop'
+  | 'ui_display_manager'
+  | 'ui_default_apps'
   | 'ui_simulators'
-  | 'brand_design'
+  // Design System & Branding
+  | 'brand_theme'
+  | 'brand_appearance'
+  | 'brand_terminal_plymouth'
+  | 'brand_identity'
+  // Logiciels & Dépôts
   | 'pkgs_catalog'
-  | 'sys_config'
+  // Système & Matériel
+  | 'sys_identity'
+  | 'sys_user'
+  | 'sys_ssh'
+  | 'sys_network'
+  | 'sys_locale_power'
+  | 'sys_storage'
   | 'sys_gaming'
+  // Sécurité & Durcissement
+  | 'sec_benchmark'
+  | 'sec_firewall'
+  | 'sec_luks'
   | 'sec_hardening'
-  | 'post_scripts'
+  // Post-Install & Automatisation
+  | 'post_firstboot'
+  | 'post_dotfiles'
+  | 'post_services'
+  // Code & Manifestes
   | 'export_inspector';
 
 interface ExpertProStudioProps {
@@ -79,7 +104,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
   const estimate = useMemo(() => calculateResourceEstimate(recipe), [recipe]);
   const accentColor = sanitizeHexColor(recipe.branding.accentColor, '#0ea5e9');
 
-  // Arborescence de navigation structurée
+  // Arborescence de navigation structurée et granulaire
   const categories: NavCategory[] = useMemo(() => [
     {
       id: 'cat_base',
@@ -89,9 +114,21 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       items: [
         {
           id: 'base_distro',
-          labelFr: 'Distribution & Formats',
-          labelEn: 'Distribution & Formats',
+          labelFr: 'Distribution Linux',
+          labelEn: 'Linux Distribution',
           badge: recipe.distro.toUpperCase(),
+        },
+        {
+          id: 'base_kernel',
+          labelFr: 'Noyau Linux & Tunning',
+          labelEn: 'Linux Kernel & Tuning',
+          badge: recipe.kernel,
+        },
+        {
+          id: 'base_output',
+          labelFr: 'Architecture & Formats',
+          labelEn: 'Architecture & Output',
+          badge: `${recipe.arch}`,
         },
       ],
     },
@@ -108,6 +145,17 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
           badge: recipe.desktop,
         },
         {
+          id: 'ui_display_manager',
+          labelFr: 'Gestionnaire de Session',
+          labelEn: 'Display Manager',
+          badge: recipe.displayManager,
+        },
+        {
+          id: 'ui_default_apps',
+          labelFr: 'Applications par Défaut',
+          labelEn: 'Default Applications',
+        },
+        {
           id: 'ui_simulators',
           labelFr: 'Simulateurs Bureau & Boot',
           labelEn: 'Desktop & Boot Simulators',
@@ -121,10 +169,26 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       icon: <Palette size={17} color="#ec4899" />,
       items: [
         {
-          id: 'brand_design',
-          labelFr: 'Fonds d\'écran, Thème & Boot',
-          labelEn: 'Wallpapers, Theme & Boot',
+          id: 'brand_theme',
+          labelFr: 'Couleurs & Fonds d\'Écran',
+          labelEn: 'Colors & Wallpapers',
           badge: recipe.branding.wallpaperPreset || 'minimal',
+        },
+        {
+          id: 'brand_appearance',
+          labelFr: 'Icônes, Curseurs & Polices',
+          labelEn: 'Icons, Cursors & Fonts',
+          badge: recipe.branding.iconTheme,
+        },
+        {
+          id: 'brand_terminal_plymouth',
+          labelFr: 'Terminal & Boot Plymouth',
+          labelEn: 'Terminal & Boot Plymouth',
+        },
+        {
+          id: 'brand_identity',
+          labelFr: 'Identité Système & Fastfetch',
+          labelEn: 'System Identity & Fastfetch',
         },
       ],
     },
@@ -149,14 +213,44 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       icon: <Cpu size={17} color="#f59e0b" />,
       items: [
         {
-          id: 'sys_config',
-          labelFr: 'Identité, Réseau & Comptes',
-          labelEn: 'Identity, Network & Users',
+          id: 'sys_identity',
+          labelFr: 'Identité & Nom d\'Hôte',
+          labelEn: 'Identity & Hostname',
+          badge: recipe.hostname,
+        },
+        {
+          id: 'sys_user',
+          labelFr: 'Compte Utilisateur',
+          labelEn: 'User Account',
+          badge: recipe.user.username,
+        },
+        {
+          id: 'sys_ssh',
+          labelFr: 'Accès Distant SSH',
+          labelEn: 'Remote SSH Access',
+          badge: recipe.enableSSH ? 'SSH' : undefined,
+        },
+        {
+          id: 'sys_network',
+          labelFr: 'Réseau Headless & VPN',
+          labelEn: 'Headless Network & VPN',
+          badge: recipe.network?.enableWifi ? 'Wi-Fi' : undefined,
+        },
+        {
+          id: 'sys_locale_power',
+          labelFr: 'Clavier, Locale & Profils',
+          labelEn: 'Keyboard, Locale & Profiles',
+        },
+        {
+          id: 'sys_storage',
+          labelFr: 'Stockage & Bootloader',
+          labelEn: 'Storage & Bootloader',
+          badge: recipe.bootloader || 'grub2',
         },
         {
           id: 'sys_gaming',
-          labelFr: 'Gaming, ROG & Profils',
-          labelEn: 'Gaming, ROG & Profiles',
+          labelFr: 'Gaming, ROG & Latence',
+          labelEn: 'Gaming, ROG & Latency',
           badge: recipe.enableGamingOptimizations ? 'ROG' : undefined,
         },
       ],
@@ -168,9 +262,28 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       icon: <Shield size={17} color="#ef4444" />,
       items: [
         {
+          id: 'sec_benchmark',
+          labelFr: 'Conformité CIS Benchmark',
+          labelEn: 'CIS Benchmark Compliance',
+          badge: recipe.security.cisBenchmarkLevel > 0 ? `CIS L${recipe.security.cisBenchmarkLevel}` : undefined,
+        },
+        {
+          id: 'sec_firewall',
+          labelFr: 'Pare-feu & Filtrage Ports',
+          labelEn: 'Firewall & Port Filtering',
+          badge: recipe.security.firewall !== 'none' ? recipe.security.firewall.toUpperCase() : undefined,
+        },
+        {
+          id: 'sec_luks',
+          labelFr: 'Chiffrement Disque LUKS2',
+          labelEn: 'LUKS2 Disk Encryption',
+          badge: recipe.security.luksEncryption ? 'LUKS2' : undefined,
+        },
+        {
           id: 'sec_hardening',
-          labelFr: 'Pare-feu, CIS & Chiffrement',
-          labelEn: 'Firewall, CIS & Encryption',
+          labelFr: 'Durcissement & Défense',
+          labelEn: 'Hardening & Defense',
+          badge: recipe.security.enableCrowdSec ? 'CrowdSec' : undefined,
         },
       ],
     },
@@ -181,9 +294,20 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       icon: <FileCode size={17} color="#6366f1" />,
       items: [
         {
-          id: 'post_scripts',
-          labelFr: 'Scripts First-Boot & Hooks',
-          labelEn: 'First-Boot Scripts & Hooks',
+          id: 'post_firstboot',
+          labelFr: 'Script Bash First-Boot',
+          labelEn: 'First-Boot Bash Script',
+        },
+        {
+          id: 'post_dotfiles',
+          labelFr: 'Injection Git Dotfiles',
+          labelEn: 'Git Dotfiles Injection',
+        },
+        {
+          id: 'post_services',
+          labelFr: 'Services Systemd Personnalisés',
+          labelEn: 'Custom Systemd Services',
+          badge: recipe.customServices.length > 0 ? `${recipe.customServices.length}` : undefined,
         },
       ],
     },
@@ -195,8 +319,8 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
       items: [
         {
           id: 'export_inspector',
-          labelFr: 'Inspecteur Multi-Fichiers',
-          labelEn: 'Multi-File Inspector',
+          labelFr: 'Inspecteur Multi-Manifestes',
+          labelEn: 'Multi-Manifest Inspector',
         },
       ],
     },
@@ -569,22 +693,54 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 {lang === 'fr' ? 'Configuration Ciblée' : 'Focused Section'}
               </div>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: '4px 0 0 0' }}>
-                {activeSection === 'base_distro' && (lang === 'fr' ? 'Distribution, Noyau & Formats d\'Image' : 'Distribution, Kernel & Output Formats')}
-                {activeSection === 'ui_desktop' && (lang === 'fr' ? 'Environnement de Bureau & Gestionnaire de Session' : 'Desktop Environment & Session Manager')}
-                {activeSection === 'ui_simulators' && (lang === 'fr' ? 'Simulateurs Interactifs (Bureau Live & Boot Splash)' : 'Interactive Simulators (Live Desktop & Boot Splash)')}
-                {activeSection === 'brand_design' && (lang === 'fr' ? 'Design System, Fonds d\'écran & Identité' : 'Design System, Wallpapers & Branding')}
+                {/* 1. Base Système */}
+                {activeSection === 'base_distro' && (lang === 'fr' ? 'Distribution Linux & Canal de Version' : 'Linux Distribution & Release Channel')}
+                {activeSection === 'base_kernel' && (lang === 'fr' ? 'Noyau Linux & Optimisations (BORE, Liquorix, Zen, Hardened)' : 'Linux Kernel Tuning (BORE, Liquorix, Zen, Hardened)')}
+                {activeSection === 'base_output' && (lang === 'fr' ? 'Architecture Processeur & Formats d\'Image (ISO, Disques, WSL2, Docker, SD)' : 'CPU Architecture & Target Image Formats')}
+                
+                {/* 2. Bureau & Interface */}
+                {activeSection === 'ui_desktop' && (lang === 'fr' ? 'Environnement de Bureau & Gestionnaire de Fenêtres' : 'Desktop Environment & Window Manager')}
+                {activeSection === 'ui_display_manager' && (lang === 'fr' ? 'Gestionnaire de Session & Authentification (Display Manager)' : 'Display Manager & Session Login Greeter')}
+                {activeSection === 'ui_default_apps' && (lang === 'fr' ? 'Applications de Bureau par Défaut (Navigateur, Terminal, Code)' : 'Default Desktop Applications (Browser, Terminal, Code)')}
+                {activeSection === 'ui_simulators' && (lang === 'fr' ? 'Simulateurs Interactifs (Bureau Live & Séquence Plymouth)' : 'Interactive Simulators (Live Desktop & Plymouth Boot)')}
+
+                {/* 3. Design System & Branding */}
+                {activeSection === 'brand_theme' && (lang === 'fr' ? 'Couleur d\'Accentuation & Fonds d\'Écran Vectoriels HD' : 'Accent Color & Vector HD Wallpapers')}
+                {activeSection === 'brand_appearance' && (lang === 'fr' ? 'Packs d\'Icônes, Curseurs Souris & Polices Typographiques' : 'Icon Themes, Mouse Cursors & Fonts')}
+                {activeSection === 'brand_terminal_plymouth' && (lang === 'fr' ? 'Schéma Couleurs Terminal, Boutons & Thème Plymouth' : 'Terminal Colors, Window Controls & Plymouth Theme')}
+                {activeSection === 'brand_identity' && (lang === 'fr' ? 'Identité Système, Fastfetch MOTD, Thème GRUB 2 & Aliases' : 'System Identity, Fastfetch, GRUB 2 & Shell Aliases')}
+
+                {/* 4. Logiciels & Dépôts */}
                 {activeSection === 'pkgs_catalog' && (lang === 'fr' ? 'Catalogue Logiciel, Dépôts Tiers & Mode Hors-Ligne' : 'Software Catalog, Third-Party Repos & Air-Gapped Mode')}
-                {activeSection === 'sys_config' && (lang === 'fr' ? 'Identité Système, Utilisateurs & Réseau Headless' : 'System Identity, Users & Headless Network')}
-                {activeSection === 'sys_gaming' && (lang === 'fr' ? 'Optimisations Gaming, Matériel ROG & Console Steam' : 'Gaming Optimizations, ROG Hardware & Steam Console')}
-                {activeSection === 'sec_hardening' && (lang === 'fr' ? 'Pare-feu, Durcissement CIS Benchmark & Chiffrement' : 'Firewall, CIS Hardening & Encryption')}
-                {activeSection === 'post_scripts' && (lang === 'fr' ? 'Scripts Post-Installation, Hooks & IaC (Ansible/Terraform)' : 'Post-Install Scripts, Hooks & IaC')}
-                {activeSection === 'export_inspector' && (lang === 'fr' ? 'Inspecteur Multi-Manifestes (Bash, Cloud-Init, Dockerfile)' : 'Multi-Manifest Inspector (Bash, Cloud-Init, Dockerfile)')}
+
+                {/* 5. Système & Matériel */}
+                {activeSection === 'sys_identity' && (lang === 'fr' ? 'Identité du Système, Nom d\'Hôte & Édition' : 'System Identity, Hostname & Edition')}
+                {activeSection === 'sys_user' && (lang === 'fr' ? 'Compte Utilisateur Principal, Privilèges Sudo & Dotfiles' : 'Primary User Account, Sudo & Dotfiles')}
+                {activeSection === 'sys_ssh' && (lang === 'fr' ? 'Accès Distant OpenSSH, Clés Publiques & Import GitHub' : 'OpenSSH Remote Access & Public Keys')}
+                {activeSection === 'sys_network' && (lang === 'fr' ? 'Pré-configuration Réseau Headless, Wi-Fi, WireGuard & Tailscale' : 'Headless Network, Wi-Fi, WireGuard & Tailscale')}
+                {activeSection === 'sys_locale_power' && (lang === 'fr' ? 'Disposition Clavier, Fuseau Horaire & Profils Énergie' : 'Keyboard Layout, Timezone & Energy Profiles')}
+                {activeSection === 'sys_storage' && (lang === 'fr' ? 'Partitionnement Disque, Btrfs, Mode Immuable & Bootloader' : 'Disk Partitioning, Btrfs, Immutable Mode & Bootloader')}
+                {activeSection === 'sys_gaming' && (lang === 'fr' ? 'Moteur Gaming ROG, Latence PipeWire & Console Steam Gamescope' : 'Gaming Optimizations, ROG Hardware & Steam Console')}
+
+                {/* 6. Sécurité & Durcissement */}
+                {activeSection === 'sec_benchmark' && (lang === 'fr' ? 'Profils de Conformité & Durcissement CIS Benchmark' : 'CIS Benchmark Compliance & Hardening Profiles')}
+                {activeSection === 'sec_firewall' && (lang === 'fr' ? 'Pare-feu Réseau (UFW/Firewalld/NFTables) & Whitelist Ports' : 'Network Firewall & Allowed Ports Whitelist')}
+                {activeSection === 'sec_luks' && (lang === 'fr' ? 'Chiffrement Intégral LUKS2 & Déverrouillage Matériel (TPM2/FIDO2)' : 'LUKS2 Full Disk Encryption & Hardware Unlock')}
+                {activeSection === 'sec_hardening' && (lang === 'fr' ? 'Options de Durcissement Avancées & Cyber-Défense Active' : 'Advanced Hardening Options & Cyber-Defense')}
+
+                {/* 7. Post-Install & Automatisation */}
+                {activeSection === 'post_firstboot' && (lang === 'fr' ? 'Script Bash Root au Premier Démarrage (/root/firstboot.sh)' : 'First-Boot Root Bash Script Hook')}
+                {activeSection === 'post_dotfiles' && (lang === 'fr' ? 'Clonage & Déploiement Automatique de Dotfiles Git' : 'Automatic Git Dotfiles Deployment')}
+                {activeSection === 'post_services' && (lang === 'fr' ? 'Créateur de Démons & Services Systemd Dédiés (*.service)' : 'Custom Systemd Units & Services Generator')}
+
+                {/* 8. Code & Manifestes */}
+                {activeSection === 'export_inspector' && (lang === 'fr' ? 'Inspecteur Multi-Manifestes (Bash, Cloud-Init, Calamares, VM)' : 'Multi-Manifest Inspector (Bash, Cloud-Init, Calamares, VM)')}
               </h2>
             </div>
 
             {/* Actions Contextuelles */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {activeSection === 'base_distro' && onOpenOfficialReleases && (
+              {(activeSection === 'base_distro' || activeSection === 'base_kernel' || activeSection === 'base_output') && onOpenOfficialReleases && (
                 <button
                   onClick={() => onOpenOfficialReleases(recipe.distro as DistroId)}
                   className="btn btn-secondary"
@@ -607,7 +763,7 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
 
               {onOpenScreenshots && (
                 <button
-                  onClick={() => onOpenScreenshots(activeSection === 'base_distro' ? 'distro' : 'desktop')}
+                  onClick={() => onOpenScreenshots(activeSection.startsWith('base') ? 'distro' : 'desktop')}
                   className="btn btn-secondary"
                   style={{ fontSize: '0.75rem', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
                 >
@@ -618,8 +774,9 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
             </div>
           </div>
 
-          {/* Contenu Découpé par Sous-Section (Chaque section a sa propre page dédiée) */}
+          {/* Contenu Découpé par Sous-Section (Chaque sous-section a sa propre page dédiée 1-à-1) */}
           <div style={{ minHeight: '400px' }}>
+            {/* 1. Base Système & Cible */}
             {activeSection === 'base_distro' && (
               <DistroSelector
                 recipe={recipe}
@@ -628,9 +785,33 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 onOpenTips={onOpenTips}
                 onOpenScreenshots={onOpenScreenshots}
                 onOpenOfficialReleases={onOpenOfficialReleases}
+                subSection="distro"
+              />
+            )}
+            {activeSection === 'base_kernel' && (
+              <DistroSelector
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                onOpenScreenshots={onOpenScreenshots}
+                onOpenOfficialReleases={onOpenOfficialReleases}
+                subSection="kernel"
+              />
+            )}
+            {activeSection === 'base_output' && (
+              <DistroSelector
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                onOpenScreenshots={onOpenScreenshots}
+                onOpenOfficialReleases={onOpenOfficialReleases}
+                subSection="output"
               />
             )}
 
+            {/* 2. Bureau & Interface */}
             {activeSection === 'ui_desktop' && (
               <DesktopSelector
                 recipe={recipe}
@@ -638,9 +819,29 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
                 lang={lang}
                 onOpenTips={onOpenTips}
                 onOpenScreenshots={onOpenScreenshots}
+                subSection="desktop"
               />
             )}
-
+            {activeSection === 'ui_display_manager' && (
+              <DesktopSelector
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                onOpenScreenshots={onOpenScreenshots}
+                subSection="display_manager"
+              />
+            )}
+            {activeSection === 'ui_default_apps' && (
+              <DesktopSelector
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                onOpenScreenshots={onOpenScreenshots}
+                subSection="default_apps"
+              />
+            )}
             {activeSection === 'ui_simulators' && (
               <SimulatorsView
                 recipe={recipe}
@@ -650,15 +851,45 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
 
-            {activeSection === 'brand_design' && (
+            {/* 3. Design System & Branding */}
+            {activeSection === 'brand_theme' && (
               <BrandingDesignView
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
+                subSection="theme"
+              />
+            )}
+            {activeSection === 'brand_appearance' && (
+              <BrandingDesignView
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="appearance"
+              />
+            )}
+            {activeSection === 'brand_terminal_plymouth' && (
+              <BrandingDesignView
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="terminal_plymouth"
+              />
+            )}
+            {activeSection === 'brand_identity' && (
+              <BrandingDesignView
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="identity"
               />
             )}
 
+            {/* 4. Logiciels & Dépôts */}
             {activeSection === 'pkgs_catalog' && (
               <PackageCatalog
                 recipe={recipe}
@@ -668,15 +899,61 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
 
-            {activeSection === 'sys_config' && (
+            {/* 5. Système & Matériel */}
+            {activeSection === 'sys_identity' && (
               <SystemConfig
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
+                subSection="identity"
               />
             )}
-
+            {activeSection === 'sys_user' && (
+              <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="user"
+              />
+            )}
+            {activeSection === 'sys_ssh' && (
+              <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="ssh"
+              />
+            )}
+            {activeSection === 'sys_network' && (
+              <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="network"
+              />
+            )}
+            {activeSection === 'sys_locale_power' && (
+              <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="locale_power"
+              />
+            )}
+            {activeSection === 'sys_storage' && (
+              <SystemConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="storage"
+              />
+            )}
             {activeSection === 'sys_gaming' && (
               <GamingConfigView
                 recipe={recipe}
@@ -686,24 +963,74 @@ export const ExpertProStudio: React.FC<ExpertProStudioProps> = ({
               />
             )}
 
+            {/* 6. Sécurité & Durcissement */}
+            {activeSection === 'sec_benchmark' && (
+              <SecurityConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="benchmark"
+              />
+            )}
+            {activeSection === 'sec_firewall' && (
+              <SecurityConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="firewall"
+              />
+            )}
+            {activeSection === 'sec_luks' && (
+              <SecurityConfig
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="luks"
+              />
+            )}
             {activeSection === 'sec_hardening' && (
               <SecurityConfig
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
+                subSection="hardening"
               />
             )}
 
-            {activeSection === 'post_scripts' && (
+            {/* 7. Post-Install & Automatisation */}
+            {activeSection === 'post_firstboot' && (
               <PostInstallScripts
                 recipe={recipe}
                 onChange={onChange}
                 lang={lang}
                 onOpenTips={onOpenTips}
+                subSection="firstboot"
+              />
+            )}
+            {activeSection === 'post_dotfiles' && (
+              <PostInstallScripts
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="dotfiles"
+              />
+            )}
+            {activeSection === 'post_services' && (
+              <PostInstallScripts
+                recipe={recipe}
+                onChange={onChange}
+                lang={lang}
+                onOpenTips={onOpenTips}
+                subSection="services"
               />
             )}
 
+            {/* 8. Code, Recette & Manifestes */}
             {activeSection === 'export_inspector' && (
               <RecipeInspector
                 recipe={recipe}

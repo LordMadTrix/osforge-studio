@@ -9,6 +9,7 @@ interface BrandingDesignViewProps {
   onChange: (updated: Partial<OSRecipe>) => void;
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
+  subSection?: 'theme' | 'appearance' | 'terminal_plymouth' | 'identity' | 'all';
 }
 
 export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
@@ -16,6 +17,7 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
   onChange,
   lang,
   onOpenTips,
+  subSection = 'all',
 }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -23,6 +25,7 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
       <ContextTip category="desktop" lang={lang} onOpenAllTips={onOpenTips} />
 
       {/* 1. Couleur d'Accent & Thème de Démarrage */}
+      {(subSection === 'all' || subSection === 'theme') && (
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Palette size={18} color="var(--pink)" />
@@ -129,8 +132,10 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* 2. Icônes, Curseurs & Polices d'Écriture */}
+      {(subSection === 'all' || subSection === 'appearance') && (
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Type size={18} color="var(--cyan)" />
@@ -220,8 +225,10 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* 3. Terminal & Ergonomie Fenêtres */}
+      {(subSection === 'all' || subSection === 'terminal_plymouth') && (
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <TerminalSquare size={18} color="#10b981" />
@@ -337,8 +344,10 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
           </select>
         </div>
       </div>
+      )}
 
       {/* 4. Options d'Intégration & Identité Système */}
+      {(subSection === 'all' || subSection === 'identity') && (
       <div className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1.02rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Sparkles size={18} color="#f59e0b" />
@@ -427,6 +436,7 @@ export const BrandingDesignView: React.FC<BrandingDesignViewProps> = ({
           </label>
         </div>
       </div>
+      )}
     </div>
   );
 };

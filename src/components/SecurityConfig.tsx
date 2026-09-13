@@ -9,9 +9,16 @@ interface SecurityConfigProps {
   onChange: (updated: Partial<OSRecipe>) => void;
   lang: 'fr' | 'en';
   onOpenTips?: () => void;
+  subSection?: 'benchmark' | 'firewall' | 'luks' | 'hardening' | 'all';
 }
 
-export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange, lang, onOpenTips }) => {
+export const SecurityConfig: React.FC<SecurityConfigProps> = ({
+  recipe,
+  onChange,
+  lang,
+  onOpenTips,
+  subSection = 'all',
+}) => {
   const [showLuksPass, setShowLuksPass] = useState(false);
 
   const updateSec = (updated: Partial<SecurityConfigType>) => {
@@ -165,6 +172,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
       </div>
 
       {/* 1. CIS Benchmark Profiles */}
+      {(subSection === 'all' || subSection === 'benchmark') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <div style={{ marginBottom: '14px' }}>
           <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -215,8 +223,10 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
           })}
         </div>
       </div>
+      )}
 
       {/* 2. Firewall & Network Defense */}
+      {(subSection === 'all' || subSection === 'firewall') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Flame size={16} color="#ef4444" />
@@ -318,12 +328,144 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
           </div>
         )}
       </div>
+      )}
 
-      {/* 3. Security Hardening Toggles */}
+      {/* 3. Chiffrement Intégral LUKS2 & Clé Matérielle */}
+      {(subSection === 'all' || subSection === 'luks') && (
+      <div className="glass-panel" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Lock size={18} color={recipe.security.luksEncryption ? 'var(--emerald)' : 'var(--cyan)'} />
+              {lang === 'fr' ? 'Chiffrement Intégral Disque LUKS2 & Déverrouillage Matériel' : 'LUKS2 Full Disk Encryption & Hardware Unlock'}
+              <InfoTooltip
+                text={lang === 'fr'
+                  ? 'Chiffre les partitions système et données avec AES-XTS (cryptsetup LUKS2). Déverrouillable par mot de passe, puce TPM 2.0 ou clé physique FIDO2/YubiKey.'
+                  : 'Encrypts partitions with AES-XTS (LUKS2). Unlock via passphrase, TPM 2.0 chip, or FIDO2/YubiKey.'}
+              />
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: recipe.security.luksEncryption ? 'var(--emerald)' : 'var(--text-muted)', marginTop: '3px' }}>
+              {recipe.security.luksEncryption
+                ? (lang === 'fr' ? '✓ Chiffrement actif pour les images disques (QCOW2, VMDK, RAW)' : '✓ Active for disk images (QCOW2, VMDK, RAW)')
+                : (lang === 'fr' ? 'Protection contre l’extraction de données hors-ligne et le vol de matériel' : 'Protection against offline tampering and theft')}
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={recipe.security.luksEncryption}
+              onChange={(e) => updateSec({ luksEncryption: e.target.checked })}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        {recipe.security.luksEncryption && (
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                <Cpu size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                {lang === 'fr' ? 'Méthode de déverrouillage du volume chiffré :' : 'Encrypted Volume Unlock Method:'}
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                {[
+                  {
+                    id: 'passphrase' as LuksUnlockMethod,
+                    name: 'Passphrase Seule',
+                    badge: 'Standard',
+                    badgeColor: '#94a3b8',
+                    desc: 'Saisie manuelle du mot de passe au boot'
+                  },
+                  {
+                    id: 'tpm2' as LuksUnlockMethod,
+                    name: 'TPM 2.0 Puce',
+                    badge: 'Auto-Unlock',
+                    badgeColor: '#10b981',
+                    desc: 'Déchiffrement matériel sans prompt'
+                  },
+                  {
+                    id: 'fido2' as LuksUnlockMethod,
+                    name: 'YubiKey / FIDO2',
+                    badge: 'Clé USB Matérielle',
+                    badgeColor: '#0ea5e9',
+                    desc: 'Déverrouillage physique au contact'
+                  },
+                  {
+                    id: 'tpm2_passphrase' as LuksUnlockMethod,
+                    name: 'TPM 2.0 + Secours',
+                    badge: 'Hybride Recommandé',
+                    badgeColor: '#a855f7',
+                    desc: 'TPM auto + secours par mot de passe'
+                  },
+                ].map((m) => {
+                  const selected = (recipe.security.luksUnlockMethod || 'passphrase') === m.id;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => updateSec({ luksUnlockMethod: m.id })}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '6px',
+                        border: selected ? `1px solid ${m.badgeColor}` : '1px solid var(--border-subtle)',
+                        background: selected ? 'rgba(15, 23, 42, 0.8)' : 'rgba(10, 15, 28, 0.4)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: selected ? m.badgeColor : '#f1f5f9' }}>
+                          {m.name}
+                        </span>
+                        <span style={{ fontSize: '0.62rem', color: m.badgeColor, background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: '4px' }}>
+                          {m.badge}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {m.desc}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                <KeyRound size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                {lang === 'fr' ? 'Passphrase principale (ou de secours TPM/FIDO2) :' : 'Master Passphrase (or TPM/FIDO2 backup):'}
+              </label>
+              <div style={{ position: 'relative', maxWidth: '480px' }}>
+                <input
+                  type={showLuksPass ? 'text' : 'password'}
+                  className="input-text font-mono"
+                  style={{ fontSize: '0.84rem', paddingRight: '36px' }}
+                  value={recipe.security.luksPassword || ''}
+                  onChange={(e) => updateSec({ luksPassword: e.target.value })}
+                  placeholder="Passphrase sécurisée..."
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLuksPass(!showLuksPass)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  {showLuksPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* 4. Options de Durcissement Avancées */}
+      {(subSection === 'all' || subSection === 'hardening') && (
       <div className="glass-panel" style={{ padding: '18px' }}>
         <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Lock size={16} color="var(--cyan)" />
-          {lang === 'fr' ? 'Options de Durcissement Avancées' : 'Advanced Hardening Options'}
+          <Shield size={16} color="var(--cyan)" />
+          {lang === 'fr' ? 'Options de Durcissement Avancées & Cyber-Défense' : 'Advanced Hardening Options & Cyber-Defense'}
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
@@ -346,127 +488,6 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
               />
               <span className="toggle-slider"></span>
             </label>
-          </div>
-
-          {/* LUKS Disk Encryption */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 14px', background: 'rgba(10, 15, 28, 0.4)', borderRadius: '6px', border: `1px solid ${recipe.security.luksEncryption ? 'var(--emerald)' : 'var(--border-subtle)'}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.84rem', color: '#f1f5f9' }}>
-                  Chiffrement Intégral LUKS2
-                  <InfoTooltip text="Chiffre les partitions système et données avec AES-XTS (cryptsetup LUKS2) pour empêcher l'extraction de données hors ligne." />
-                </div>
-                <div style={{ fontSize: '0.72rem', color: recipe.security.luksEncryption ? 'var(--emerald)' : 'var(--text-muted)' }}>
-                  {recipe.security.luksEncryption ? '✓ Actif pour les images disques (QCOW2/RAW/VMDK)' : 'Protection contre le vol physique et l’inspection d’image'}
-                </div>
-              </div>
-              <label className="toggle-switch">
-                <input
-                  type="checkbox"
-                  checked={recipe.security.luksEncryption}
-                  onChange={(e) => updateSec({ luksEncryption: e.target.checked })}
-                />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-
-            {recipe.security.luksEncryption && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    <Cpu size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                    {lang === 'fr' ? 'Méthode de déverrouillage du volume chiffré :' : 'Encrypted Volume Unlock Method:'}
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px' }}>
-                    {[
-                      {
-                        id: 'passphrase' as LuksUnlockMethod,
-                        name: 'Passphrase Seule',
-                        badge: 'Standard',
-                        badgeColor: '#94a3b8',
-                        desc: 'Saisie manuelle du mot de passe au boot'
-                      },
-                      {
-                        id: 'tpm2' as LuksUnlockMethod,
-                        name: 'TPM 2.0 Puce',
-                        badge: 'Auto-Unlock',
-                        badgeColor: '#10b981',
-                        desc: 'Déchiffrement matériel sans prompt'
-                      },
-                      {
-                        id: 'fido2' as LuksUnlockMethod,
-                        name: 'YubiKey / FIDO2',
-                        badge: 'Clé USB Matérielle',
-                        badgeColor: '#0ea5e9',
-                        desc: 'Déverrouillage physique au contact'
-                      },
-                      {
-                        id: 'tpm2_passphrase' as LuksUnlockMethod,
-                        name: 'TPM 2.0 + Secours',
-                        badge: 'Hybride Recommandé',
-                        badgeColor: '#a855f7',
-                        desc: 'TPM auto + secours par mot de passe'
-                      },
-                    ].map((m) => {
-                      const selected = (recipe.security.luksUnlockMethod || 'passphrase') === m.id;
-                      return (
-                        <div
-                          key={m.id}
-                          onClick={() => updateSec({ luksUnlockMethod: m.id })}
-                          style={{
-                            padding: '8px 10px',
-                            borderRadius: '6px',
-                            border: selected ? `1px solid ${m.badgeColor}` : '1px solid var(--border-subtle)',
-                            background: selected ? 'rgba(15, 23, 42, 0.8)' : 'rgba(10, 15, 28, 0.4)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: selected ? m.badgeColor : '#f1f5f9' }}>
-                              {m.name}
-                            </span>
-                            <span style={{ fontSize: '0.62rem', color: m.badgeColor, background: 'rgba(255,255,255,0.05)', padding: '1px 5px', borderRadius: '4px' }}>
-                              {m.badge}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            {m.desc}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    <KeyRound size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                    {lang === 'fr' ? 'Passphrase principale (ou de secours TPM/FIDO2) :' : 'Master Passphrase (or TPM/FIDO2 backup):'}
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showLuksPass ? 'text' : 'password'}
-                      className="input-text font-mono"
-                      style={{ fontSize: '0.78rem', paddingRight: '32px' }}
-                      value={recipe.security.luksPassword || ''}
-                      onChange={(e) => updateSec({ luksPassword: e.target.value })}
-                      placeholder="Passphrase sécurisée..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLuksPass(!showLuksPass)}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                    >
-                      {showLuksPass ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Fail2Ban */}
@@ -581,6 +602,7 @@ export const SecurityConfig: React.FC<SecurityConfigProps> = ({ recipe, onChange
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };
